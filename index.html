@@ -678,8 +678,8 @@ function playTick(loud){
   const data=buf.getChannelData(0);
   
   // Two resonant frequencies (escapement tick + case resonance)
-  const f1=loud?1800:2200; // primary
-  const f2=loud?4200:5800; // case ring
+  const f1=loud?900:2200; // primary
+  const f2=loud?2200:5800; // case ring
   const vol=loud?0.025:0.008;
   
   for(let i=0;i<bufLen;i++){
