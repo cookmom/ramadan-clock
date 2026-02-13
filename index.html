@@ -654,30 +654,13 @@ function drawIndices(c){
       ctx.save();
       ctx.translate(cx+Math.cos(ang)*midR,cy+Math.sin(ang)*midR);
       ctx.rotate(ang+Math.PI/2);
-      // Directional light — light source at ~10 o'clock (upper left)
-      const lightAng=-Math.PI*0.65; // light direction
-      const lightDot=Math.cos(ang-lightAng); // -1 to 1, how much this index faces the light
-      const brightness=0.5+lightDot*0.3; // 0.2 (shadow) to 0.8 (lit)
-      const base=Math.floor(120+brightness*80);
-      const peak=Math.floor(150+brightness*70);
-      const dark=Math.floor(80+brightness*60);
-      // Brushed aluminum body
-      const metalGrad=ctx.createLinearGradient(-capW,0,capW,0);
-      metalGrad.addColorStop(0,`rgba(${base-15},${base-12},${base-15},.85)`);
-      metalGrad.addColorStop(0.35,`rgba(${peak-10},${peak-7},${peak-10},.9)`);
-      metalGrad.addColorStop(0.5,`rgba(${peak},${peak+3},${peak},.92)`);
-      metalGrad.addColorStop(0.65,`rgba(${peak-15},${peak-12},${peak-15},.88)`);
-      metalGrad.addColorStop(1,`rgba(${base-20},${base-17},${base-20},.82)`);
-      ctx.fillStyle=metalGrad;
+      // Clean metal capsule with lume insert
+      // Outer metal shell
+      ctx.fillStyle=c.hand;
       roundRect(ctx,-capW,capH/-2,capW*2,capH,capW);ctx.fill();
-      // Bottom edge
-      ctx.fillStyle=`rgba(${dark},${dark+3},${dark},.5)`;
-      roundRect(ctx,-capW,capH/-2+capH*0.8,capW*2,capH*0.2,capW*0.3);ctx.fill();
-      // Specular catch — only on lit indices
-      if(lightDot>0.2){
-        ctx.fillStyle=`rgba(255,255,250,${(lightDot-0.2)*0.35})`;
-        roundRect(ctx,-capW*0.5,capH/-2+1*dpr,capW*1.0,capH*0.12,capW*0.2);ctx.fill();
-      }
+      // Thin dark edge for depth
+      ctx.strokeStyle=c.shadow;ctx.lineWidth=0.5*dpr;
+      roundRect(ctx,-capW,capH/-2,capW*2,capH,capW);ctx.stroke();
       // Lume insert (inset strip)
       const insetW=capW*0.55,insetH=capH*0.75;
       ctx.shadowColor=c.lume+'80';ctx.shadowBlur=10*dpr;
@@ -689,15 +672,12 @@ function drawIndices(c){
       roundRect(ctx,-insetW*0.4,insetH/-2+1*dpr,insetW*0.8,insetH*0.4,insetW*0.3);ctx.fill();
       ctx.restore();
     }else{
-      // Minute ticks — directional light
-      const lightAng2=-Math.PI*0.65;
-      const ld=Math.cos(ang-lightAng2);
-      const tickAlpha=0.35+ld*0.2;
+      // Minute ticks
       const inner=R-R*0.07,outer=R-R*0.03;
       ctx.strokeStyle=c.shadow;ctx.lineWidth=2*dpr;ctx.lineCap='round';
       ctx.beginPath();ctx.moveTo(cx+Math.cos(ang)*inner+1*dpr,cy+Math.sin(ang)*inner+1.5*dpr);
       ctx.lineTo(cx+Math.cos(ang)*outer+1*dpr,cy+Math.sin(ang)*outer+1.5*dpr);ctx.stroke();
-      ctx.strokeStyle=c.lume;ctx.globalAlpha=tickAlpha;ctx.lineWidth=1.5*dpr;
+      ctx.strokeStyle=c.lume;ctx.globalAlpha=0.45;ctx.lineWidth=1.5*dpr;
       ctx.beginPath();ctx.moveTo(cx+Math.cos(ang)*inner,cy+Math.sin(ang)*inner);
       ctx.lineTo(cx+Math.cos(ang)*outer,cy+Math.sin(ang)*outer);ctx.stroke();
       ctx.globalAlpha=1;
@@ -880,24 +860,12 @@ function drawHand(c,angle,length,width,taperTip,tail){
   ctx.moveTo(tailX-perpX*width,tailY-perpY*width);ctx.lineTo(tipX-perpX*taperTip,tipY-perpY*taperTip);
   ctx.lineTo(tipX+perpX*taperTip,tipY+perpY*taperTip);ctx.lineTo(tailX+perpX*width,tailY+perpY*width);
   ctx.closePath();ctx.fill();ctx.restore();
-  // Brushed aluminum hand body
-  const handGrad=ctx.createLinearGradient(
-    tailX-perpX*width,tailY-perpY*width,
-    tailX+perpX*width,tailY+perpY*width);
-  handGrad.addColorStop(0,'rgba(140,143,140,.85)');
-  handGrad.addColorStop(0.3,'rgba(180,183,180,.92)');
-  handGrad.addColorStop(0.5,'rgba(195,198,195,.95)');
-  handGrad.addColorStop(0.7,'rgba(175,178,175,.9)');
-  handGrad.addColorStop(1,'rgba(135,138,135,.82)');
-  ctx.fillStyle=handGrad;ctx.strokeStyle='rgba(120,123,120,.4)';ctx.lineWidth=0.5*dpr;
+  // Clean metal hand body
+  ctx.fillStyle=c.hand;ctx.strokeStyle=c.shadow;ctx.lineWidth=0.5*dpr;
   ctx.beginPath();ctx.moveTo(tailX-perpX*width,tailY-perpY*width);
   ctx.lineTo(tipX-perpX*taperTip,tipY-perpY*taperTip);
   ctx.lineTo(tipX+perpX*taperTip,tipY+perpY*taperTip);
   ctx.lineTo(tailX+perpX*width,tailY+perpY*width);ctx.closePath();ctx.fill();ctx.stroke();
-  // Subtle edge catch (not glossy)
-  ctx.strokeStyle='rgba(220,223,220,.2)';ctx.lineWidth=0.5*dpr;
-  ctx.beginPath();ctx.moveTo(tailX-perpX*width*0.7,tailY-perpY*width*0.7);
-  ctx.lineTo(tipX-perpX*taperTip*0.7,tipY-perpY*taperTip*0.7);ctx.stroke();
   // Lume insert strip (inset into metal)
   ctx.strokeStyle=c.lume;ctx.lineWidth=width*0.5;ctx.lineCap='round';
   ctx.shadowColor=c.lume+'60';ctx.shadowBlur=10*dpr;
