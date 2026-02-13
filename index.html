@@ -360,7 +360,10 @@ let PD=null,DD=null;
 const PC={Fajr:'#6ba0c4',Sunrise:'#e8c060',Dhuhr:'#f0e060',Asr:'#e0b050',Maghrib:'#d06040',Isha:'#8a7abf'};
 const PN=['Fajr','Sunrise','Dhuhr','Asr','Maghrib','Isha'];
 function pM(s){if(!s)return 0;const[h,m]=s.split(':').map(Number);return h*60+m;}
-function nM(){const d=new Date();return d.getHours()*60+d.getMinutes()+d.getSeconds()/60;}
+// ── DEV MODE ──
+let devMode=false,devTimeMin=null,devRamadan=false;
+function devNow(){if(devTimeMin!==null){const d=new Date();d.setHours(Math.floor(devTimeMin/60),Math.floor(devTimeMin%60),Math.floor((devTimeMin%1)*60),0);return d;}return new Date();}
+function nM(){return devTimeMin!==null?devTimeMin:(()=>{const d=new Date();return d.getHours()*60+d.getMinutes()+d.getSeconds()/60;})();}
 function f12(m){const h=Math.floor(m/60),mi=Math.floor(m%60);return`${h%12||12}:${String(mi).padStart(2,'0')}${h>=12?'p':'a'}`;}
 const MN={'1':'Karachi','2':'ISNA','3':'MWL','4':'Umm Al-Qura','5':'Egyptian','7':'Tehran','8':'Gulf','15':'Moonsighting'};
 
@@ -380,7 +383,8 @@ function updateInfo(){
   document.getElementById('loc').style.color=c.textMuted;
   const lbl=document.getElementById('ramLabel');
   lbl.style.color=c.accent;
-  if(h.month.number===9)lbl.textContent=`RAMADAN · DAY ${h.day}`;
+  const isRam=devRamadan||h.month.number===9;
+  if(isRam)lbl.textContent=`RAMADAN · DAY ${devRamadan?'15':h.day}`;
   else if(h.month.number===8){const dl=(h.month.days||30)-parseInt(h.day);lbl.textContent=dl<=15?`${dl} DAYS TO RAMADAN`:`SHA'BĀN ${h.day}`;}
   else lbl.textContent='';
 
@@ -398,7 +402,7 @@ function updateInfo(){
 
   const fajr=pM(PD.Fajr),mag=pM(PD.Maghrib),el=document.getElementById('fastStatus');
   el.style.color=c.text;
-  if(h.month.number===9){
+  if(isRam){
     if(now>=fajr&&now<mag){const l=mag-now;el.innerHTML=`Fasting · <span class="tl" style="color:${c.accent}">${Math.floor(l/60)}h ${Math.floor(l%60)}m to Iftar</span>`;}
     else if(now<fajr){const l=fajr-now;el.innerHTML=`Suhoor · <span class="tl" style="color:${c.accent}">${Math.floor(l/60)}h ${Math.floor(l%60)}m to Fajr</span>`;}
     else el.innerHTML=`<span style="color:${c.accent}">Iftar Mubarak ☪</span>`;
@@ -879,7 +883,7 @@ function drawHand(c,angle,length,width,taperTip,tail){
 }
 
 function drawHands(c){
-  const now=new Date();
+  const now=devNow();
   const h=now.getHours()%12,m=now.getMinutes(),s=now.getSeconds(),ms=now.getMilliseconds();
 
   // Movement types
@@ -970,6 +974,31 @@ fetchPrayer();
 setInterval(fetchPrayer,30*60*1000);
 setInterval(updateInfo,1000);
 draw();
+</script>
+<div id="devPanel" style="display:none;position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:100;background:rgba(0,0,0,.85);backdrop-filter:blur(12px);border:1px solid rgba(240,224,96,.3);border-radius:12px;padding:14px 20px;gap:10px;flex-direction:column;align-items:center;font-family:'Inter',system-ui,sans-serif;font-size:12px;color:rgba(255,255,240,.8);min-width:320px;">
+  <div style="display:flex;align-items:center;gap:8px;width:100%;">
+    <span style="color:#f0e060;font-weight:600;font-size:11px;letter-spacing:.1em;">DEV MODE</span>
+    <span style="flex:1"></span>
+    <span id="devTimeLabel" style="font-variant-numeric:tabular-nums;font-weight:500;">LIVE</span>
+  </div>
+  <input type="range" id="devSlider" min="0" max="1439" step="0.5" value="720" style="width:100%;accent-color:#f0e060;cursor:pointer;" oninput="devTimeMin=parseFloat(this.value);document.getElementById('devTimeLabel').textContent=((h,m)=>(h%12||12)+':'+String(m).padStart(2,'0')+(h>=12?' PM':' AM'))(Math.floor(this.value/60),Math.floor(this.value%60));updateInfo();">
+  <div style="display:flex;gap:12px;align-items:center;width:100%;margin-top:4px;">
+    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" id="devRamToggle" onchange="devRamadan=this.checked;updateInfo();" style="accent-color:#f0e060;"> <span style="font-size:11px;">Simulate Ramadan</span></label>
+    <span style="flex:1"></span>
+    <button onclick="devTimeMin=null;document.getElementById('devSlider').value=720;document.getElementById('devTimeLabel').textContent='LIVE';updateInfo();" style="font-size:10px;padding:4px 10px;background:rgba(240,224,96,.15);border:1px solid rgba(240,224,96,.3);border-radius:6px;color:#f0e060;cursor:pointer;">Reset to Live</button>
+  </div>
+</div>
+<script>
+(function(){
+  let lastTap=0;
+  function toggleDev(){
+    devMode=!devMode;
+    document.getElementById('devPanel').style.display=devMode?'flex':'none';
+    if(!devMode){devTimeMin=null;devRamadan=false;document.getElementById('devRamToggle').checked=false;document.getElementById('devSlider').value=720;document.getElementById('devTimeLabel').textContent='LIVE';updateInfo();}
+  }
+  document.addEventListener('dblclick',toggleDev);
+  document.addEventListener('touchend',function(e){const now=Date.now();if(now-lastTap<350){e.preventDefault();toggleDev();}lastTap=now;});
+})();
 </script>
 </body>
 </html>
