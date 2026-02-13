@@ -692,7 +692,9 @@ function drawMoon(c){
   const moonY=startY+(endY-startY)*riseEase;
 
   ctx.save();
-  ctx.globalAlpha=celestialProgress;
+  // Moon starts dim, brightens to full by animation end
+  const moonBrightness=0.15+0.85*celestialProgress;
+  ctx.globalAlpha=celestialProgress*moonBrightness;
 
   // Clip: exclude clock face so moon appears to rise from behind
   ctx.beginPath();
