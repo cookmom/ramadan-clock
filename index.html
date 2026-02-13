@@ -988,7 +988,7 @@ function getTawafVirtualMin(){
   // Returns extra virtual minutes to subtract from current time (CCW)
   if(!tawafActive)return 0;
   const elapsed=performance.now()-tawafStart;
-  if(elapsed>=TAWAF_DURATION){tawafActive=false;tawafDev=false;tawafLastLap=0;return 0;}
+  if(elapsed>=TAWAF_DURATION){endTawafSpin();return 0;}
   const t=elapsed/TAWAF_DURATION;
   // Ease in-out cubic (on POSITION, 0→1, never reverses)
   const ease=t<0.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
@@ -1079,15 +1079,66 @@ function playTawafGong(lap){
     }
   }catch(e){}
 }
-function startTawaf(){tawafActive=true;tawafStart=performance.now();tawafLastLap=0;}
+// Tawaf states: idle → (dev: snap_to_mag →) spinning → hold → idle
+const TAWAF_HOLD_MS=20000; // 20s hold after tawaf completes
+let tawafState='idle'; // idle | snap_to_mag | spinning | hold
+let tawafHoldStart=0;
+let tawafMaghribMin=null; // Maghrib time in minutes for dev sim
+function startTawaf(fromDev){
+  tawafLastLap=0;
+  if(fromDev&&PD){
+    // Dev mode: snap to Maghrib first
+    tawafMaghribMin=pM(PD.Maghrib);
+    devTimeMin=tawafMaghribMin;
+    tawafState='snap_to_mag';
+    tawafDev=true;
+    // Brief pause at Maghrib before spinning (500ms)
+    setTimeout(()=>{
+      if(tawafState==='snap_to_mag'){
+        tawafActive=true;tawafStart=performance.now();
+        tawafState='spinning';
+      }
+    },500);
+  }else{
+    // Live Maghrib trigger: start spinning immediately
+    tawafActive=true;tawafStart=performance.now();
+    tawafState='spinning';
+  }
+}
+function endTawafSpin(){
+  tawafActive=false;
+  if(tawafDev){
+    // Hold at post-tawaf time (Maghrib + ~30s)
+    tawafState='hold';
+    tawafHoldStart=performance.now();
+    // Set time to just after Maghrib
+    if(tawafMaghribMin!==null)devTimeMin=tawafMaghribMin+0.5; // 30s after Maghrib
+  }else{
+    tawafState='idle';
+  }
+}
+function checkTawafHold(){
+  if(tawafState==='hold'&&performance.now()-tawafHoldStart>=TAWAF_HOLD_MS){
+    // Restore live time
+    tawafState='idle';tawafDev=false;
+    devTimeMin=null;tawafMaghribMin=null;
+    // Reset dev panel UI
+    const sl=document.getElementById('devSlider');
+    const lb=document.getElementById('devTimeLabel');
+    const tg=document.getElementById('devTawafToggle');
+    if(sl)sl.value=720;if(lb)lb.textContent='LIVE';if(tg)tg.checked=false;
+    updateInfo();
+  }
+}
 // Auto-trigger at Maghrib
 let tawafTriggered=false;
 function checkTawaf(){
-  if(tawafActive||tawafDev)return;
+  checkTawafHold();
+  if(tawafState!=='idle')return;
   if(!PD)return;
   const now=nM(),mag=pM(PD.Maghrib);
   // Trigger within 1 minute of Maghrib
-  if(now>=mag&&now<mag+1&&!tawafTriggered){tawafTriggered=true;startTawaf();}
+  if(now>=mag&&now<mag+1&&!tawafTriggered){tawafTriggered=true;startTawaf(false);}
   if(now<mag)tawafTriggered=false; // reset for next day
 }
 
@@ -1160,9 +1211,9 @@ draw();
   </div>
   <div style="display:flex;gap:12px;align-items:center;width:100%;margin-top:4px;">
     <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" id="devRamToggle" onchange="devRamadan=this.checked;updateInfo();" style="accent-color:#f0e060;"> <span style="font-size:11px;">Ramadan</span></label>
-    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" id="devTawafToggle" onchange="if(this.checked){tawafDev=true;startTawaf();}else{tawafActive=false;tawafDev=false;}" style="accent-color:#f0e060;"> <span style="font-size:11px;">Tawaf</span></label>
+    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" id="devTawafToggle" onchange="if(this.checked){startTawaf(true);}else{tawafActive=false;tawafDev=false;tawafState='idle';devTimeMin=null;tawafMaghribMin=null;document.getElementById('devSlider').value=720;document.getElementById('devTimeLabel').textContent='LIVE';updateInfo();}" style="accent-color:#f0e060;"> <span style="font-size:11px;">Tawaf</span></label>
     <span style="flex:1"></span>
-    <button onclick="devTimeMin=null;devLocation=null;devRamadan=false;tawafActive=false;tawafDev=false;document.getElementById('devSlider').value=720;document.getElementById('devTimeLabel').textContent='LIVE';document.getElementById('devRamToggle').checked=false;document.getElementById('devTawafToggle').checked=false;document.getElementById('devLocSelect').value='la';fetchPrayer();" style="font-size:10px;padding:4px 10px;background:rgba(240,224,96,.15);border:1px solid rgba(240,224,96,.3);border-radius:6px;color:#f0e060;cursor:pointer;">Reset All</button>
+    <button onclick="devTimeMin=null;devLocation=null;devRamadan=false;tawafActive=false;tawafDev=false;tawafState='idle';tawafMaghribMin=null;document.getElementById('devSlider').value=720;document.getElementById('devTimeLabel').textContent='LIVE';document.getElementById('devRamToggle').checked=false;document.getElementById('devTawafToggle').checked=false;document.getElementById('devLocSelect').value='la';fetchPrayer();" style="font-size:10px;padding:4px 10px;background:rgba(240,224,96,.15);border:1px solid rgba(240,224,96,.3);border-radius:6px;color:#f0e060;cursor:pointer;">Reset All</button>
   </div>
 </div>
 <script>
