@@ -1096,7 +1096,11 @@ function getTawafVirtualMin(){
   // Returns extra virtual minutes to subtract from current time (CCW)
   if(!tawafActive)return 0;
   const elapsed=performance.now()-tawafStart;
-  if(elapsed>=TAWAF_DURATION){endTawafSpin();tawafCurrentVM=0;return 0;}
+  if(elapsed>=TAWAF_DURATION){
+    // Fire final gong if missed (ease never quite reaches 5040 on last frame)
+    if(tawafLastLap<TAWAF_LAPS){tawafLastLap=TAWAF_LAPS;playTawafGong(TAWAF_LAPS-1);}
+    tawafCurrentVM=5040;endTawafSpin();return 0;
+  }
   const t=elapsed/TAWAF_DURATION;
   // Ease in-out cubic (on POSITION, 0→1, never reverses)
   const ease=t<0.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
