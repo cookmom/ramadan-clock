@@ -686,7 +686,33 @@ const FLAP_DUR=350; // ms per character flip
 const FLAP_STAGGER=60; // ms stagger between characters
 // Tawaf flap racing state
 let flapTawafActive=false,flapTawafStart=0,flapTawafLanded=false;
+let flapLastClickCycle=0;
 const FLAP_RACE_DIGITS='0123456789';
+// Split-flap mechanical click sound
+function playFlapClick(intensity){
+  try{
+    if(!qiblaAudioCtx)return;
+    if(qiblaAudioCtx.state==='suspended')qiblaAudioCtx.resume();
+    const t=qiblaAudioCtx.currentTime;
+    const vol=0.06*(S.tickVol/100)*intensity;
+    // Short noise burst — card hitting stopper
+    const dur=0.012+Math.random()*0.008; // 12-20ms, slightly random (mechanical)
+    const buf=qiblaAudioCtx.createBuffer(1,Math.floor(qiblaAudioCtx.sampleRate*dur),qiblaAudioCtx.sampleRate);
+    const d=buf.getChannelData(0);
+    for(let i=0;i<d.length;i++){
+      d[i]=(Math.random()*2-1)*Math.exp(-i/(d.length*0.15));
+    }
+    const src=qiblaAudioCtx.createBufferSource();src.buffer=buf;
+    const g=qiblaAudioCtx.createGain();
+    g.gain.setValueAtTime(vol,t);
+    g.gain.exponentialRampToValueAtTime(0.001,t+dur);
+    // Bandpass — woody/plastic flap tone
+    const bp=qiblaAudioCtx.createBiquadFilter();
+    bp.type='bandpass';bp.frequency.value=2200+Math.random()*800;bp.Q.value=3;
+    src.connect(bp);bp.connect(g);g.connect(qiblaAudioCtx.destination);
+    src.start(t);src.stop(t+dur+0.01);
+  }catch(e){}
+}
 function drawSplitFlap(c){
   if(!PD)return;
   const isRam=devRamadan||(DD&&DD.hijri.month.number===9);
@@ -701,8 +727,16 @@ function drawSplitFlap(c){
     // Racing digits — speed increases with each gong
     const speed=3+tawafT*12; // cycles per second, accelerating
     const cycle=elapsed*speed/1000;
+    // Trigger click sound on each digit cycle
+    const clickCycle=Math.floor(cycle*2); // ~2 clicks per digit cycle
+    if(clickCycle>flapLastClickCycle&&!flapTawafLanded){
+      flapLastClickCycle=clickCycle;
+      playFlapClick(0.4+tawafT*0.6); // louder as it accelerates
+    }
     let raceChars;
     if(flapTawafLanded){
+      // Final slam — loud click burst
+      if(flapLastClickCycle!==-1){flapLastClickCycle=-1;playFlapClick(1.0);playFlapClick(1.0);}
       raceChars=['0','0',':','0','0'];
     }else{
       // Each digit spins at slightly different phase
