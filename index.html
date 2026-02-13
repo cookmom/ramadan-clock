@@ -992,8 +992,8 @@ function getTawafVirtualMin(){
   const t=elapsed/TAWAF_DURATION;
   // Ease in-out cubic (on POSITION, 0→1, never reverses)
   const ease=t<0.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
-  // 7 laps of minute hand = 420 virtual minutes in 30 real seconds
-  const vm=420*ease;
+  // 7 laps of hour hand = 84 hours = 5040 virtual minutes in 30 real seconds
+  const vm=5040*ease;
   // Chime on each completed lap (each 60 virtual minutes)
   const currentLap=Math.min(Math.floor(vm/60),TAWAF_LAPS-1);
   if(currentLap>tawafLastLap){
