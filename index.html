@@ -641,38 +641,51 @@ function drawIndices(c){
     if(isHour){
       const inner=R-R*0.18,outer=R-R*0.03,capW=R*0.035;
       const midR=(inner+outer)/2;
+      const capH=outer-inner;
       // Shadow
       ctx.save();
       ctx.translate(cx+Math.cos(ang)*midR+3*dpr,cy+Math.sin(ang)*midR+4*dpr);
       ctx.rotate(ang+Math.PI/2);
       ctx.fillStyle=c.shadow;
       ctx.shadowColor=c.shadow;ctx.shadowBlur=6*dpr;
-      roundRect(ctx,-capW,(outer-inner)/-2,capW*2,outer-inner,capW);ctx.fill();
+      roundRect(ctx,-capW,capH/-2,capW*2,capH,capW);ctx.fill();
       ctx.shadowBlur=0;ctx.restore();
-      // Capsule
+      // Metal casing (outer shell)
       ctx.save();
       ctx.translate(cx+Math.cos(ang)*midR,cy+Math.sin(ang)*midR);
       ctx.rotate(ang+Math.PI/2);
-      ctx.shadowColor=c.lume+'60';ctx.shadowBlur=14*dpr;
+      // Brushed metal body
+      ctx.fillStyle='rgba(220,220,215,.9)';
+      roundRect(ctx,-capW,capH/-2,capW*2,capH,capW);ctx.fill();
+      // Metal bottom bevel (darker)
+      ctx.fillStyle='rgba(160,160,155,.7)';
+      roundRect(ctx,-capW,capH/-2+1*dpr,capW*2,capH,capW);ctx.fill();
+      // Metal top face (lighter)
+      ctx.fillStyle='rgba(230,230,225,.95)';
+      roundRect(ctx,-capW,capH/-2,capW*2,capH-1.5*dpr,capW);ctx.fill();
+      // Metal specular highlight
+      ctx.fillStyle='rgba(255,255,250,.4)';
+      roundRect(ctx,-capW*0.6,capH/-2+1*dpr,capW*1.2,capH*0.3,capW*0.3);ctx.fill();
+      // Lume insert (inset strip)
+      const insetW=capW*0.55,insetH=capH*0.75;
+      ctx.shadowColor=c.lume+'80';ctx.shadowBlur=10*dpr;
       ctx.fillStyle=c.lume;
-      roundRect(ctx,-capW,(outer-inner)/-2,capW*2,outer-inner,capW);ctx.fill();ctx.shadowBlur=0;
-      // Bevel
-      ctx.fillStyle=c.lumeDim;
-      roundRect(ctx,-capW,(outer-inner)/-2+1*dpr,capW*2,outer-inner,capW);ctx.fill();
-      ctx.fillStyle=c.lume;
-      roundRect(ctx,-capW,(outer-inner)/-2,capW*2,outer-inner-1.5*dpr,capW);ctx.fill();
-      // Highlight
-      ctx.fillStyle='rgba(255,255,240,.25)';
-      roundRect(ctx,-capW*0.45,(outer-inner)/-2+1.5*dpr,capW*0.9,outer-inner-5*dpr,capW*0.4);ctx.fill();
+      roundRect(ctx,-insetW,insetH/-2,insetW*2,insetH,insetW);ctx.fill();
+      ctx.shadowBlur=0;
+      // Lume glow highlight
+      ctx.fillStyle='rgba(255,255,240,.3)';
+      roundRect(ctx,-insetW*0.4,insetH/-2+1*dpr,insetW*0.8,insetH*0.4,insetW*0.3);ctx.fill();
       ctx.restore();
     }else{
+      // Minute ticks — more contrast
       const inner=R-R*0.07,outer=R-R*0.03;
       ctx.strokeStyle=c.shadow;ctx.lineWidth=2*dpr;ctx.lineCap='round';
       ctx.beginPath();ctx.moveTo(cx+Math.cos(ang)*inner+1*dpr,cy+Math.sin(ang)*inner+1.5*dpr);
       ctx.lineTo(cx+Math.cos(ang)*outer+1*dpr,cy+Math.sin(ang)*outer+1.5*dpr);ctx.stroke();
-      ctx.strokeStyle=c.lumeDim;ctx.lineWidth=1.5*dpr;
+      ctx.strokeStyle=c.lume;ctx.globalAlpha=0.5;ctx.lineWidth=1.5*dpr;
       ctx.beginPath();ctx.moveTo(cx+Math.cos(ang)*inner,cy+Math.sin(ang)*inner);
       ctx.lineTo(cx+Math.cos(ang)*outer,cy+Math.sin(ang)*outer);ctx.stroke();
+      ctx.globalAlpha=1;
     }
   }
 }
@@ -852,22 +865,26 @@ function drawHand(c,angle,length,width,taperTip,tail){
   ctx.moveTo(tailX-perpX*width,tailY-perpY*width);ctx.lineTo(tipX-perpX*taperTip,tipY-perpY*taperTip);
   ctx.lineTo(tipX+perpX*taperTip,tipY+perpY*taperTip);ctx.lineTo(tailX+perpX*width,tailY+perpY*width);
   ctx.closePath();ctx.fill();ctx.restore();
-  // Body
-  ctx.fillStyle=c.hand;ctx.strokeStyle=c.handStroke;ctx.lineWidth=0.5*dpr;
+  // Metal body
+  ctx.fillStyle='rgba(225,225,220,.92)';ctx.strokeStyle='rgba(200,200,195,.6)';ctx.lineWidth=0.5*dpr;
   ctx.beginPath();ctx.moveTo(tailX-perpX*width,tailY-perpY*width);
   ctx.lineTo(tipX-perpX*taperTip,tipY-perpY*taperTip);
   ctx.lineTo(tipX+perpX*taperTip,tipY+perpY*taperTip);
   ctx.lineTo(tailX+perpX*width,tailY+perpY*width);ctx.closePath();ctx.fill();ctx.stroke();
-  // Top highlight
-  ctx.strokeStyle='rgba(255,255,250,.12)';ctx.lineWidth=0.5*dpr;
-  ctx.beginPath();ctx.moveTo(tailX-perpX*width*0.5,tailY-perpY*width*0.5);
-  ctx.lineTo(tipX-perpX*taperTip*0.5,tipY-perpY*taperTip*0.5);ctx.stroke();
-  // Lume strip
-  ctx.strokeStyle=c.lume;ctx.lineWidth=width*0.6;ctx.lineCap='round';
-  ctx.shadowColor=c.lume+'40';ctx.shadowBlur=8*dpr;
+  // Metal edge highlight (polished edge catch)
+  ctx.strokeStyle='rgba(255,255,250,.35)';ctx.lineWidth=0.7*dpr;
+  ctx.beginPath();ctx.moveTo(tailX-perpX*width*0.8,tailY-perpY*width*0.8);
+  ctx.lineTo(tipX-perpX*taperTip*0.8,tipY-perpY*taperTip*0.8);ctx.stroke();
+  // Lume insert strip (inset into metal)
+  ctx.strokeStyle=c.lume;ctx.lineWidth=width*0.5;ctx.lineCap='round';
+  ctx.shadowColor=c.lume+'60';ctx.shadowBlur=10*dpr;
   ctx.beginPath();ctx.moveTo(tailX+Math.cos(angle)*width*2,tailY+Math.sin(angle)*width*2);
   ctx.lineTo(tipX-Math.cos(angle)*taperTip*4,tipY-Math.sin(angle)*taperTip*4);ctx.stroke();
   ctx.shadowBlur=0;
+  // Lume strip highlight
+  ctx.strokeStyle='rgba(255,255,240,.2)';ctx.lineWidth=width*0.15;
+  ctx.beginPath();ctx.moveTo(tailX+Math.cos(angle)*width*3,tailY+Math.sin(angle)*width*3);
+  ctx.lineTo(tipX-Math.cos(angle)*taperTip*5,tipY-Math.sin(angle)*taperTip*5);ctx.stroke();
 }
 
 function drawHands(c){
