@@ -203,11 +203,11 @@ function loadS(){
     const s=JSON.parse(localStorage.getItem('rc6')||'{}');
     return{
       city:s.city||'Los Angeles',country:s.country||'US',method:s.method||'2',
-      numerals:s.numerals||'arabic',movement:s.movement||'mechanical',tickVol:s.tickVol!=null?s.tickVol:100,
+      numerals:s.numerals||'arabic',movement:s.movement||'quartz',tickVol:s.tickVol!=null?s.tickVol:100,
       mode:s.mode||'day',dial:s.dial||'tennis',lumeColor:s.lumeColor||0,
     };
   }catch(e){
-    return{city:'Los Angeles',country:'US',method:'2',numerals:'arabic',movement:'mechanical',tickVol:100,mode:'day',dial:'tennis',lumeColor:0};
+    return{city:'Los Angeles',country:'US',method:'2',numerals:'arabic',movement:'quartz',tickVol:100,mode:'day',dial:'tennis',lumeColor:0};
   }
 }
 let S=loadS();
