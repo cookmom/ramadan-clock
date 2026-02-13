@@ -722,9 +722,10 @@ function playTick(loud){
   // Map second hand angle to position on circle around listener
   // 12 = front (0,0,-1), 3 = right (1,0,0), 6 = behind (0,0,1), 9 = left (-1,0,0)
   const spatialR=1.5;
-  panner.positionX.setValueAtTime(Math.cos(currentSecAngle)*spatialR,t);
+  const sa=currentSecAngle-0.4; // offset to center perception
+  panner.positionX.setValueAtTime(Math.cos(sa)*spatialR,t);
   panner.positionY.setValueAtTime(0,t);
-  panner.positionZ.setValueAtTime(Math.sin(currentSecAngle)*spatialR,t);
+  panner.positionZ.setValueAtTime(Math.sin(sa)*spatialR,t);
   
   src.connect(g);g.connect(panner);panner.connect(qiblaAudioCtx.destination);
   src.start(t);src.stop(t+dur+0.01);
