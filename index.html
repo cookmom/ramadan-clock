@@ -305,7 +305,7 @@ function f12(m){const h=Math.floor(m/60),mi=Math.floor(m%60);return`${h%12||12}:
 const MN={'1':'Karachi','2':'ISNA','3':'MWL','4':'Umm Al-Qura','5':'Egyptian','7':'Tehran','8':'Gulf','15':'Moonsighting'};
 
 async function fetchPrayer(){
-  try{const r=await fetch(`https://api.aladhan.com/v1/timingsByCity?city=${encodeURIComponent(S.city)}&country=${encodeURIComponent(S.country)}&method=${S.method}`);const j=await r.json();if(j.code===200){PD=j.data.timings;DD=j.data.date;updateInfo();}}catch(e){document.getElementById('loc').textContent='Failed to load';}
+  try{const r=await fetch(`https://api.aladhan.com/v1/timingsByCity?city=${encodeURIComponent(S.city)}&country=${encodeURIComponent(S.country)}&method=${S.method}`);const j=await r.json();if(j.code===200){PD=j.data.timings;DD=j.data.date;updateInfo();if(qiblaAngle===null)calcQibla();}}catch(e){document.getElementById('loc').textContent='Failed to load';}
 }
 
 function updateInfo(){
@@ -362,12 +362,20 @@ window.addEventListener('resize',resize);
 const MECCA_LAT=21.4225*Math.PI/180, MECCA_LNG=39.8262*Math.PI/180;
 let userLat=null,userLng=null,deviceHeading=null,qiblaAngle=null;
 
+// City coordinates fallback for Qibla when GPS unavailable
+const CITY_COORDS={'los angeles':[34.05,-118.24],'new york':[40.71,-74.01],'london':[51.51,-0.13],'dubai':[25.20,55.27],'cairo':[30.04,31.24],'istanbul':[41.01,28.98],'karachi':[24.86,67.01],'jakarta':[-6.21,106.85],'kuala lumpur':[3.14,101.69],'toronto':[43.65,-79.38],'chicago':[41.88,-87.63],'houston':[29.76,-95.37],'san francisco':[37.77,-122.42],'seattle':[47.61,-122.33],'miami':[25.76,-80.19],'dallas':[32.78,-96.80],'atlanta':[33.75,-84.39],'denver':[39.74,-104.99],'phoenix':[33.45,-112.07],'detroit':[42.33,-83.05],'boston':[42.36,-71.06],'paris':[48.86,2.35],'berlin':[52.52,13.41],'riyadh':[24.71,46.67],'jeddah':[21.54,39.17],'mecca':[21.42,39.83],'medina':[24.47,39.61],'doha':[25.29,51.53],'abu dhabi':[24.45,54.65],'amman':[31.95,35.93],'beirut':[33.89,35.50],'islamabad':[33.69,73.04],'lahore':[31.55,74.35],'dhaka':[23.81,90.41],'singapore':[1.35,103.82],'sydney':[-33.87,151.21],'melbourne':[-37.81,144.96],'cape town':[-33.93,18.42]};
+
 function calcQibla(){
-  if(userLat===null)return;
+  if(userLat===null){
+    // Fallback: use city from settings
+    const coords=CITY_COORDS[(S.city||'').toLowerCase()];
+    if(coords){userLat=coords[0]*Math.PI/180;userLng=coords[1]*Math.PI/180;}
+    else return;
+  }
   const dLng=MECCA_LNG-userLng;
   const y=Math.sin(dLng)*Math.cos(MECCA_LAT);
   const x=Math.cos(userLat)*Math.sin(MECCA_LAT)-Math.sin(userLat)*Math.cos(MECCA_LAT)*Math.cos(dLng);
-  qiblaAngle=Math.atan2(y,x); // radians from north clockwise
+  qiblaAngle=Math.atan2(y,x);
 }
 
 function requestGeoForQibla(){
