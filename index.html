@@ -22,7 +22,7 @@ canvas{position:fixed;top:0;left:0;width:100vw;height:100vh;display:block;}
 
 .info{position:fixed;left:50%;transform:translateX(-50%);z-index:10;text-align:center;display:flex;flex-direction:column;align-items:center;gap:4px;pointer-events:none;opacity:0;transition:opacity .4s ease;}
 .info-top{top:max(20px,env(safe-area-inset-top,0px));}
-.info-bottom{bottom:max(90px,calc(env(safe-area-inset-bottom,0px) + 80px));}
+.info-bottom{bottom:max(72px,calc(env(safe-area-inset-bottom,0px) + 64px));}
 .info.visible{opacity:1;}
 .info>*{pointer-events:auto;}
 .ramadan-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.2em;transition:all .5s;}
@@ -30,10 +30,10 @@ canvas{position:fixed;top:0;left:0;width:100vw;height:100vh;display:block;}
 .greg{font-size:12px;font-weight:300;letter-spacing:.02em;transition:all .5s;}
 .fast-status{font-size:16px;font-weight:600;margin-top:4px;letter-spacing:.01em;transition:all .5s;}
 .fast-status .tl{font-variant-numeric:tabular-nums;font-weight:700;transition:all .5s;}
-.prayers{display:flex;gap:6px;flex-wrap:nowrap;justify-content:center;margin-top:6px;font-family:Inter,system-ui,sans-serif;letter-spacing:.04em;font-weight:500;transition:all .5s;}
-.pp{display:inline;font-size:11px;font-weight:400;letter-spacing:.03em;padding:0;border:none!important;background:none!important;backdrop-filter:none;transition:all .5s;}
-.pp .dot{width:8px;height:8px;border-radius:50%;display:inline-block;vertical-align:middle;margin-right:4px;}
-.pp .pt{font-weight:500;font-variant-numeric:tabular-nums;font-size:11px;}
+.prayers{display:flex;gap:14px;flex-wrap:nowrap;justify-content:center;margin-top:6px;font-family:Inter,system-ui,sans-serif;letter-spacing:.04em;font-weight:500;transition:all .5s;}
+.pp{display:inline-flex;align-items:center;gap:4px;font-weight:500;letter-spacing:.03em;padding:0;border:none!important;background:none!important;backdrop-filter:none;transition:all .5s;}
+.pp .dot{width:4px;height:4px;border-radius:50%;flex-shrink:0;}
+.pp .pt{font-weight:500;font-variant-numeric:tabular-nums;}
 .loc{font-size:10px;font-weight:400;letter-spacing:.04em;margin-top:6px;transition:all .5s;}
 .settings-btn{position:fixed;top:max(16px,env(safe-area-inset-top,0px));right:16px;z-index:15;width:32px;height:32px;cursor:pointer;opacity:0.3;transition:opacity .3s;}
 .settings-btn:hover,.settings-btn:active{opacity:0.6;}
@@ -63,18 +63,18 @@ input.sv{width:120px;}
 .movement-opt.active{font-weight:600;}
 
 /* Dial Picker Bar */
-.dial-bar{position:fixed;bottom:0;left:0;right:0;z-index:20;padding:12px 16px max(16px,env(safe-area-inset-bottom,0px));display:flex;align-items:center;gap:10px;opacity:0;transform:translateY(20px);transition:opacity .4s ease,transform .4s ease;pointer-events:none;justify-content:center;width:80%;margin:0 auto;}
-.dial-bar.visible{opacity:1;transform:translateY(0);pointer-events:auto;}
+.dial-bar{position:fixed;bottom:0;left:50%;transform:translateX(-50%) translateY(20px);z-index:20;padding:10px 0 max(14px,env(safe-area-inset-bottom,0px));display:flex;align-items:center;gap:8px;opacity:0;transition:opacity .4s ease,transform .4s ease;pointer-events:none;justify-content:center;width:min(80%,480px);}
+.dial-bar.visible{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto;}
 .dial-mode-toggle{display:flex;align-items:center;background:rgba(255,255,255,.12);backdrop-filter:blur(12px);border-radius:20px;padding:3px;flex-shrink:0;cursor:pointer;border:1px solid rgba(255,255,255,.08);}
 .dial-mode-btn{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all .3s;color:rgba(255,255,255,.5);}
 .dial-mode-btn.active{background:rgba(255,255,255,.2);color:#fff;}
-.dial-swatches{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none;padding:4px 2px;scroll-snap-type:x mandatory;flex-shrink:1;}
+.dial-swatches{display:flex;gap:12px;overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none;padding:4px 2px;scroll-snap-type:x mandatory;flex-shrink:1;}
 .dial-swatches::-webkit-scrollbar{display:none;}
-.dial-swatch{flex-shrink:0;width:130px;display:flex;flex-direction:column;align-items:center;gap:6px;scroll-snap-align:center;cursor:pointer;}
-.dial-swatch-circle{width:120px;height:120px;border-radius:50%;border:3px solid transparent;transition:border-color .2s;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px);position:relative;overflow:hidden;}
+.dial-swatch{flex-shrink:0;width:44px;display:flex;flex-direction:column;align-items:center;gap:4px;scroll-snap-align:center;cursor:pointer;}
+.dial-swatch-circle{width:36px;height:36px;border-radius:50%;border:2px solid transparent;transition:border-color .2s;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px);position:relative;overflow:hidden;}
 .dial-swatch.active .dial-swatch-circle{border-color:rgba(255,255,255,.8);}
-.dial-swatch-label{font-size:13px;color:rgba(255,255,255,.5);font-weight:500;white-space:nowrap;transition:color .2s;}
-.dial-swatch.active .dial-swatch-label{color:rgba(255,255,255,.9);}
+.dial-swatch-label{font-size:9px;color:rgba(255,255,255,.4);font-weight:500;white-space:nowrap;transition:color .2s;}
+.dial-swatch.active .dial-swatch-label{color:rgba(255,255,255,.85);}
 .dial-nav{width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.1);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;color:rgba(255,255,255,.6);font-size:12px;transition:all .2s;}
 .dial-nav:hover{background:rgba(255,255,255,.2);color:#fff;}
 </style>
@@ -450,10 +450,10 @@ function updateInfo(){
   let ci=ni-1;if(ci<0)ci=ps.length-1;
   const pEl=document.getElementById('prayers');
   pEl.style.color=c.minNum||c.textDim;
-  pEl.style.fontSize=Math.round(R*0.72/dpr)+'px';
+  pEl.style.fontSize=Math.round(R*0.045/dpr)+'px';
   pEl.innerHTML=ps.map((p,i)=>{
-    return`<span class="pp"><span class="dot" style="background:${p.color}"></span>${p.name} ${f12(p.time)}</span>`;
-  }).join(' · ');
+    return`<span class="pp"><span class="dot" style="background:${p.color}"></span>${p.name} <span class="pt">${f12(p.time)}</span></span>`;
+  }).join('');
 
   const fajr=pM(PD.Fajr),mag=pM(PD.Maghrib),el=document.getElementById('fastStatus');
   el.style.color=c.text;
