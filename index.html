@@ -927,8 +927,8 @@ function drawHands(c){
   else if(S.movement==='mechanical') sec=Math.floor(s0*8+ms0/1000*8)/8;
   else sec=s0+ms0/1000;
 
-  // Tick audio (use real time, not tawaf time)
-  try{tickAudio(s0,ms0);}catch(e){}
+  // Tick audio — suppress during tawaf (hands aren't ticking normally)
+  if(!tawafActive)try{tickAudio(s0,ms0);}catch(e){}
 
   let min=m0+sec/60;
   let hour=h0+min/60;
