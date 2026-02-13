@@ -417,7 +417,7 @@ function activateAll(){
   if(qiblaAudioCtx.state==='suspended')qiblaAudioCtx.resume();
   // Gyro (iOS permission)
   if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission==='function'){
-    DeviceOrientationEvent.requestPermission().then(r=>{if(r==='granted')initCompass();}).catch(()=>{});
+    DeviceOrientationEvent.requestPermission().then(r=>{if(r==='granted'){compassInited=false;initCompass();}}).catch(()=>{});
   }else{initCompass();}
   // Retry geolocation after user gesture
   if(qiblaAngle===null)requestGeoForQibla();
@@ -431,8 +431,8 @@ function activateAll(){
   clearTimeout(infoTimer);
   infoTimer=setTimeout(()=>{infoVisible=false;infos.forEach(el=>el.classList.remove('visible'));},4000);
 }
+// iOS requires click (not touchstart) for DeviceOrientation permission
 tapOverlay.addEventListener('click',activateAll,{once:true});
-tapOverlay.addEventListener('touchstart',activateAll,{once:true});
 // Non-iOS: init compass immediately (no permission needed)
 if(typeof DeviceOrientationEvent==='undefined'||typeof DeviceOrientationEvent.requestPermission!=='function'){
   initCompass();
