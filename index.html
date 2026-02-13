@@ -497,7 +497,7 @@ function qiblaTick(){
 function drawQiblaWindow(c){
   if(qiblaAngle===null)return;
   // Position: 3 o'clock, like Rolex day window
-  const wx=cx+R*0.48, wy=cy;
+  const wx=cx+R*0.48, wy=cy+R*0.015;
   const ww=R*0.182, wh=R*0.117, wr=R*0.02;
   // Qibla direction relative to device
   let arrowAng=qiblaAngle;
