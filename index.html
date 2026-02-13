@@ -620,38 +620,37 @@ function drawPrayerMarkers(c){
   });
 }
 
-// ── Watch tick audio ──
-let tickAudioCtx=null,lastTickStep=-1,tickEnabled=false;
-// Unlock audio on user gesture
+// ── Watch tick audio (shares qiblaAudioCtx) ──
+let lastTickStep=-1,tickEnabled=false;
 function ensureTickCtx(){
-  if(!tickAudioCtx)tickAudioCtx=new(window.AudioContext||window.webkitAudioContext)();
-  if(tickAudioCtx.state==='suspended')tickAudioCtx.resume();
+  if(!qiblaAudioCtx)qiblaAudioCtx=new(window.AudioContext||window.webkitAudioContext)();
+  if(qiblaAudioCtx.state==='suspended')qiblaAudioCtx.resume();
   tickEnabled=true;
 }
 document.addEventListener('touchstart',ensureTickCtx,{once:false});
 document.addEventListener('click',ensureTickCtx);
 
 function playTick(loud){
-  if(!tickAudioCtx||tickAudioCtx.state!=='running')return;
-  const t=tickAudioCtx.currentTime;
+  if(!qiblaAudioCtx||qiblaAudioCtx.state!=='running')return;
+  const t=qiblaAudioCtx.currentTime;
   const vol=loud?0.06:0.03;
   // Tick = short noise burst (mechanical click)
-  const bufLen=Math.floor(tickAudioCtx.sampleRate*(loud?0.012:0.008));
-  const buf=tickAudioCtx.createBuffer(1,bufLen,tickAudioCtx.sampleRate);
+  const bufLen=Math.floor(qiblaAudioCtx.sampleRate*(loud?0.012:0.008));
+  const buf=qiblaAudioCtx.createBuffer(1,bufLen,qiblaAudioCtx.sampleRate);
   const data=buf.getChannelData(0);
   for(let i=0;i<bufLen;i++){
     const env=1-i/bufLen;
     data[i]=(Math.random()*2-1)*env*env;
   }
-  const src=tickAudioCtx.createBufferSource();
+  const src=qiblaAudioCtx.createBufferSource();
   src.buffer=buf;
   // Bandpass to sound metallic
-  const bp=tickAudioCtx.createBiquadFilter();
+  const bp=qiblaAudioCtx.createBiquadFilter();
   bp.type='bandpass';bp.frequency.value=loud?3200:4800;bp.Q.value=loud?2:3;
-  const g=tickAudioCtx.createGain();
+  const g=qiblaAudioCtx.createGain();
   g.gain.setValueAtTime(vol,t);
   g.gain.exponentialRampToValueAtTime(0.001,t+(loud?0.025:0.015));
-  src.connect(bp);bp.connect(g);g.connect(tickAudioCtx.destination);
+  src.connect(bp);bp.connect(g);g.connect(qiblaAudioCtx.destination);
   src.start(t);src.stop(t+0.03);
 }
 
