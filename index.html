@@ -3,107 +3,61 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Suhoor to Iftar">
-<meta name="theme-color" content="#2e8b57">
-<link rel="manifest" href="manifest.json">
 <title>Suhoor to Iftar</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Lateef:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
-html,body{height:100%;overflow:hidden;touch-action:none;}
-body{
-  font-family:'Inter',system-ui,sans-serif;
-  color:#e0e8e4;
-  -webkit-font-smoothing:antialiased;
-}
-canvas{position:fixed;top:0;left:0;width:100vw;height:100vh;display:block;}
-
-.info{position:fixed;left:50%;transform:translateX(-50%);z-index:10;text-align:center;display:flex;flex-direction:column;align-items:center;gap:4px;pointer-events:none;opacity:0;transition:opacity .4s ease;}
-.info-top{top:max(20px,env(safe-area-inset-top,0px));}
-.info-bottom{bottom:max(20px,env(safe-area-inset-bottom,0px));}
-.info.visible{opacity:1;}
+html,body{height:100%;overflow:hidden;}
+body{font-family:'Inter',system-ui,sans-serif;background:#2e8b57;color:#e0e8e4;-webkit-font-smoothing:antialiased;}
+canvas#face{display:none;}
+#gl{position:fixed;top:0;left:0;width:100vw;height:100vh;}
+.info{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:10;text-align:center;display:flex;flex-direction:column;align-items:center;gap:4px;pointer-events:none;transition:color 1s;}
 .info>*{pointer-events:auto;}
-.ramadan-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.2em;transition:all .5s;}
-.hijri{font-size:15px;font-weight:600;letter-spacing:.03em;transition:all .5s;}
-.greg{font-size:12px;font-weight:300;letter-spacing:.02em;transition:all .5s;}
-.fast-status{font-size:16px;font-weight:600;margin-top:4px;letter-spacing:.01em;transition:all .5s;}
-.fast-status .tl{font-variant-numeric:tabular-nums;font-weight:700;transition:all .5s;}
-.prayers{display:flex;gap:20px;flex-wrap:wrap;justify-content:center;margin-top:6px;}
-.pp{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:400;letter-spacing:.03em;padding:0;border:none!important;background:none!important;backdrop-filter:none;transition:all .5s;}
-.pp .dot{width:5px;height:5px;border-radius:50%;}
-.pp .pt{font-weight:600;font-variant-numeric:tabular-nums;font-size:11px;}
-.loc{font-size:10px;font-weight:400;letter-spacing:.04em;margin-top:6px;transition:all .5s;}
-.settings-btn{position:fixed;top:max(16px,env(safe-area-inset-top,0px));right:16px;z-index:15;width:32px;height:32px;cursor:pointer;opacity:0.3;transition:opacity .3s;}
-.settings-btn:hover,.settings-btn:active{opacity:0.6;}
-.settings-btn svg{width:100%;height:100%;}
-
-/* Settings overlay */
-.sov{display:none;position:fixed;inset:0;backdrop-filter:blur(12px);z-index:100;align-items:center;justify-content:center;transition:background .5s;}
+.ramadan-label{font-size:10px;font-weight:600;color:rgba(255,255,240,.7);text-transform:uppercase;letter-spacing:.14em;}
+.hijri{font-size:12px;font-weight:500;color:rgba(255,255,240,.6);}
+.greg{font-size:10px;color:rgba(255,255,240,.35);}
+.fast-status{font-size:13px;font-weight:500;color:rgba(255,255,240,.8);}.fast-status .tl{color:#f0e060;font-variant-numeric:tabular-nums;}
+.prayers{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:2px;}
+.pp{display:flex;align-items:center;gap:4px;font-size:9px;color:rgba(255,255,240,.4);padding:3px 8px;background:rgba(0,0,0,.1);border:1px solid rgba(255,255,240,.08);border-radius:16px;backdrop-filter:blur(4px);}
+.pp .dot{width:4px;height:4px;border-radius:50%;}
+.pp .pt{color:rgba(255,255,240,.7);font-weight:500;font-variant-numeric:tabular-nums;}
+.pp.active{border-color:rgba(255,255,240,.25);background:rgba(0,0,0,.15);}
+.pp.next{border-color:rgba(240,224,96,.3);background:rgba(240,224,96,.06);}
+.loc{font-size:9px;color:rgba(255,255,240,.2);cursor:pointer;margin-top:2px;}
+.loc:hover{color:rgba(255,255,240,.4);}
+.sov{display:none;position:fixed;inset:0;background:rgba(0,20,10,.7);backdrop-filter:blur(12px);z-index:100;align-items:center;justify-content:center;}
 .sov.open{display:flex;}
-.scard{border:1px solid;border-radius:16px;padding:28px;width:min(90vw,360px);max-height:80vh;overflow-y:auto;transition:all .5s;}
-.scard h3{font-size:15px;font-weight:600;margin-bottom:16px;}
-.sr{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid;}
-.sr:last-child{border-bottom:none;}
-.sl{font-size:12px;}
-.sv{font-size:12px;border:1px solid;border-radius:6px;padding:4px 10px;background:transparent;}
-select.sv{-webkit-appearance:none;appearance:none;padding-right:24px;}
-input.sv{width:120px;}
-.sbtn{margin-top:16px;width:100%;padding:10px;font-size:12px;font-weight:500;border-radius:8px;cursor:pointer;border:1px solid;background:transparent;}
-
-/* Lume color picker grid */
-.lume-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:8px;}
-.lume-swatch{width:100%;aspect-ratio:1;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:border-color .2s;}
-.lume-swatch.active{border-color:rgba(255,255,240,.8);}
-
-/* Movement preview */
-.movement-row{display:flex;gap:8px;align-items:center;}
-.movement-opt{flex:1;text-align:center;padding:8px 4px;border-radius:8px;cursor:pointer;font-size:11px;border:1px solid;transition:all .2s;}
-.movement-opt.active{font-weight:600;}
+.scard{background:rgba(20,50,30,.95);border:1px solid rgba(255,255,240,.1);border-radius:16px;padding:28px;width:min(90vw,340px);max-height:80vh;overflow-y:auto;}
+.scard h3{font-size:15px;font-weight:600;margin-bottom:16px;color:#f0e060;}
+.sr{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,240,.05);}.sr:last-child{border-bottom:none;}
+.sl{font-size:12px;color:rgba(255,255,240,.5);}
+.sv{font-size:12px;color:rgba(255,255,240,.8);background:rgba(255,255,240,.06);border:1px solid rgba(255,255,240,.1);border-radius:6px;padding:4px 10px;}
+select.sv{-webkit-appearance:none;appearance:none;padding-right:24px;background:rgba(255,255,240,.06) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='rgba(255,255,240,.4)'/%3E%3C/svg%3E") no-repeat right 8px center;}
+input.sv{width:140px;border:1px solid rgba(255,255,240,.1);color:rgba(255,255,240,.8);}
+.sbtn{margin-top:16px;width:100%;padding:10px;font-size:12px;font-weight:500;background:rgba(240,224,96,.12);border:1px solid rgba(240,224,96,.4);border-radius:8px;color:#f0e060;cursor:pointer;}
 </style>
 </head>
 <body>
-
-<canvas id="c"></canvas>
-
-<div class="settings-btn" onclick="openSettings()">
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-    <circle cx="12" cy="12" r="3"/>
-    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-  </svg>
-</div>
-
-<div id="tapOverlay" style="position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.4);backdrop-filter:blur(8px);cursor:pointer;transition:opacity .5s;">
-  <div style="text-align:center;color:rgba(255,255,240,.8);">
-    <div style="font-size:32px;margin-bottom:12px;">☽</div>
-    <div style="font-size:13px;font-weight:500;letter-spacing:.08em;">tap to start</div>
-  </div>
-</div>
-
-<div class="info info-top">
+<canvas id="face" width="2048" height="2048"></canvas>
+<div id="gl"></div>
+<div class="info">
   <div class="ramadan-label" id="ramLabel"></div>
-  <div class="hijri" id="hijri"></div>
-  <div class="greg" id="greg"></div>
-  <div class="loc" id="loc" onclick="openSettings()">Loading…</div>
-</div>
-<div class="info info-bottom">
   <div class="fast-status" id="fastStatus"></div>
   <div class="prayers" id="prayers"></div>
+  <div class="hijri" id="hijri"></div>
+  <div class="greg" id="greg"></div>
+  <div class="loc" id="loc" onclick="openSettings()">📍 Loading… ⚙️</div>
 </div>
-
 <div class="sov" id="sov" onclick="if(event.target===this)closeSettings()">
-  <div class="scard" id="scard">
-    <h3 id="settingsTitle">☪ Settings</h3>
-
+  <div class="scard">
+    <h3>☪ Settings</h3>
     <div class="sr"><span class="sl">City</span><input class="sv" id="sCity" value="Los Angeles"></div>
     <div class="sr"><span class="sl">Country</span><input class="sv" id="sCountry" value="US"></div>
     <div class="sr"><span class="sl">Calculation</span>
       <select class="sv" id="sMethod">
         <option value="2" selected>ISNA</option><option value="1">Karachi</option>
         <option value="3">MWL</option><option value="4">Umm Al-Qura</option>
-        <option value="5">Egyptian</option><option value="7">Tehran</option>
-        <option value="8">Gulf</option><option value="15">Moonsighting</option>
+        <option value="5">Egyptian</option><option value="15">Moonsighting</option>
       </select>
     </div>
     <div class="sr"><span class="sl">Numerals</span>
@@ -114,862 +68,366 @@ input.sv{width:120px;}
         <option value="none">None</option>
       </select>
     </div>
-    <div class="sr"><span class="sl">Movement</span>
-      <div class="movement-row">
-        <div class="movement-opt" data-mv="quartz" onclick="setMovement('quartz')">Quartz</div>
-        <div class="movement-opt" data-mv="mechanical" onclick="setMovement('mechanical')">Mechanical</div>
-        <div class="movement-opt" data-mv="digital" onclick="setMovement('digital')">Digital</div>
-      </div>
-    </div>
-    <div class="sr" style="flex-direction:column;align-items:flex-start;gap:8px;">
-      <div style="display:flex;justify-content:space-between;width:100%;align-items:center;">
-        <span class="sl">Spatial Audio Volume</span>
-        <span class="sl" id="volLabel" style="opacity:0.5;">100%</span>
-      </div>
-      <input type="range" id="volSlider" min="0" max="100" value="100" oninput="setTickVol(this.value)" style="width:100%;accent-color:currentColor;height:2px;opacity:0.7;">
-      <span style="font-size:9px;opacity:0.35;margin-top:-4px;">HRTF 3D spatial audio · best with headphones</span>
-    </div>
-    <div class="sr"><span class="sl">Mode</span>
-      <div class="movement-row">
-        <div class="movement-opt" data-mode="day" onclick="setMode('day')">Day</div>
-        <div class="movement-opt" data-mode="night" onclick="setMode('night')">Night</div>
-      </div>
-    </div>
-    <div id="lumeSection" style="display:none;">
-      <div class="sr" style="flex-direction:column;align-items:flex-start;gap:8px;">
-        <span class="sl">Lume Color</span>
-        <div class="lume-grid" id="lumeGrid"></div>
-      </div>
-    </div>
-    <div class="sr"><span class="sl">Dial</span>
-      <select class="sv" id="sDial">
-        <option value="tennis" selected>Tennis</option>
-        <option value="white">White</option>
-        <option value="ocean">Ocean</option>
-        <option value="salmon">Salmon</option>
-        <option value="slate">Slate</option>
-        <option value="sky">Sky Blue</option>
-        <option value="cream">Cream</option>
-        <option value="noir">Noir</option>
-        <option value="emerald">Emerald</option>
-        <option value="midnight">Midnight</option>
-      </select>
-    </div>
-    <button class="sbtn" id="saveBtn" onclick="saveSettings()">Save & Refresh</button>
+    <button class="sbtn" onclick="saveSettings()">Save & Refresh</button>
   </div>
 </div>
 
+<div id="devPanel" style="display:none;position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:100;background:rgba(0,0,0,.85);backdrop-filter:blur(12px);border:1px solid rgba(240,224,96,.3);border-radius:12px;padding:14px 20px;gap:10px;flex-direction:column;align-items:center;font-size:12px;color:rgba(255,255,240,.8);min-width:320px;">
+  <div style="display:flex;align-items:center;gap:8px;width:100%;">
+    <span style="color:#f0e060;font-weight:600;font-size:11px;letter-spacing:.1em;">DEV MODE</span>
+    <span style="flex:1"></span>
+    <span id="devTimeLabel" style="font-variant-numeric:tabular-nums;font-weight:500;">--:--</span>
+  </div>
+  <input type="range" id="devSlider" min="0" max="1439" step="0.5" value="720" style="width:100%;accent-color:#f0e060;cursor:pointer;" oninput="devTimeMin=parseFloat(this.value);document.getElementById('devTimeLabel').textContent=((h,m)=>(h%12||12)+':'+String(m).padStart(2,'0')+(h>=12?' PM':' AM'))(Math.floor(this.value/60),Math.floor(this.value%60));updateInfo();">
+  <div style="display:flex;gap:12px;align-items:center;width:100%;margin-top:4px;">
+    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" id="devRamToggle" onchange="devRamadan=this.checked;updateInfo();" style="accent-color:#f0e060;"> <span style="font-size:11px;">Simulate Ramadan</span></label>
+    <span style="flex:1"></span>
+    <button onclick="devTimeMin=null;document.getElementById('devSlider').value=720;document.getElementById('devTimeLabel').textContent='LIVE';updateInfo();" style="font-size:10px;padding:4px 10px;background:rgba(240,224,96,.15);border:1px solid rgba(240,224,96,.3);border-radius:6px;color:#f0e060;cursor:pointer;">Reset to Live</button>
+  </div>
+</div>
 <script>
-const cv=document.getElementById('c');
-const ctx=cv.getContext('2d');
-let dpr=window.devicePixelRatio||1;
-let W,H,cx,cy,R;
+// ══════════════════════════════════════════════
+// 2D CLOCK FACE (rendered to offscreen canvas)
+// Exact same rendering as v4
+// ══════════════════════════════════════════════
+const fc=document.getElementById('face');
+const fctx=fc.getContext('2d');
+const FS=2048; // face texture size
+let nightMode=0; // 0=day, 1=full night (lerped)
 
-// ── Dial Color Systems ──
-const DIALS={
-  tennis:  {bg:'#2e8b57',lume:'#c8e860',lumeDim:'#6aaa50',hand:'#f4f0e0',handStroke:'#ffffff',shadow:'rgba(0,40,20,.25)',minNum:'rgba(200,232,96,.35)',text:'rgba(255,255,240,.7)',textDim:'rgba(255,255,240,.35)',textMuted:'rgba(255,255,240,.25)',accent:'#f0e060',pillBg:'rgba(0,0,0,.08)',pillBorder:'rgba(255,255,240,.08)',cardBg:'rgba(20,60,35,.95)',cardBorder:'rgba(255,255,240,.1)'},
-  white:   {bg:'#e8e4dc',lume:'#1a1a1a',lumeDim:'#888',hand:'#111',handStroke:'#222',shadow:'rgba(0,0,0,.12)',minNum:'rgba(0,0,0,.2)',text:'rgba(0,0,0,.6)',textDim:'rgba(0,0,0,.3)',textMuted:'rgba(0,0,0,.15)',accent:'#c8a040',pillBg:'rgba(0,0,0,.04)',pillBorder:'rgba(0,0,0,.08)',cardBg:'rgba(240,236,228,.95)',cardBorder:'rgba(0,0,0,.08)'},
-  ocean:   {bg:'#1a3a5c',lume:'#a0d4f0',lumeDim:'#4a7a9a',hand:'#e8e4dc',handStroke:'#fff',shadow:'rgba(0,10,30,.3)',minNum:'rgba(160,212,240,.3)',text:'rgba(200,220,240,.7)',textDim:'rgba(200,220,240,.35)',textMuted:'rgba(200,220,240,.2)',accent:'#60c0e0',pillBg:'rgba(0,0,0,.1)',pillBorder:'rgba(200,220,240,.1)',cardBg:'rgba(15,40,65,.95)',cardBorder:'rgba(200,220,240,.1)'},
-  salmon:  {bg:'#c47a60',lume:'#fff0e0',lumeDim:'#d4a890',hand:'#f8f4ec',handStroke:'#fff',shadow:'rgba(60,20,10,.2)',minNum:'rgba(255,240,224,.3)',text:'rgba(255,240,224,.7)',textDim:'rgba(255,240,224,.35)',textMuted:'rgba(255,240,224,.2)',accent:'#f0d060',pillBg:'rgba(0,0,0,.06)',pillBorder:'rgba(255,240,224,.1)',cardBg:'rgba(140,80,55,.95)',cardBorder:'rgba(255,240,224,.1)'},
-  slate:   {bg:'#3a3a44',lume:'#c0c0ca',lumeDim:'#6a6a74',hand:'#e0e0e4',handStroke:'#f0f0f4',shadow:'rgba(0,0,0,.25)',minNum:'rgba(192,192,202,.3)',text:'rgba(224,224,228,.6)',textDim:'rgba(224,224,228,.3)',textMuted:'rgba(224,224,228,.15)',accent:'#a0a0b0',pillBg:'rgba(0,0,0,.1)',pillBorder:'rgba(224,224,228,.08)',cardBg:'rgba(45,45,55,.95)',cardBorder:'rgba(224,224,228,.08)'},
-  sky:     {bg:'#5a9ac0',lume:'#f0f8ff',lumeDim:'#8abcda',hand:'#f4f0e8',handStroke:'#fff',shadow:'rgba(0,20,40,.2)',minNum:'rgba(240,248,255,.3)',text:'rgba(240,248,255,.7)',textDim:'rgba(240,248,255,.35)',textMuted:'rgba(240,248,255,.2)',accent:'#f0e060',pillBg:'rgba(0,0,0,.06)',pillBorder:'rgba(240,248,255,.1)',cardBg:'rgba(60,110,150,.95)',cardBorder:'rgba(240,248,255,.1)'},
-  cream:   {bg:'#d8ccb4',lume:'#3a3530',lumeDim:'#8a8478',hand:'#2a2520',handStroke:'#3a3530',shadow:'rgba(0,0,0,.1)',minNum:'rgba(58,53,48,.25)',text:'rgba(58,53,48,.6)',textDim:'rgba(58,53,48,.3)',textMuted:'rgba(58,53,48,.15)',accent:'#b08840',pillBg:'rgba(0,0,0,.04)',pillBorder:'rgba(58,53,48,.1)',cardBg:'rgba(200,188,168,.95)',cardBorder:'rgba(58,53,48,.1)'},
-  noir:    {bg:'#0a0a0c',lume:'#e0e0e4',lumeDim:'#4a4a54',hand:'#e0e0e4',handStroke:'#f0f0f4',shadow:'rgba(0,0,0,.4)',minNum:'rgba(224,224,228,.25)',text:'rgba(224,224,228,.5)',textDim:'rgba(224,224,228,.25)',textMuted:'rgba(224,224,228,.12)',accent:'#f0e060',pillBg:'rgba(255,255,255,.03)',pillBorder:'rgba(224,224,228,.06)',cardBg:'rgba(18,18,22,.95)',cardBorder:'rgba(224,224,228,.06)'},
-  emerald: {bg:'#0c1a14',lume:'#d4a017',lumeDim:'#5a7a3a',hand:'#e0d8c8',handStroke:'#f0eade',shadow:'rgba(0,10,5,.35)',minNum:'rgba(212,160,23,.25)',text:'rgba(224,232,228,.5)',textDim:'rgba(224,232,228,.25)',textMuted:'rgba(224,232,228,.12)',accent:'#d4a017',pillBg:'rgba(255,255,255,.03)',pillBorder:'rgba(224,232,228,.06)',cardBg:'rgba(12,26,20,.95)',cardBorder:'rgba(224,232,228,.08)'},
-  midnight:{bg:'#0e0e1a',lume:'#6366f1',lumeDim:'#3a3a5a',hand:'#c8c8d8',handStroke:'#d8d8e8',shadow:'rgba(0,0,10,.35)',minNum:'rgba(99,102,241,.25)',text:'rgba(200,200,216,.5)',textDim:'rgba(200,200,216,.25)',textMuted:'rgba(200,200,216,.12)',accent:'#818cf8',pillBg:'rgba(255,255,255,.03)',pillBorder:'rgba(200,200,216,.06)',cardBg:'rgba(14,14,26,.95)',cardBorder:'rgba(200,200,216,.08)'},
-};
-
-// Lume colors for night mode
-const LUME_COLORS=[
-  {name:'Green',color:'#c8e860'},
-  {name:'White',color:'#e0e0e4'},
-  {name:'Blue',color:'#60a0e0'},
-  {name:'Orange',color:'#e0a040'},
-  {name:'Cyan',color:'#40d8d0'},
-  {name:'Red',color:'#d04040'},
-  {name:'Lavender',color:'#a080e0'},
-  {name:'Gold',color:'#d4a017'},
-  {name:'Salmon',color:'#e08070'},
-  {name:'Pink',color:'#e070a0'},
-  {name:'Mint',color:'#60d8a0'},
-  {name:'Yellow',color:'#e0d060'},
-  {name:'Ice',color:'#a0d0f0'},
-  {name:'Amber',color:'#d0a030'},
-];
-
-// ── Settings ──
-function loadS(){
-  try{
-    const s=JSON.parse(localStorage.getItem('rc6')||'{}');
-    return{
-      city:s.city||'Los Angeles',country:s.country||'US',method:s.method||'2',
-      numerals:s.numerals||'arabic',movement:s.movement||'quartz',tickVol:s.tickVol!=null?s.tickVol:100,
-      mode:s.mode||'day',dial:s.dial||'tennis',lumeColor:s.lumeColor||0,
-    };
-  }catch(e){
-    return{city:'Los Angeles',country:'US',method:'2',numerals:'arabic',movement:'quartz',tickVol:100,mode:'day',dial:'tennis',lumeColor:0};
-  }
-}
+// Settings
+function loadS(){try{const s=JSON.parse(localStorage.getItem('rc6')||'{}');return{city:s.city||'Los Angeles',country:s.country||'US',method:s.method||'2',numerals:s.numerals||'arabic'};}catch(e){return{city:'Los Angeles',country:'US',method:'2',numerals:'arabic'};}}
 let S=loadS();
-let D=DIALS[S.dial]; // active dial colors
-
-// Smooth day↔night transition
-let modeBlend=0; // 0=day, 1=night
-let modeTarget=0;
-function updateModeBlend(){
-  const target=S.mode==='night'?1:0;
-  modeTarget=target;
-}
-function lerpColor(a,b,t){
-  // Parse hex or rgb
-  const pa=parseCol(a),pb=parseCol(b);
-  if(!pa||!pb)return t<0.5?a:b;
-  return`rgb(${Math.round(pa[0]+(pb[0]-pa[0])*t)},${Math.round(pa[1]+(pb[1]-pa[1])*t)},${Math.round(pa[2]+(pb[2]-pa[2])*t)})`;
-}
-function parseCol(c){
-  if(!c)return null;
-  if(c.startsWith('#')){
-    const h=c.length===4?c[1]+c[1]+c[2]+c[2]+c[3]+c[3]:c.slice(1);
-    return[parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)];
-  }
-  const m=c.match(/(\d+)/g);
-  return m?m.slice(0,3).map(Number):null;
-}
-function lerpVal(a,b,t){return a+(b-a)*t;}
-
-function getColors(){
-  // Animate blend toward target
-  modeBlend+=(modeTarget-modeBlend)*0.04; // smooth ease
-  if(Math.abs(modeBlend-modeTarget)<0.001)modeBlend=modeTarget;
-  
-  const day=DIALS[S.dial];
-  if(modeBlend<0.001)return day;
-  
-  const lc=LUME_COLORS[S.lumeColor].color;
-  const r=parseInt(lc.slice(1,3),16),g=parseInt(lc.slice(3,5),16),b=parseInt(lc.slice(5,7),16);
-  const dim=`rgb(${Math.floor(r*.4)},${Math.floor(g*.4)},${Math.floor(b*.4)})`;
-  const night={
-    bg:'#000000',lume:lc,lumeDim:dim,hand:lc,handStroke:lc,
-    shadow:'rgba(0,0,0,.5)',minNum:`rgba(${r},${g},${b},.2)`,
-    text:`rgba(${r},${g},${b},.5)`,textDim:`rgba(${r},${g},${b},.25)`,
-    textMuted:`rgba(${r},${g},${b},.12)`,accent:lc,
-    pillBg:'rgba(255,255,255,.02)',pillBorder:`rgba(${r},${g},${b},.1)`,
-    cardBg:'rgba(10,10,10,.95)',cardBorder:`rgba(${r},${g},${b},.1)`,
-  };
-  if(modeBlend>0.999)return night;
-  
-  // Interpolate all colors
-  const t=modeBlend;
-  return{
-    bg:lerpColor(day.bg,night.bg,t),
-    lume:lerpColor(day.lume,night.lume,t),
-    lumeDim:lerpColor(day.lumeDim,night.lumeDim,t),
-    hand:lerpColor(day.hand,night.hand,t),
-    handStroke:lerpColor(day.handStroke,night.handStroke,t),
-    shadow:t<0.5?day.shadow:night.shadow,
-    minNum:t<0.5?day.minNum:night.minNum,
-    text:t<0.5?day.text:night.text,
-    textDim:t<0.5?day.textDim:night.textDim,
-    textMuted:t<0.5?day.textMuted:night.textMuted,
-    accent:lerpColor(day.accent,night.accent,t),
-    pillBg:t<0.5?day.pillBg:night.pillBg,
-    pillBorder:t<0.5?day.pillBorder:night.pillBorder,
-    cardBg:t<0.5?day.cardBg:night.cardBg,
-    cardBorder:t<0.5?day.cardBorder:night.cardBorder,
-  };
-}
-
-// Pixel shift for burn-in protection
-let pixelShiftX=0, pixelShiftY=0, lastShift=0;
-function updatePixelShift(){
-  const now=Date.now();
-  if(now-lastShift>120000){ // every 2 minutes
-    pixelShiftX=Math.round((Math.random()-0.5)*4);
-    pixelShiftY=Math.round((Math.random()-0.5)*4);
-    lastShift=now;
-  }
-}
-
-window.openSettings=()=>{
-  document.getElementById('sCity').value=S.city;
-  document.getElementById('sCountry').value=S.country;
-  document.getElementById('sMethod').value=S.method;
-  document.getElementById('sNum').value=S.numerals;
-  document.getElementById('sDial').value=S.dial;
-  updateSettingsUI();
-  document.getElementById('sov').classList.add('open');
-};
+window.openSettings=()=>{document.getElementById('sCity').value=S.city;document.getElementById('sCountry').value=S.country;document.getElementById('sMethod').value=S.method;document.getElementById('sNum').value=S.numerals;document.getElementById('sov').classList.add('open');};
 window.closeSettings=()=>document.getElementById('sov').classList.remove('open');
-window.saveSettings=()=>{
-  S.city=document.getElementById('sCity').value.trim()||'Los Angeles';
-  S.country=document.getElementById('sCountry').value.trim()||'US';
-  S.method=document.getElementById('sMethod').value;
-  S.numerals=document.getElementById('sNum').value;
-  S.dial=document.getElementById('sDial').value;
-  localStorage.setItem('rc6',JSON.stringify(S));
-  D=getColors();
-  applyThemeToUI();
-  closeSettings();
-  fetchPrayer();
-};
-window.setMovement=mv=>{S.movement=mv;updateSettingsUI();};
-window.setTickVol=v=>{S.tickVol=parseInt(v);document.getElementById('volLabel').textContent=v+'%';};
-window.setMode=mode=>{
-  S.mode=mode;
-  updateModeBlend();
-  document.getElementById('lumeSection').style.display=mode==='night'?'block':'none';
-  updateSettingsUI();
-};
+window.saveSettings=()=>{S.city=document.getElementById('sCity').value.trim()||'Los Angeles';S.country=document.getElementById('sCountry').value.trim()||'US';S.method=document.getElementById('sMethod').value;S.numerals=document.getElementById('sNum').value;localStorage.setItem('rc6',JSON.stringify(S));closeSettings();fetchPrayer();};
 
-function updateSettingsUI(){
-  document.querySelectorAll('.movement-opt[data-mv]').forEach(el=>{
-    el.classList.toggle('active',el.dataset.mv===S.movement);
-  });
-  document.querySelectorAll('.movement-opt[data-mode]').forEach(el=>{
-    el.classList.toggle('active',el.dataset.mode===S.mode);
-  });
-  document.getElementById('lumeSection').style.display=S.mode==='night'?'block':'none';
-  document.getElementById('volSlider').value=S.tickVol;
-  document.getElementById('volLabel').textContent=S.tickVol+'%';
-  buildLumeGrid();
+// ── DEV MODE ──
+// Double-tap/click the clock to toggle. Slider scrubs time, Ramadan toggle simulates Ramadan.
+let devMode=false, devTimeMin=null, devRamadan=false;
+function devNow(){
+  if(devTimeMin!==null){const h=Math.floor(devTimeMin/60),m=Math.floor(devTimeMin%60),s=Math.floor((devTimeMin%1)*60);const d=new Date();d.setHours(h,m,s,0);return d;}
+  return new Date();
 }
-
-function buildLumeGrid(){
-  const grid=document.getElementById('lumeGrid');
-  grid.innerHTML=LUME_COLORS.map((lc,i)=>
-    `<div class="lume-swatch ${i===S.lumeColor?'active':''}" style="background:${lc.color}" onclick="setLume(${i})" title="${lc.name}"></div>`
-  ).join('');
+function devNM(){return devTimeMin!==null?devTimeMin:(() => {const d=new Date();return d.getHours()*60+d.getMinutes()+d.getSeconds()/60;})();}
+function toggleDev(){
+  devMode=!devMode;
+  document.getElementById('devPanel').style.display=devMode?'flex':'none';
+  if(!devMode){devTimeMin=null;devRamadan=false;updateInfo();}
 }
-window.setLume=i=>{S.lumeColor=i;buildLumeGrid();};
-
-function applyThemeToUI(){
-  const c=getColors();
-  document.body.style.background=c.bg;
-  // Update CSS custom properties dynamically
-  const root=document.documentElement;
-  root.style.setProperty('--theme-text',c.text);
-  root.style.setProperty('--theme-dim',c.textDim);
-  root.style.setProperty('--theme-muted',c.textMuted);
-  root.style.setProperty('--theme-accent',c.accent);
-}
-
+let lastTap=0;
+document.getElementById('gl').addEventListener('dblclick',toggleDev);
+document.getElementById('gl').addEventListener('touchend',e=>{const now=Date.now();if(now-lastTap<350){e.preventDefault();toggleDev();}lastTap=now;});
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSettings();});
 
-// ── Prayer ──
+// Prayer
 let PD=null,DD=null;
 const PC={Fajr:'#6ba0c4',Sunrise:'#e8c060',Dhuhr:'#f0e060',Asr:'#e0b050',Maghrib:'#d06040',Isha:'#8a7abf'};
 const PN=['Fajr','Sunrise','Dhuhr','Asr','Maghrib','Isha'];
 function pM(s){if(!s)return 0;const[h,m]=s.split(':').map(Number);return h*60+m;}
-function nM(){const d=new Date();return d.getHours()*60+d.getMinutes()+d.getSeconds()/60;}
+function nM(){return devNM();}
 function f12(m){const h=Math.floor(m/60),mi=Math.floor(m%60);return`${h%12||12}:${String(mi).padStart(2,'0')}${h>=12?'p':'a'}`;}
 const MN={'1':'Karachi','2':'ISNA','3':'MWL','4':'Umm Al-Qura','5':'Egyptian','7':'Tehran','8':'Gulf','15':'Moonsighting'};
-
-async function fetchPrayer(){
-  try{const r=await fetch(`https://api.aladhan.com/v1/timingsByCity?city=${encodeURIComponent(S.city)}&country=${encodeURIComponent(S.country)}&method=${S.method}`);const j=await r.json();if(j.code===200){PD=j.data.timings;DD=j.data.date;updateInfo();if(qiblaAngle===null)calcQibla();}}catch(e){document.getElementById('loc').textContent='Failed to load';}
-}
-
+async function fetchPrayer(){try{const r=await fetch(`https://api.aladhan.com/v1/timingsByCity?city=${encodeURIComponent(S.city)}&country=${encodeURIComponent(S.country)}&method=${S.method}`);const j=await r.json();if(j.code===200){PD=j.data.timings;DD=j.data.date;updateInfo();}}catch(e){document.getElementById('loc').textContent='📍 Failed — tap ⚙️';}}
 function updateInfo(){
   if(!DD)return;
-  const c=getColors();
   const h=DD.hijri,g=DD.gregorian;
   document.getElementById('hijri').textContent=`${h.day} ${h.month.en} ${h.year} AH`;
-  document.getElementById('hijri').style.color=c.text;
   document.getElementById('greg').textContent=`${g.weekday.en}, ${g.day} ${g.month.en} ${g.year}`;
-  document.getElementById('greg').style.color=c.textDim;
-  document.getElementById('loc').textContent=`${S.city} · ${MN[S.method]||'ISNA'}`;
-  document.getElementById('loc').style.color=c.textMuted;
+  document.getElementById('loc').textContent=`📍 ${S.city} · ${MN[S.method]||'ISNA'} ⚙️`;
   const lbl=document.getElementById('ramLabel');
-  lbl.style.color=c.accent;
-  if(h.month.number===9)lbl.textContent=`RAMADAN · DAY ${h.day}`;
+  const isRam=devRamadan||h.month.number===9;
+  if(isRam)lbl.textContent=`RAMADAN · DAY ${devRamadan?'15':h.day}`;
   else if(h.month.number===8){const dl=(h.month.days||30)-parseInt(h.day);lbl.textContent=dl<=15?`${dl} DAYS TO RAMADAN`:`SHA'BĀN ${h.day}`;}
   else lbl.textContent='';
-
-  const now=nM();
-  const ps=PN.map(n=>({name:n,time:pM(PD[n]),color:PC[n]}));
-  let ni=ps.findIndex(p=>p.time>now);if(ni===-1)ni=0;
-  let ci=ni-1;if(ci<0)ci=ps.length-1;
-  document.getElementById('prayers').innerHTML=ps.map((p,i)=>{
-    const isActive=i===ci,isNext=i===ni;
-    const nameColor=isNext?c.accent:isActive?c.lume:c.textDim;
-    const timeColor=isNext?c.accent:isActive?c.lume:c.text;
-    const opacity=isActive?'1':isNext?'1':'0.6';
-    return`<div class="pp" style="color:${nameColor};opacity:${opacity}"><span class="dot" style="background:${isNext?c.accent:isActive?c.lume:c.lumeDim}"></span>${p.name} <span class="pt" style="color:${timeColor}">${f12(p.time)}</span></div>`;
-  }).join('');
-
+  const now=nM();const ps=PN.map(n=>({name:n,time:pM(PD[n]),color:PC[n]}));
+  let ni=ps.findIndex(p=>p.time>now);if(ni===-1)ni=0;let ci=ni-1;if(ci<0)ci=ps.length-1;
+  document.getElementById('prayers').innerHTML=ps.map((p,i)=>`<div class="pp ${i===ci?'active':i===ni?'next':''}"><span class="dot" style="background:${p.color}"></span>${p.name} <span class="pt">${f12(p.time)}</span></div>`).join('');
   const fajr=pM(PD.Fajr),mag=pM(PD.Maghrib),el=document.getElementById('fastStatus');
-  el.style.color=c.text;
-  if(h.month.number===9){
-    if(now>=fajr&&now<mag){const l=mag-now;el.innerHTML=`Fasting · <span class="tl" style="color:${c.accent}">${Math.floor(l/60)}h ${Math.floor(l%60)}m to Iftar</span>`;}
-    else if(now<fajr){const l=fajr-now;el.innerHTML=`Suhoor · <span class="tl" style="color:${c.accent}">${Math.floor(l/60)}h ${Math.floor(l%60)}m to Fajr</span>`;}
-    else el.innerHTML=`<span style="color:${c.accent}">Iftar Mubarak ☪</span>`;
-  }else{el.innerHTML=`Fajr <span class="tl" style="color:${c.accent}">${f12(fajr)}</span> · Maghrib <span class="tl" style="color:${c.accent}">${f12(mag)}</span>`;}
+  if(isRam){if(now>=fajr&&now<mag){const l=mag-now;el.innerHTML=`Fasting · <span class="tl">${Math.floor(l/60)}h ${Math.floor(l%60)}m to Iftar</span>`;}else if(now<fajr){const l=fajr-now;el.innerHTML=`Suhoor · <span class="tl">${Math.floor(l/60)}h ${Math.floor(l%60)}m to Fajr</span>`;}else el.innerHTML=`<span style="color:#f0e060">Iftar Mubarak ☪</span>`;}else{el.innerHTML=`Fajr <span class="tl">${f12(fajr)}</span> · Maghrib <span class="tl">${f12(mag)}</span>`;}
 }
 
-// ── Resize ──
-function resize(){
-  dpr=window.devicePixelRatio||1;
-  W=window.innerWidth*dpr;H=window.innerHeight*dpr;
-  cv.width=W;cv.height=H;
-  cv.style.width=window.innerWidth+'px';
-  cv.style.height=window.innerHeight+'px';
-  cx=W/2;cy=H/2;
-  R=Math.min(W,H)*0.42;
-}
-resize();
-window.addEventListener('resize',resize);
-
-// ── Qibla ──
-const MECCA_LAT=21.4225*Math.PI/180, MECCA_LNG=39.8262*Math.PI/180;
-let userLat=null,userLng=null,deviceHeading=null,qiblaAngle=null;
-
-// City coordinates fallback for Qibla when GPS unavailable
-const CITY_COORDS={'los angeles':[34.05,-118.24],'new york':[40.71,-74.01],'london':[51.51,-0.13],'dubai':[25.20,55.27],'cairo':[30.04,31.24],'istanbul':[41.01,28.98],'karachi':[24.86,67.01],'jakarta':[-6.21,106.85],'kuala lumpur':[3.14,101.69],'toronto':[43.65,-79.38],'chicago':[41.88,-87.63],'houston':[29.76,-95.37],'san francisco':[37.77,-122.42],'seattle':[47.61,-122.33],'miami':[25.76,-80.19],'dallas':[32.78,-96.80],'atlanta':[33.75,-84.39],'denver':[39.74,-104.99],'phoenix':[33.45,-112.07],'detroit':[42.33,-83.05],'boston':[42.36,-71.06],'paris':[48.86,2.35],'berlin':[52.52,13.41],'riyadh':[24.71,46.67],'jeddah':[21.54,39.17],'mecca':[21.42,39.83],'medina':[24.47,39.61],'doha':[25.29,51.53],'abu dhabi':[24.45,54.65],'amman':[31.95,35.93],'beirut':[33.89,35.50],'islamabad':[33.69,73.04],'lahore':[31.55,74.35],'dhaka':[23.81,90.41],'singapore':[1.35,103.82],'sydney':[-33.87,151.21],'melbourne':[-37.81,144.96],'cape town':[-33.93,18.42]};
-
-function calcQibla(){
-  if(userLat===null){
-    // Fallback: use city from settings
-    const coords=CITY_COORDS[(S.city||'').toLowerCase()];
-    if(coords){userLat=coords[0]*Math.PI/180;userLng=coords[1]*Math.PI/180;}
-    else return;
-  }
-  const dLng=MECCA_LNG-userLng;
-  const y=Math.sin(dLng)*Math.cos(MECCA_LAT);
-  const x=Math.cos(userLat)*Math.sin(MECCA_LAT)-Math.sin(userLat)*Math.cos(MECCA_LAT)*Math.cos(dLng);
-  qiblaAngle=Math.atan2(y,x);
+// Sun
+function getSun(){
+  if(!PD)return{isDay:true,elevation:0.5,progress:0.5};
+  const now=nM(),sr=pM(PD.Sunrise),ss=pM(PD.Sunset||PD.Maghrib);
+  if(sr>=ss)return{isDay:true,elevation:0.5,progress:0.5};
+  const isDay=now>=sr&&now<=ss;
+  const progress=isDay?Math.max(0,Math.min(1,(now-sr)/(ss-sr))):0;
+  const elevation=isDay?Math.sin(progress*Math.PI):0;
+  return{isDay,elevation,progress};
 }
 
-function requestGeoForQibla(){
-  if(navigator.geolocation){
-    navigator.geolocation.getCurrentPosition(p=>{
-      userLat=p.coords.latitude*Math.PI/180;
-      userLng=p.coords.longitude*Math.PI/180;
-      calcQibla();
-    },()=>{/* fallback: no qibla */},{enableHighAccuracy:false,timeout:10000});
-  }
-}
-requestGeoForQibla();
-
-// DeviceOrientation for compass heading
-let compassSupported=false,compassInited=false;
-function initCompass(){
-  if(compassInited)return;compassInited=true;
-  // Prefer absolute (Android)
-  if('ondeviceorientationabsolute' in window){
-    window.addEventListener('deviceorientationabsolute',e=>{
-      if(e.alpha!=null){deviceHeading=(360-e.alpha)*Math.PI/180;compassSupported=true;}
-    });
-  }
-  // Fallback / iOS
-  window.addEventListener('deviceorientation',e=>{
-    if(compassSupported)return;
-    if(e.webkitCompassHeading!=null){
-      deviceHeading=e.webkitCompassHeading*Math.PI/180;
-    }else if(e.alpha!=null&&e.absolute){
-      deviceHeading=(360-e.alpha)*Math.PI/180;
-    }
-  });
-}
-// Tap-to-start: unlock audio + gyro in one gesture
-const tapOverlay=document.getElementById('tapOverlay');
-function activateAll(){
-  // Audio
-  if(!qiblaAudioCtx)qiblaAudioCtx=new(window.AudioContext||window.webkitAudioContext)();
-  if(qiblaAudioCtx.state==='suspended')qiblaAudioCtx.resume();
-  // Gyro (iOS permission)
-  if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission==='function'){
-    DeviceOrientationEvent.requestPermission().then(r=>{if(r==='granted'){compassInited=false;initCompass();}}).catch(()=>{});
-  }else{initCompass();}
-  // Retry geolocation after user gesture
-  if(qiblaAngle===null)requestGeoForQibla();
-  // Dismiss overlay
-  tapOverlay.style.opacity='0';
-  setTimeout(()=>tapOverlay.style.display='none',500);
-  // Show info panels briefly
-  const infos=document.querySelectorAll('.info');
-  infoVisible=true;
-  infos.forEach(el=>el.classList.add('visible'));
-  clearTimeout(infoTimer);
-  infoTimer=setTimeout(()=>{infoVisible=false;infos.forEach(el=>el.classList.remove('visible'));},4000);
-}
-// iOS requires click (not touchstart) for DeviceOrientation permission
-tapOverlay.addEventListener('click',activateAll,{once:true});
-// Non-iOS: init compass immediately (no permission needed)
-if(typeof DeviceOrientationEvent==='undefined'||typeof DeviceOrientationEvent.requestPermission!=='function'){
-  initCompass();
+// ── 2D Face Colors (interpolated day/night) ──
+function lerp(a,b,t){return a+(b-a)*t;}
+function lerpHex(day,night,t){
+  const d=[parseInt(day.slice(1,3),16),parseInt(day.slice(3,5),16),parseInt(day.slice(5,7),16)];
+  const n=[parseInt(night.slice(1,3),16),parseInt(night.slice(3,5),16),parseInt(night.slice(5,7),16)];
+  const r=Math.round(lerp(d[0],n[0],t)),g=Math.round(lerp(d[1],n[1],t)),b=Math.round(lerp(d[2],n[2],t));
+  return`rgb(${r},${g},${b})`;
 }
 
-let qiblaAligned=false, lastHaptic=0;
-// Audio tick for Qibla alignment (iOS has no Vibration API)
-let qiblaAudioCtx=null,qiblaWasAligned=false;
-// Must create & resume AudioContext from user gesture on iOS
-document.addEventListener('touchstart',function unlockAudio(){
-  if(!qiblaAudioCtx)qiblaAudioCtx=new(window.AudioContext||window.webkitAudioContext)();
-  if(qiblaAudioCtx.state==='suspended')qiblaAudioCtx.resume();
-},{once:false});
-document.addEventListener('click',function unlockAudio2(){
-  if(!qiblaAudioCtx)qiblaAudioCtx=new(window.AudioContext||window.webkitAudioContext)();
-  if(qiblaAudioCtx.state==='suspended')qiblaAudioCtx.resume();
-});
-function qiblaTick(){
-  try{
-    if(!qiblaAudioCtx)qiblaAudioCtx=new(window.AudioContext||window.webkitAudioContext)();
-    if(qiblaAudioCtx.state==='suspended')qiblaAudioCtx.resume();
-    const t=qiblaAudioCtx.currentTime;
-    // Minute repeater chime — three tuned gong strikes
-    const notes=[1047, 1319, 1568];
-    const vol=0.075*(S.tickVol/100);
-    notes.forEach((f,i)=>{
-      const start=t+i*0.18;
-      const o=qiblaAudioCtx.createOscillator();
-      const g=qiblaAudioCtx.createGain();
-      o.connect(g);g.connect(qiblaAudioCtx.destination);
-      o.frequency.value=f;
-      o.type='sine';
-      // Sharp bell attack + long decay
-      g.gain.setValueAtTime(vol*1.2,start);
-      g.gain.exponentialRampToValueAtTime(vol*0.5,start+0.03);
-      g.gain.exponentialRampToValueAtTime(0.001,start+1.4);
-      o.start(start);o.stop(start+1.5);
-      // Pure sine — no harmonics
-    });
-  }catch(e){}
-}
-function drawQiblaWindow(c){
-  if(qiblaAngle===null)return;
-  // Position: 3 o'clock, like Rolex day window
-  const wx=cx+R*0.48, wy=cy+R*0.015;
-  const ww=R*0.182, wh=R*0.117, wr=R*0.02;
-  // Qibla direction relative to device
-  let arrowAng=qiblaAngle;
-  if(deviceHeading!==null) arrowAng=qiblaAngle-deviceHeading;
-  // Normalize to -PI..PI
-  let normAng=arrowAng%( Math.PI*2);
-  if(normAng>Math.PI)normAng-=Math.PI*2;
-  if(normAng<-Math.PI)normAng+=Math.PI*2;
-  // Aligned = arrow pointing up (toward top of screen) within 5°
-  const aligned=deviceHeading!==null&&Math.abs(normAng)<(5*Math.PI/180);
-  qiblaAligned=aligned;
-  // Pulse animation
-  const pulse=aligned?0.15*Math.sin(Date.now()*0.006)*0.5+0.5:0;
-  // Feedback when entering alignment
-  if(aligned&&!qiblaWasAligned){
-    qiblaTick();
-    if(navigator.vibrate)navigator.vibrate(50);
-  }
-  qiblaWasAligned=aligned;
-  // Glow when aligned
-  if(aligned){
-    ctx.save();
-    ctx.shadowColor='#4ade80';ctx.shadowBlur=(20+pulse*10)*dpr;
-    ctx.fillStyle='rgba(74,222,128,0.15)';
-    roundRect(ctx,wx-ww/2-4*dpr,wy-wh/2-4*dpr,ww+8*dpr,wh+8*dpr,wr+2*dpr);ctx.fill();
-    ctx.shadowBlur=0;ctx.restore();
-  }
-  // Window depression
-  ctx.save();
-  ctx.fillStyle=c.shadow;
-  roundRect(ctx,wx-ww/2+1*dpr,wy-wh/2+1.5*dpr,ww,wh,wr);ctx.fill();
-  // Window bg
-  ctx.fillStyle=aligned?'rgba(74,222,128,0.08)':c.bg;
-  roundRect(ctx,wx-ww/2,wy-wh/2,ww,wh,wr);ctx.fill();
-  // Border — green when aligned, subtle otherwise
-  ctx.strokeStyle=aligned?'rgba(74,222,128,'+(0.6+pulse*0.3)+')':c.shadow;
-  ctx.lineWidth=(aligned?1.5:1)*dpr;
-  roundRect(ctx,wx-ww/2,wy-wh/2,ww,wh,wr);ctx.stroke();
-  // Arrow
-  const arrLen=wh*0.42;
-  const arrTipX=wx+Math.sin(arrowAng)*arrLen;
-  const arrTipY=wy-Math.cos(arrowAng)*arrLen;
-  const arrTailX=wx-Math.sin(arrowAng)*arrLen*0.5;
-  const arrTailY=wy+Math.cos(arrowAng)*arrLen*0.5;
-  const perpX=Math.cos(arrowAng)*arrLen*0.3;
-  const perpY=Math.sin(arrowAng)*arrLen*0.3;
-  ctx.fillStyle=aligned?'#4ade80':c.accent;
-  ctx.globalAlpha=aligned?(0.95+pulse*0.05):0.9;
-  ctx.beginPath();
-  ctx.moveTo(arrTipX,arrTipY);
-  ctx.lineTo(arrTailX+perpX,arrTailY+perpY);
-  ctx.lineTo(arrTailX-perpX,arrTailY-perpY);
-  ctx.closePath();ctx.fill();
-  ctx.globalAlpha=1;
-  ctx.restore();
-}
-
-// ── Drawing ──
 const ARABIC=['١٢','١','٢','٣','٤','٥','٦','٧','٨','٩','١٠','١١'];
 const WESTERN=['12','1','2','3','4','5','6','7','8','9','10','11'];
 const MIN_LABELS=['60','','','','','05','','','','','10','','','','','15','','','','','20','','','','','25','','','','','30','','','','','35','','','','','40','','','','','45','','','','','50','','','','','55','','','',''];
 
-function roundRect(c,x,y,w,h,r){
-  c.beginPath();c.moveTo(x+r,y);c.lineTo(x+w-r,y);c.quadraticCurveTo(x+w,y,x+w,y+r);
-  c.lineTo(x+w,y+h-r);c.quadraticCurveTo(x+w,y+h,x+w-r,y+h);c.lineTo(x+r,y+h);
-  c.quadraticCurveTo(x,y+h,x,y+h-r);c.lineTo(x,y+r);c.quadraticCurveTo(x,y,x+r,y);c.closePath();
-}
+function drawFaceTexture(){
+  const c=fctx, S2=FS, cx=S2/2, cy=S2/2, R=S2*0.42;
+  const n=nightMode;
 
-function drawFace(c){
-  ctx.fillStyle=c.bg;
-  ctx.fillRect(0,0,W,H);
-  
-  // Night mode: dial face glows like lume
-  if(modeBlend>0.01){
-    const glow=modeBlend;
-    // Radial glow from center — the face IS the lume
-    const grad=ctx.createRadialGradient(cx,cy,R*0.1,cx,cy,R*1.1);
-    const lc=LUME_COLORS[S.lumeColor].color;
-    const r=parseInt(lc.slice(1,3),16),g=parseInt(lc.slice(3,5),16),b=parseInt(lc.slice(5,7),16);
-    grad.addColorStop(0,`rgba(${r},${g},${b},${0.06*glow})`);
-    grad.addColorStop(0.6,`rgba(${r},${g},${b},${0.03*glow})`);
-    grad.addColorStop(1,`rgba(${r},${g},${b},0)`);
-    ctx.fillStyle=grad;
-    ctx.fillRect(0,0,W,H);
-  }
-  
-  // Subtle stipple texture
-  ctx.globalAlpha=0.012;
-  for(let i=0;i<600;i++){
-    const x=Math.random()*W,y=Math.random()*H;
-    ctx.fillStyle=Math.random()>0.5?'#fff':'#000';
-    ctx.fillRect(x,y,dpr,dpr);
-  }
-  ctx.globalAlpha=1;
-}
+  // Background
+  const bg=lerpHex('#35a065','#0a1e14',n);
+  const bgEdge=lerpHex('#267a4c','#06120c',n);
+  const g=c.createRadialGradient(cx,cy-R*0.3,0,cx,cy,R*1.6);
+  g.addColorStop(0,bg);g.addColorStop(1,bgEdge);
+  c.fillStyle=g;c.fillRect(0,0,S2,S2);
 
-function drawIndices(c){
+  // Stipple texture
+  c.globalAlpha=0.012;
+  for(let i=0;i<600;i++){c.fillStyle=Math.random()>0.5?'#fff':'#000';c.fillRect(Math.random()*S2,Math.random()*S2,2,2);}
+  c.globalAlpha=1;
+
+  // Lume colors
+  const lumeDay='#c8e860';
+  const lumeNight='#d0f070';
+  const lume=lerpHex(lumeDay,lumeNight,n);
+  const lumeDim=lerpHex('#6aaa50','#80c050',n);
+  const lumeGlow=lerp(0.15,0.6,n);
+  const handFill=lerpHex('#f4f0e0','#e0dcc8',n);
+
+  // Hour indices (capsules)
   for(let i=0;i<60;i++){
     const ang=(i/60)*Math.PI*2-Math.PI/2;
     const isHour=i%5===0;
     if(isHour){
-      const inner=R-R*0.18,outer=R-R*0.03,capW=R*0.035;
-      const midR=(inner+outer)/2;
-      const capH=outer-inner;
+      const inner=R-R*0.18, outer=R-R*0.03, capW=R*0.035;
       // Shadow
-      ctx.save();
-      ctx.translate(cx+Math.cos(ang)*midR+3*dpr,cy+Math.sin(ang)*midR+4*dpr);
-      ctx.rotate(ang+Math.PI/2);
-      ctx.fillStyle=c.shadow;
-      ctx.shadowColor=c.shadow;ctx.shadowBlur=6*dpr;
-      roundRect(ctx,-capW,capH/-2,capW*2,capH,capW);ctx.fill();
-      ctx.shadowBlur=0;ctx.restore();
-      // Metal casing (outer shell)
-      ctx.save();
-      ctx.translate(cx+Math.cos(ang)*midR,cy+Math.sin(ang)*midR);
-      ctx.rotate(ang+Math.PI/2);
-      // Clean metal capsule with lume insert
-      // Outer metal shell
-      ctx.fillStyle=c.hand;
-      roundRect(ctx,-capW,capH/-2,capW*2,capH,capW);ctx.fill();
-      // Thin dark edge for depth
-      ctx.strokeStyle=c.shadow;ctx.lineWidth=0.5*dpr;
-      roundRect(ctx,-capW,capH/-2,capW*2,capH,capW);ctx.stroke();
-      // Lume insert (inset strip)
-      const insetW=capW*0.55,insetH=capH*0.75;
-      ctx.shadowColor=c.lume+'80';ctx.shadowBlur=10*dpr;
-      ctx.fillStyle=c.lume;
-      roundRect(ctx,-insetW,insetH/-2,insetW*2,insetH,insetW);ctx.fill();
-      ctx.shadowBlur=0;
-      // Lume glow highlight
-      ctx.fillStyle='rgba(255,255,240,.3)';
-      roundRect(ctx,-insetW*0.4,insetH/-2+1*dpr,insetW*0.8,insetH*0.4,insetW*0.3);ctx.fill();
-      ctx.restore();
+      c.save();
+      c.translate(cx+Math.cos(ang)*((inner+outer)/2)+3, cy+Math.sin(ang)*((inner+outer)/2)+4);
+      c.rotate(ang+Math.PI/2);
+      c.fillStyle='rgba(0,30,15,.25)';
+      roundRect(c,-capW,(outer-inner)/-2,capW*2,outer-inner,capW);c.fill();
+      c.restore();
+      // Capsule
+      c.save();
+      c.translate(cx+Math.cos(ang)*((inner+outer)/2), cy+Math.sin(ang)*((inner+outer)/2));
+      c.rotate(ang+Math.PI/2);
+      c.shadowColor=`rgba(200,232,96,${lumeGlow})`;c.shadowBlur=20+n*30;
+      c.fillStyle=lume;
+      roundRect(c,-capW,(outer-inner)/-2,capW*2,outer-inner,capW);c.fill();
+      c.shadowBlur=0;
+      c.fillStyle=`rgba(255,255,240,${0.2+n*0.1})`;
+      roundRect(c,-capW*0.5,(outer-inner)/-2+3,capW,outer-inner-6,capW*0.5);c.fill();
+      c.restore();
     }else{
-      // Minute ticks
-      const inner=R-R*0.07,outer=R-R*0.03;
-      ctx.strokeStyle=c.shadow;ctx.lineWidth=2*dpr;ctx.lineCap='round';
-      ctx.beginPath();ctx.moveTo(cx+Math.cos(ang)*inner+1*dpr,cy+Math.sin(ang)*inner+1.5*dpr);
-      ctx.lineTo(cx+Math.cos(ang)*outer+1*dpr,cy+Math.sin(ang)*outer+1.5*dpr);ctx.stroke();
-      ctx.strokeStyle=c.lume;ctx.globalAlpha=0.45;ctx.lineWidth=1.5*dpr;
-      ctx.beginPath();ctx.moveTo(cx+Math.cos(ang)*inner,cy+Math.sin(ang)*inner);
-      ctx.lineTo(cx+Math.cos(ang)*outer,cy+Math.sin(ang)*outer);ctx.stroke();
-      ctx.globalAlpha=1;
+      const inner=R-R*0.07, outer=R-R*0.03;
+      c.strokeStyle=lumeDim;c.lineWidth=2.5;c.lineCap='round';
+      if(n>0.3){c.shadowColor=`rgba(128,192,80,${n*0.3})`;c.shadowBlur=6;}
+      c.beginPath();c.moveTo(cx+Math.cos(ang)*inner,cy+Math.sin(ang)*inner);c.lineTo(cx+Math.cos(ang)*outer,cy+Math.sin(ang)*outer);c.stroke();
+      c.shadowBlur=0;
     }
   }
-}
 
-function drawNumerals(c){
-  if(S.numerals==='none')return;
-  const showA=S.numerals==='arabic'||S.numerals==='both';
-  const showW=S.numerals==='western'||S.numerals==='both';
-  for(let i=0;i<12;i++){
-    const ang=(i/12)*Math.PI*2-Math.PI/2;
-    if(showA&&showW){
-      const rA=R-R*0.3,rW=R-R*0.42;
-      ctx.textAlign='center';ctx.textBaseline='middle';
-      ctx.font=`700 ${R*0.13}px Lateef,system-ui,sans-serif`;
-      ctx.fillStyle=c.shadow;ctx.fillText(ARABIC[i],cx+Math.cos(ang)*rA+1.5*dpr,cy+Math.sin(ang)*rA+2*dpr);
-      ctx.fillStyle=c.lume;ctx.shadowColor=c.lume+'40';ctx.shadowBlur=8*dpr;
-      ctx.fillText(ARABIC[i],cx+Math.cos(ang)*rA,cy+Math.sin(ang)*rA);ctx.shadowBlur=0;
-      ctx.font=`400 ${R*0.05}px Inter,system-ui,sans-serif`;ctx.fillStyle=c.lumeDim;
-      ctx.fillText(WESTERN[i],cx+Math.cos(ang)*rW,cy+Math.sin(ang)*rW);
-    }else{
-      const r=R-R*0.32;const nums=showA?ARABIC:WESTERN;
-      ctx.textAlign='center';ctx.textBaseline='middle';
-      const isArabicNums=showA;
-      ctx.font=isArabicNums?`700 ${R*0.14}px Lateef,system-ui,sans-serif`:`700 ${R*0.11}px Inter,system-ui,sans-serif`;
-      ctx.fillStyle=c.shadow;ctx.fillText(nums[i],cx+Math.cos(ang)*r+1.5*dpr,cy+Math.sin(ang)*r+2*dpr);
-      ctx.fillStyle=c.lume;ctx.shadowColor=c.lume+'40';ctx.shadowBlur=10*dpr;
-      ctx.fillText(nums[i],cx+Math.cos(ang)*r,cy+Math.sin(ang)*r);ctx.shadowBlur=0;
+  // Numerals
+  if(S.numerals!=='none'){
+    const showA=S.numerals==='arabic'||S.numerals==='both';
+    const showW=S.numerals==='western'||S.numerals==='both';
+    for(let i=0;i<12;i++){
+      const ang=(i/12)*Math.PI*2-Math.PI/2;
+      if(showA&&showW){
+        const rA=R-R*0.3,rW=R-R*0.42;
+        c.textAlign='center';c.textBaseline='middle';
+        c.font=`700 ${R*0.1}px Inter,system-ui,sans-serif`;
+        c.fillStyle=lume;c.shadowColor=`rgba(200,232,96,${lumeGlow*0.6})`;c.shadowBlur=n>0.3?12:0;
+        c.fillText(ARABIC[i],cx+Math.cos(ang)*rA,cy+Math.sin(ang)*rA);
+        c.shadowBlur=0;c.font=`400 ${R*0.05}px Inter`;c.fillStyle=lumeDim;
+        c.fillText(WESTERN[i],cx+Math.cos(ang)*rW,cy+Math.sin(ang)*rW);
+      }else{
+        const r=R-R*0.32;const nums=showA?ARABIC:WESTERN;
+        c.textAlign='center';c.textBaseline='middle';c.font=`700 ${R*0.11}px Inter,system-ui,sans-serif`;
+        c.fillStyle=lume;c.shadowColor=`rgba(200,232,96,${lumeGlow*0.6})`;c.shadowBlur=n>0.3?12:0;
+        c.fillText(nums[i],cx+Math.cos(ang)*r,cy+Math.sin(ang)*r);c.shadowBlur=0;
+      }
+    }
+    // Minute numerals
+    for(let i=0;i<60;i+=5){
+      const ang=(i/60)*Math.PI*2-Math.PI/2;const r=R+R*0.06;
+      if(!MIN_LABELS[i])continue;
+      c.textAlign='center';c.textBaseline='middle';c.font=`500 ${R*0.045}px Inter`;
+      c.fillStyle=`rgba(200,232,96,${0.25+n*0.15})`;
+      c.fillText(MIN_LABELS[i],cx+Math.cos(ang)*r,cy+Math.sin(ang)*r);
     }
   }
-  for(let i=0;i<60;i+=5){
-    const ang=(i/60)*Math.PI*2-Math.PI/2;
-    const r=R+R*0.06;const label=MIN_LABELS[i];if(!label)continue;
-    ctx.textAlign='center';ctx.textBaseline='middle';
-    ctx.font=`500 ${R*0.045}px Inter,system-ui,sans-serif`;
-    ctx.fillStyle=c.minNum;ctx.fillText(label,cx+Math.cos(ang)*r,cy+Math.sin(ang)*r);
-  }
-}
 
-function drawFastingArc(c){
-  if(!PD)return;
-  const fajr=pM(PD.Fajr),mag=pM(PD.Maghrib),now=nM();
-  const startAng=((fajr%720)/720)*Math.PI*2-Math.PI/2;
-  const endAng=((mag%720)/720)*Math.PI*2-Math.PI/2;
-  const arcR=R+R*0.14;
-  ctx.strokeStyle=c.accent+'1a';ctx.lineWidth=4*dpr;ctx.lineCap='round';
-  ctx.beginPath();ctx.arc(cx,cy,arcR,startAng,endAng);ctx.stroke();
-  if(now>=fajr&&now<=mag){
-    const nowAng=((now%720)/720)*Math.PI*2-Math.PI/2;
-    ctx.strokeStyle=c.accent+'50';ctx.lineWidth=4*dpr;ctx.lineCap='round';
-    ctx.beginPath();ctx.arc(cx,cy,arcR,startAng,nowAng);ctx.stroke();
-    ctx.fillStyle=c.accent;ctx.shadowColor=c.accent+'70';ctx.shadowBlur=10*dpr;
-    ctx.beginPath();ctx.arc(cx+Math.cos(nowAng)*arcR,cy+Math.sin(nowAng)*arcR,3.5*dpr,0,Math.PI*2);ctx.fill();
-    ctx.shadowBlur=0;
-  }
-}
-
-function drawPrayerMarkers(c){
-  if(!PD)return;
-  const midR=R*0.80;
-  PN.forEach(name=>{
-    const mins=pM(PD[name]);
-    const ang=((mins%720)/720)*Math.PI*2-Math.PI/2;
-    const mx=cx+Math.cos(ang)*midR, my=cy+Math.sin(ang)*midR;
-    const dotR=3*dpr;
-    // Shadow
-    ctx.fillStyle=c.shadow;ctx.beginPath();
-    ctx.arc(mx+1*dpr,my+1.5*dpr,dotR,0,Math.PI*2);ctx.fill();
-    // Dot
-    ctx.fillStyle=PC[name];ctx.globalAlpha=0.85;ctx.beginPath();
-    ctx.arc(mx,my,dotR,0,Math.PI*2);ctx.fill();
-    // Highlight
-    ctx.fillStyle='rgba(255,255,240,.35)';ctx.beginPath();
-    ctx.arc(mx-0.8*dpr,my-0.8*dpr,dotR*0.4,0,Math.PI*2);ctx.fill();
-    ctx.globalAlpha=1;
-  });
-}
-
-// ── Watch tick audio (shares qiblaAudioCtx) ──
-let lastTickStep=-1,tickEnabled=false;
-function ensureTickCtx(){
-  if(!qiblaAudioCtx)qiblaAudioCtx=new(window.AudioContext||window.webkitAudioContext)();
-  if(qiblaAudioCtx.state==='suspended')qiblaAudioCtx.resume();
-  tickEnabled=true;
-}
-document.addEventListener('touchstart',ensureTickCtx,{once:false});
-document.addEventListener('click',ensureTickCtx);
-
-let currentSecAngle=0;
-
-function playTick(loud){
-  if(!qiblaAudioCtx)return;
-  if(qiblaAudioCtx.state==='suspended')qiblaAudioCtx.resume();
-  const t=qiblaAudioCtx.currentTime;
-  const sr=qiblaAudioCtx.sampleRate;
-  const dur=loud?0.018:0.006;
-  const bufLen=Math.floor(sr*dur);
-  const buf=qiblaAudioCtx.createBuffer(1,bufLen,sr);
-  const data=buf.getChannelData(0);
-  
-  const baseVol=loud?1.0:0.60;
-  const vol=baseVol*(S.tickVol/100);
-  
-  for(let i=0;i<bufLen;i++){
-    const t2=i/sr;
-    if(loud){
-      const env=Math.exp(-t2*600);
-      data[i]=((i<3?1:0)*0.4+(Math.random()*2-1)*0.6)*env;
-    }else{
-      const env=Math.exp(-t2*400);
-      const s1=Math.sin(2*Math.PI*2200*t2)*0.7;
-      const s2=Math.sin(2*Math.PI*5800*t2)*0.3;
-      const click=t2<0.0003?(Math.random()*2-1)*0.3:0;
-      data[i]=(s1+s2+click)*env;
+  // Fasting arc
+  if(PD){
+    const fajr=pM(PD.Fajr),mag=pM(PD.Maghrib),now=nM();
+    const sa=((fajr%720)/720)*Math.PI*2-Math.PI/2;
+    const ea=((mag%720)/720)*Math.PI*2-Math.PI/2;
+    const arcR=R+R*0.14;
+    c.strokeStyle=`rgba(240,224,96,${0.08+n*0.08})`;c.lineWidth=6;c.lineCap='round';
+    c.beginPath();c.arc(cx,cy,arcR,sa,ea);c.stroke();
+    if(now>=fajr&&now<=mag){
+      const na=((now%720)/720)*Math.PI*2-Math.PI/2;
+      c.strokeStyle=`rgba(240,224,96,${0.25+n*0.15})`;c.lineWidth=6;c.lineCap='round';
+      c.beginPath();c.arc(cx,cy,arcR,sa,na);c.stroke();
+      c.fillStyle='#f0e060';c.shadowColor=`rgba(240,224,96,${0.3+n*0.2})`;c.shadowBlur=12;
+      c.beginPath();c.arc(cx+Math.cos(na)*arcR,cy+Math.sin(na)*arcR,5,0,Math.PI*2);c.fill();
+      c.shadowBlur=0;
     }
   }
-  
-  const src=qiblaAudioCtx.createBufferSource();
-  src.buffer=buf;
-  const g=qiblaAudioCtx.createGain();
-  g.gain.value=vol;
-  
-  // Spatial audio — tick follows second hand around the clock face
-  // HRTF panner places sound in 3D space around listener's head
-  const panner=qiblaAudioCtx.createPanner();
-  panner.panningModel='HRTF';
-  panner.distanceModel='inverse';
-  panner.refDistance=1;
-  panner.maxDistance=10;
-  panner.rolloffFactor=1;
-  // Map second hand angle to position on circle around listener
-  // 12 = front (0,0,-1), 3 = right (1,0,0), 6 = behind (0,0,1), 9 = left (-1,0,0)
-  // Correct HRTF mapping: secAngle is from +X axis, -PI/2 = 12 o'clock
-  // Web Audio: +X = right, -Z = forward, +Z = behind
-  // Clock: 12=forward, 3=right, 6=behind, 9=left
-  // Convert: clockAngle = secAngle + PI/2 (0=12, PI/2=3, PI=6, 3PI/2=9)
-  const spatialR=2;
-  const clockAng=currentSecAngle+Math.PI/2;
-  panner.positionX.setValueAtTime(Math.sin(clockAng)*spatialR,t);
-  panner.positionY.setValueAtTime(0,t);
-  panner.positionZ.setValueAtTime(-Math.cos(clockAng)*spatialR,t);
-  
-  src.connect(g);g.connect(panner);panner.connect(qiblaAudioCtx.destination);
-  src.start(t);src.stop(t+dur+0.01);
-}
 
-function tickAudio(s,ms){
-  if(S.movement==='digital')return;
-  if(!qiblaAudioCtx)return;
-  let step,rate;
-  if(S.movement==='quartz'){
-    step=s;rate=1;
-  }else{
-    step=Math.floor(s*8+ms/1000*8);rate=8;
-  }
-  if(step!==lastTickStep){
-    // Quartz: louder single tick. Mechanical: softer rapid ticks
-    playTick(S.movement==='quartz');
-    lastTickStep=step;
-  }
-}
-
-function drawHand(c,angle,length,width,taperTip,tail){
-  const tipX=cx+Math.cos(angle)*length,tipY=cy+Math.sin(angle)*length;
-  const tailX=tail?cx-Math.cos(angle)*tail:cx,tailY=tail?cy-Math.sin(angle)*tail:cy;
-  const perpX=Math.cos(angle+Math.PI/2),perpY=Math.sin(angle+Math.PI/2);
-  // Shadow
-  ctx.save();ctx.translate(3*dpr,4*dpr);
-  ctx.fillStyle=c.shadow;ctx.shadowColor=c.shadow;ctx.shadowBlur=6*dpr;
-  ctx.beginPath();ctx.moveTo(tailX-perpX*width,tailY-perpY*width);
-  ctx.lineTo(tipX-perpX*taperTip,tipY-perpY*taperTip);
-  ctx.lineTo(tipX+perpX*taperTip,tipY+perpY*taperTip);
-  ctx.lineTo(tailX+perpX*width,tailY+perpY*width);ctx.closePath();ctx.fill();
-  ctx.shadowBlur=0;ctx.restore();
-  // Bevel
-  ctx.save();ctx.translate(0.8*dpr,1.2*dpr);
-  ctx.fillStyle=c.lumeDim;ctx.beginPath();
-  ctx.moveTo(tailX-perpX*width,tailY-perpY*width);ctx.lineTo(tipX-perpX*taperTip,tipY-perpY*taperTip);
-  ctx.lineTo(tipX+perpX*taperTip,tipY+perpY*taperTip);ctx.lineTo(tailX+perpX*width,tailY+perpY*width);
-  ctx.closePath();ctx.fill();ctx.restore();
-  // Clean metal hand body
-  ctx.fillStyle=c.hand;ctx.strokeStyle=c.shadow;ctx.lineWidth=0.5*dpr;
-  ctx.beginPath();ctx.moveTo(tailX-perpX*width,tailY-perpY*width);
-  ctx.lineTo(tipX-perpX*taperTip,tipY-perpY*taperTip);
-  ctx.lineTo(tipX+perpX*taperTip,tipY+perpY*taperTip);
-  ctx.lineTo(tailX+perpX*width,tailY+perpY*width);ctx.closePath();ctx.fill();ctx.stroke();
-  // Lume insert strip (inset into metal)
-  ctx.strokeStyle=c.lume;ctx.lineWidth=width*0.5;ctx.lineCap='round';
-  ctx.shadowColor=c.lume+'60';ctx.shadowBlur=10*dpr;
-  ctx.beginPath();ctx.moveTo(tailX+Math.cos(angle)*width*2,tailY+Math.sin(angle)*width*2);
-  ctx.lineTo(tipX-Math.cos(angle)*taperTip*4,tipY-Math.sin(angle)*taperTip*4);ctx.stroke();
-  ctx.shadowBlur=0;
-  // Lume strip highlight
-  ctx.strokeStyle='rgba(255,255,240,.2)';ctx.lineWidth=width*0.15;
-  ctx.beginPath();ctx.moveTo(tailX+Math.cos(angle)*width*3,tailY+Math.sin(angle)*width*3);
-  ctx.lineTo(tipX-Math.cos(angle)*taperTip*5,tipY-Math.sin(angle)*taperTip*5);ctx.stroke();
-}
-
-function drawHands(c){
-  const now=new Date();
+  // Hands
+  const now=devNow();
   const h=now.getHours()%12,m=now.getMinutes(),s=now.getSeconds(),ms=now.getMilliseconds();
-
-  // Movement types
-  let sec;
-  if(S.movement==='quartz') sec=s;
-  else if(S.movement==='mechanical') sec=Math.floor(s*8+ms/1000*8)/8;
-  else sec=s+ms/1000;
-
-  // Tick audio
-  try{tickAudio(s,ms);}catch(e){}
-
-  const min=m+sec/60;
-  const hour=h+min/60;
-
+  const sec=s+ms/1000,min=m+sec/60,hour=h+min/60;
   const hourAng=(hour/12)*Math.PI*2-Math.PI/2;
   const minAng=(min/60)*Math.PI*2-Math.PI/2;
   const secAng=(sec/60)*Math.PI*2-Math.PI/2;
-  currentSecAngle=secAng;
 
-  drawHand(c,hourAng,R*0.52,R*0.028,R*0.008,R*0.06);
-  drawHand(c,minAng,R*0.72,R*0.022,R*0.005,R*0.08);
+  drawTaperedHand(c,cx,cy,hourAng,R*0.52,R*0.028,R*0.008,R*0.06,handFill,lume,lumeGlow,n);
+  drawTaperedHand(c,cx,cy,minAng,R*0.72,R*0.022,R*0.005,R*0.08,handFill,lume,lumeGlow,n);
 
   // Second hand
-  const secLen=R*0.78,secTailLen=R*0.18;
-  ctx.save();ctx.translate(2*dpr,3*dpr);
-  ctx.strokeStyle=c.shadow;ctx.lineWidth=2.5*dpr;ctx.lineCap='round';
-  ctx.beginPath();ctx.moveTo(cx-Math.cos(secAng)*secTailLen,cy-Math.sin(secAng)*secTailLen);
-  ctx.lineTo(cx+Math.cos(secAng)*secLen,cy+Math.sin(secAng)*secLen);ctx.stroke();ctx.restore();
-  ctx.strokeStyle=c.handStroke;ctx.lineWidth=1.5*dpr;ctx.lineCap='round';
-  ctx.beginPath();ctx.moveTo(cx-Math.cos(secAng)*secTailLen,cy-Math.sin(secAng)*secTailLen);
-  ctx.lineTo(cx+Math.cos(secAng)*secLen,cy+Math.sin(secAng)*secLen);ctx.stroke();
+  const secLen=R*0.78,secTail=R*0.18;
+  c.save();c.translate(3,4);c.strokeStyle='rgba(0,30,15,.2)';c.lineWidth=2.5;c.lineCap='round';
+  c.beginPath();c.moveTo(cx-Math.cos(secAng)*secTail,cy-Math.sin(secAng)*secTail);c.lineTo(cx+Math.cos(secAng)*secLen,cy+Math.sin(secAng)*secLen);c.stroke();c.restore();
+  c.strokeStyle=handFill;c.lineWidth=2.5;c.lineCap='round';
+  c.beginPath();c.moveTo(cx-Math.cos(secAng)*secTail,cy-Math.sin(secAng)*secTail);c.lineTo(cx+Math.cos(secAng)*secLen,cy+Math.sin(secAng)*secLen);c.stroke();
 
-  // Center cap
-  ctx.save();ctx.fillStyle=c.shadow;
-  ctx.beginPath();ctx.arc(cx+3*dpr,cy+4*dpr,R*0.04,0,Math.PI*2);ctx.fill();ctx.restore();
-  ctx.save();ctx.shadowColor=c.shadow;ctx.shadowBlur=10*dpr;ctx.shadowOffsetY=3*dpr;
-  ctx.fillStyle=c.hand;ctx.beginPath();ctx.arc(cx,cy,R*0.04,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;ctx.restore();
-  ctx.fillStyle=c.lume;ctx.globalAlpha=0.3;
-  ctx.beginPath();ctx.arc(cx,cy,R*0.032,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
-  ctx.fillStyle='rgba(255,255,245,.3)';
-  ctx.beginPath();ctx.arc(cx-1*dpr,cy-1.5*dpr,R*0.015,0,Math.PI*2);ctx.fill();
-  ctx.fillStyle='#444';
-  ctx.beginPath();ctx.arc(cx,cy,R*0.012,0,Math.PI*2);ctx.fill();
+  // Center
+  c.save();c.shadowColor='rgba(0,20,10,.3)';c.shadowBlur=12;c.shadowOffsetY=4;
+  c.fillStyle='#e8e4d8';c.beginPath();c.arc(cx,cy,R*0.035,0,Math.PI*2);c.fill();c.restore();
+  c.fillStyle='#444';c.beginPath();c.arc(cx,cy,R*0.012,0,Math.PI*2);c.fill();
 }
 
-function draw(){
-  const c=getColors();
-  updatePixelShift();
-
-  ctx.save();
-  ctx.translate(pixelShiftX*dpr,pixelShiftY*dpr);
-
-  ctx.clearRect(-10,-10,W+20,H+20);
-  drawFace(c);
-  drawFastingArc(c);
-  drawQiblaWindow(c);
-  drawPrayerMarkers(c);
-  drawIndices(c);
-  drawNumerals(c);
-  drawHands(c);
-
-  ctx.restore();
-  requestAnimationFrame(draw);
+function drawTaperedHand(c,cx,cy,angle,length,baseW,tipW,tail,fill,lume,lumeGlow,n){
+  const tipX=cx+Math.cos(angle)*length,tipY=cy+Math.sin(angle)*length;
+  const tailX=cx-Math.cos(angle)*tail,tailY=cy-Math.sin(angle)*tail;
+  const px=Math.cos(angle+Math.PI/2),py=Math.sin(angle+Math.PI/2);
+  // Shadow
+  c.save();c.translate(3,4);c.fillStyle='rgba(0,30,15,.2)';
+  c.beginPath();c.moveTo(tailX-px*baseW,tailY-py*baseW);c.lineTo(tipX-px*tipW,tipY-py*tipW);c.lineTo(tipX+px*tipW,tipY+py*tipW);c.lineTo(tailX+px*baseW,tailY+py*baseW);c.closePath();c.fill();c.restore();
+  // Body
+  c.fillStyle=fill;c.strokeStyle='rgba(255,255,255,.15)';c.lineWidth=1;
+  c.beginPath();c.moveTo(tailX-px*baseW,tailY-py*baseW);c.lineTo(tipX-px*tipW,tipY-py*tipW);c.lineTo(tipX+px*tipW,tipY+py*tipW);c.lineTo(tailX+px*baseW,tailY+py*baseW);c.closePath();c.fill();c.stroke();
+  // Lume strip
+  c.strokeStyle=lume;c.lineWidth=baseW*0.5;c.lineCap='round';
+  if(n>0.2){c.shadowColor=`rgba(200,232,96,${lumeGlow*0.5})`;c.shadowBlur=8;}
+  c.beginPath();c.moveTo(tailX+Math.cos(angle)*baseW*2.5,tailY+Math.sin(angle)*baseW*2.5);c.lineTo(tipX-Math.cos(angle)*tipW*5,tipY-Math.sin(angle)*tipW*5);c.stroke();
+  c.shadowBlur=0;
 }
 
-// ── Tap to show/hide info ──
-let infoVisible=false, infoTimer=null;
-function toggleInfo(){
-  const els=document.querySelectorAll('.info');
-  infoVisible=!infoVisible;
-  els.forEach(el=>el.classList.toggle('visible',infoVisible));
-  clearTimeout(infoTimer);
-  if(infoVisible) infoTimer=setTimeout(()=>{infoVisible=false;els.forEach(el=>el.classList.remove('visible'));},5000);
-}
-cv.addEventListener('click',e=>{
-  // Don't toggle if clicking settings
-  if(e.target.closest('.sov'))return;
-  toggleInfo();
+function roundRect(c,x,y,w,h,r){c.beginPath();c.moveTo(x+r,y);c.lineTo(x+w-r,y);c.quadraticCurveTo(x+w,y,x+w,y+r);c.lineTo(x+w,y+h-r);c.quadraticCurveTo(x+w,y+h,x+w-r,y+h);c.lineTo(x+r,y+h);c.quadraticCurveTo(x,y+h,x,y+h-r);c.lineTo(x,y+r);c.quadraticCurveTo(x,y,x+r,y);c.closePath();}
+</script>
+
+<!-- Three.js glass overlay -->
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+
+const container=document.getElementById('gl');
+const scene=new THREE.Scene();
+const camera=new THREE.OrthographicCamera(-1,1,1,-1,0.1,10);
+camera.position.z=2;
+
+const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});
+renderer.setSize(window.innerWidth,window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure=1.2;
+container.appendChild(renderer.domElement);
+
+// Face texture from 2D canvas
+const faceCanvas=document.getElementById('face');
+const faceTex=new THREE.CanvasTexture(faceCanvas);
+faceTex.minFilter=THREE.LinearFilter;
+faceTex.magFilter=THREE.LinearFilter;
+
+// Full-screen quad with face texture
+const quadMat=new THREE.MeshBasicMaterial({map:faceTex});
+const quad=new THREE.Mesh(new THREE.PlaneGeometry(2,2),quadMat);
+quad.position.z=-0.5;
+scene.add(quad);
+
+// Glass dome — subtle, over the clock area
+const glassMat=new THREE.MeshPhysicalMaterial({
+  color:0xffffff,metalness:0,roughness:0.03,
+  transmission:0.96,thickness:0.2,ior:1.5,
+  clearcoat:1,clearcoatRoughness:0.08,
+  transparent:true,opacity:0.06
 });
+const glassR=0.85; // covers the dial area
+const glassDome=new THREE.Mesh(new THREE.SphereGeometry(glassR,64,32,0,Math.PI*2,0,Math.PI/2),glassMat);
+glassDome.scale.z=0.06;
+glassDome.position.z=0.01;
+scene.add(glassDome);
 
-// ── Init ──
-updateModeBlend();
-if(S.mode==='night')modeBlend=1; // no transition on load
-D=getColors();
-applyThemeToUI();
-calcQibla(); // try city fallback immediately
-fetchPrayer();
-setInterval(fetchPrayer,30*60*1000);
-setInterval(updateInfo,1000);
-draw();
+// Light that moves with the sun
+const sunLight=new THREE.DirectionalLight(0xfff5e6,0.8);
+sunLight.position.set(2,3,4);
+scene.add(sunLight);
+
+const ambLight=new THREE.AmbientLight(0xffffff,0.3);
+scene.add(ambLight);
+
+// Update sun position on the glass
+function updateGlassLight(){
+  const sun=window.getSun?window.getSun():{isDay:true,elevation:0.5,progress:0.5};
+  if(sun.isDay){
+    const x=Math.cos(sun.progress*Math.PI)*3;
+    const y=0.5+sun.elevation*3;
+    sunLight.position.set(x,y,4);
+    sunLight.intensity=0.5+sun.elevation*0.8;
+    sunLight.color.setRGB(1,0.95,0.85);
+    // Golden hour
+    if(sun.progress<0.12||sun.progress>0.85){sunLight.color.setRGB(1,0.82,0.6);sunLight.intensity=1.2;}
+  }else{
+    sunLight.position.set(1,2,3);
+    sunLight.intensity=0.15;
+    sunLight.color.setRGB(0.6,0.65,0.8);
+  }
+}
+
+// Expose getSun globally
+window.getSun=window.getSun||function(){return{isDay:true,elevation:0.5,progress:0.5};};
+
+// Animation
+function animate(){
+  requestAnimationFrame(animate);
+  // Update face texture
+  window.drawFaceTexture();
+  faceTex.needsUpdate=true;
+  // Update night mode
+  const sun=window.getSun();
+  const targetNight=sun.isDay?0:1;
+  window.nightMode=window.nightMode||0;
+  window.nightMode+=(targetNight-window.nightMode)*0.02; // smooth transition
+  // Update glass lighting
+  updateGlassLight();
+  renderer.render(scene,camera);
+}
+
+window.addEventListener('resize',()=>{
+  const w=window.innerWidth,h=window.innerHeight;
+  renderer.setSize(w,h);
+  // Keep orthographic camera covering viewport
+  const aspect=w/h;
+  if(aspect>1){camera.left=-aspect;camera.right=aspect;camera.top=1;camera.bottom=-1;}
+  else{camera.left=-1;camera.right=1;camera.top=1/aspect;camera.bottom=-1/aspect;}
+  camera.updateProjectionMatrix();
+  // Scale quad to fill
+  quad.scale.set(Math.max(aspect,1),Math.max(1/aspect,1),1);
+});
+window.dispatchEvent(new Event('resize'));
+
+// Init
+window.fetchPrayer();
+setInterval(window.fetchPrayer,30*60*1000);
+setInterval(window.updateInfo,1000);
+animate();
 </script>
 </body>
 </html>
