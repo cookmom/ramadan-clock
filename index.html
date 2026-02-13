@@ -684,17 +684,56 @@ function drawQiblaWindow(c){
 let flapPrevChars=[],flapCharAnims=[];
 const FLAP_DUR=350; // ms per character flip
 const FLAP_STAGGER=60; // ms stagger between characters
+// Tawaf flap racing state
+let flapTawafActive=false,flapTawafStart=0,flapTawafLanded=false;
+const FLAP_RACE_DIGITS='0123456789';
 function drawSplitFlap(c){
   if(!PD)return;
   const isRam=devRamadan||(DD&&DD.hijri.month.number===9);
   if(!isRam)return;
+
+  // During tawaf: racing countdown to 00:00
+  if(tawafState==='spinning'||tawafState==='hold'){
+    if(!flapTawafActive){flapTawafActive=true;flapTawafStart=performance.now();flapTawafLanded=false;}
+    const elapsed=performance.now()-flapTawafStart;
+    const tawafT=tawafState==='spinning'?Math.min(elapsed/(TAWAF_DURATION),1):1;
+    if(tawafT>=1&&!flapTawafLanded){flapTawafLanded=true;}
+    // Racing digits — speed increases with each gong
+    const speed=3+tawafT*12; // cycles per second, accelerating
+    const cycle=elapsed*speed/1000;
+    let raceChars;
+    if(flapTawafLanded){
+      raceChars=['0','0',':','0','0'];
+    }else{
+      // Each digit spins at slightly different phase
+      raceChars=[
+        FLAP_RACE_DIGITS[Math.floor(cycle*0.7)%10],
+        FLAP_RACE_DIGITS[Math.floor(cycle*1.1)%10],
+        ':',
+        FLAP_RACE_DIGITS[Math.floor(cycle*1.3)%10],
+        FLAP_RACE_DIGITS[Math.floor(cycle*0.9)%10],
+      ];
+    }
+    drawSplitFlapChars(c,raceChars,flapTawafLanded?'IFTAR MUBARAK':'');
+    return;
+  }else{
+    if(flapTawafActive){flapTawafActive=false;flapTawafLanded=false;}
+  }
+
   const fajr=pM(PD.Fajr),mag=pM(PD.Maghrib),now=nM();
   let label='',mins=0;
   if(now>=fajr&&now<mag){mins=mag-now;label='IFTAR';}
   else if(now<fajr){mins=fajr-now;label='FAJR';}
-  else{drawSplitFlapChars(c,'MUBARAK'.split(''),label);return;}
+  else{
+    drawSplitFlapChars(c,['0','0',':','0','0'],'IFTAR MUBARAK');
+    return;
+  }
   const h=Math.floor(mins/60),m=Math.floor(mins%60);
-  const chars=(h>0?h+'H '+String(m).padStart(2,'0')+'M':m+'M').split('');
+  const chars=[
+    String(Math.floor(h/10)),String(h%10),
+    ':',
+    String(Math.floor(m/10)),String(m%10)
+  ];
   // Detect per-char changes
   const nowMs=performance.now();
   // Pad arrays to same length
@@ -712,10 +751,13 @@ function drawSplitFlap(c){
 }
 function drawSplitFlapChars(c,chars,sub){
   const wy=cy+R*0.38;
-  const charW=R*0.055; // width per character cell
-  const cellGap=R*0.006; // gap between cells
+  const digitW=R*0.058; // width per digit cell
+  const colonW=R*0.025; // narrow colon column
+  const cellGap=R*0.005; // gap between cells
   const cellH=R*0.1;
-  const totalW=(charW+cellGap)*chars.length-cellGap;
+  // Compute total width with per-char widths
+  const charWidths=chars.map(ch=>ch===':'?colonW:ch===' '?cellGap*2:digitW);
+  const totalW=charWidths.reduce((a,w)=>a+w,0)+(chars.length-1)*cellGap;
   const startX=cx-totalW/2;
   const gap=0.8*dpr;
   const halfH=cellH/2-gap/2;
@@ -732,16 +774,25 @@ function drawSplitFlapChars(c,chars,sub){
   ctx.fillText(sub,cx,wy+cellH/2+R*0.028);
   ctx.globalAlpha=1;
 
+  let curX=startX;
   for(let i=0;i<chars.length;i++){
     const ch=chars[i];
-    const cellX=startX+i*(charW+cellGap);
+    const charW=charWidths[i];
+    const cellX=curX;
     const cellCx=cellX+charW/2;
     const anim=flapCharAnims[i]||{start:0,prev:ch};
     const elapsed=nowMs-(anim.start||0);
     const t=Math.min(Math.max(elapsed/FLAP_DUR,0),1);
-    const isSpace=ch===' ';
-
-    if(isSpace){continue;} // skip rendering spaces — just gap
+    if(ch===' '){curX+=charW+cellGap;continue;}
+    // Colon: render as two dots, no cell
+    if(ch===':'){
+      const dotR=R*0.006;
+      ctx.fillStyle=c.lume;ctx.globalAlpha=0.5;
+      ctx.beginPath();ctx.arc(cellCx,wy-cellH*0.18,dotR,0,Math.PI*2);ctx.fill();
+      ctx.beginPath();ctx.arc(cellCx,wy+cellH*0.18,dotR,0,Math.PI*2);ctx.fill();
+      ctx.globalAlpha=1;
+      curX+=charW+cellGap;continue;
+    }
 
     // ── Cell shadow ──
     ctx.fillStyle=c.shadow;
@@ -820,6 +871,8 @@ function drawSplitFlapChars(c,chars,sub){
     ctx.strokeStyle='rgba(255,255,255,0.05)';
     ctx.lineWidth=0.5*dpr;
     roundRect(ctx,cellX,wy-cellH/2,charW,cellH,wr);ctx.stroke();
+
+    curX+=charW+cellGap;
   }
 
   ctx.restore();
