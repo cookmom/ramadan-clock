@@ -631,31 +631,24 @@ document.addEventListener('touchstart',ensureTickCtx,{once:false});
 document.addEventListener('click',ensureTickCtx);
 
 function playTick(loud){
-  if(!qiblaAudioCtx||qiblaAudioCtx.state!=='running')return;
+  if(!qiblaAudioCtx)return;
+  if(qiblaAudioCtx.state==='suspended')qiblaAudioCtx.resume();
   const t=qiblaAudioCtx.currentTime;
-  const vol=loud?0.06:0.03;
-  // Tick = short noise burst (mechanical click)
-  const bufLen=Math.floor(qiblaAudioCtx.sampleRate*(loud?0.012:0.008));
-  const buf=qiblaAudioCtx.createBuffer(1,bufLen,qiblaAudioCtx.sampleRate);
-  const data=buf.getChannelData(0);
-  for(let i=0;i<bufLen;i++){
-    const env=1-i/bufLen;
-    data[i]=(Math.random()*2-1)*env*env;
-  }
-  const src=qiblaAudioCtx.createBufferSource();
-  src.buffer=buf;
-  // Bandpass to sound metallic
-  const bp=qiblaAudioCtx.createBiquadFilter();
-  bp.type='bandpass';bp.frequency.value=loud?3200:4800;bp.Q.value=loud?2:3;
+  const vol=loud?0.15:0.07;
+  // Tick = oscillator click (more reliable than noise buffer on iOS)
+  const o=qiblaAudioCtx.createOscillator();
   const g=qiblaAudioCtx.createGain();
+  o.connect(g);g.connect(qiblaAudioCtx.destination);
+  o.frequency.value=loud?800:2400;
+  o.type=loud?'square':'sine';
   g.gain.setValueAtTime(vol,t);
-  g.gain.exponentialRampToValueAtTime(0.001,t+(loud?0.025:0.015));
-  src.connect(bp);bp.connect(g);g.connect(qiblaAudioCtx.destination);
-  src.start(t);src.stop(t+0.03);
+  g.gain.exponentialRampToValueAtTime(0.001,t+(loud?0.03:0.012));
+  o.start(t);o.stop(t+0.04);
 }
 
 function tickAudio(s,ms){
-  if(!tickEnabled||S.movement==='digital')return;
+  if(S.movement==='digital')return;
+  if(!qiblaAudioCtx)return;
   let step,rate;
   if(S.movement==='quartz'){
     step=s;rate=1;
