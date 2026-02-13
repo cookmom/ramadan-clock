@@ -1123,7 +1123,7 @@ function drawHands(c){
 // Counter-clockwise, hands maintain mechanical relationship, time accelerates
 // 7 laps of the minute hand = 7 hours of virtual time, compressed into ~28s
 let tawafActive=false,tawafStart=0,tawafDev=false;
-const TAWAF_LAPS=7,TAWAF_DURATION=30000; // 30 seconds for 30 days of Ramadan
+const TAWAF_LAPS=7,TAWAF_DURATION=7000; // 7s — one second per revolution
 let tawafLastLap=-1;
 function getTawafVirtualMin(){
   // Returns extra virtual minutes to subtract from current time (CCW)
@@ -1171,11 +1171,11 @@ function playTawafGong(lap){
     const freq=ADHAN_MELODY[lap%7];
     // Gong: inharmonic partials (metallic, not bell-like)
     const partials=[
-      {ratio:1,    amp:1.0,  decay:3.5},  // fundamental
-      {ratio:1.47, amp:0.45, decay:2.8},  // first inharmonic
-      {ratio:2.09, amp:0.25, decay:2.2},  // second
-      {ratio:2.56, amp:0.15, decay:1.8},  // third
-      {ratio:3.14, amp:0.08, decay:1.2},  // fourth (shimmer)
+      {ratio:1,    amp:1.0,  decay:0.9},  // fundamental — fits 1s window
+      {ratio:1.47, amp:0.50, decay:0.7},  // first inharmonic
+      {ratio:2.09, amp:0.30, decay:0.5},  // second
+      {ratio:2.56, amp:0.18, decay:0.4},  // third
+      {ratio:3.14, amp:0.10, decay:0.3},  // fourth (shimmer)
     ];
     partials.forEach(p=>{
       const o=qiblaAudioCtx.createOscillator();
