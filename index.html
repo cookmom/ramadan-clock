@@ -322,6 +322,7 @@ window.setMode=mode=>{
   const effectiveMode=resolveMode();
   document.getElementById('lumeSection').style.display=effectiveMode==='night'?'block':'none';
   updateSettingsUI();
+  localStorage.setItem('rc6',JSON.stringify(S));
 };
 // Resolve auto mode using prayer times: night between Maghrib→Fajr
 function resolveMode(){
