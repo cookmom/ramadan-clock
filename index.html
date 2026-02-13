@@ -22,7 +22,7 @@ canvas{position:fixed;top:0;left:0;width:100vw;height:100vh;display:block;}
 
 .info{position:fixed;left:50%;transform:translateX(-50%);z-index:10;text-align:center;display:flex;flex-direction:column;align-items:center;gap:4px;pointer-events:none;opacity:0;transition:opacity .4s ease;}
 .info-top{top:max(20px,env(safe-area-inset-top,0px));}
-.info-bottom{bottom:max(clamp(80px,18vh,200px),calc(env(safe-area-inset-bottom,0px) + clamp(70px,17vh,190px)));}
+.info-bottom{bottom:max(36px,calc(env(safe-area-inset-bottom,0px) + 28px));}
 .info.visible{opacity:1;}
 .info>*{pointer-events:auto;}
 .ramadan-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.2em;transition:all .5s;}
@@ -63,20 +63,10 @@ input.sv{width:120px;}
 .movement-opt.active{font-weight:600;}
 
 /* Dial Picker Bar */
-.dial-bar{position:fixed;bottom:0;left:50%;transform:translateX(-50%) translateY(20px);z-index:20;padding:10px 0 max(14px,env(safe-area-inset-bottom,0px));display:flex;align-items:center;gap:8px;opacity:0;transition:opacity .4s ease,transform .4s ease;pointer-events:none;justify-content:center;width:min(85%,600px);}
-.dial-bar.visible{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto;}
-.dial-mode-toggle{display:flex;align-items:center;background:rgba(255,255,255,.12);backdrop-filter:blur(12px);border-radius:20px;padding:3px;flex-shrink:0;cursor:pointer;border:1px solid rgba(255,255,255,.08);}
-.dial-mode-btn{width:clamp(24px,4vw,30px);height:clamp(24px,4vw,30px);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:clamp(11px,1.5vw,14px);transition:all .3s;color:rgba(255,255,255,.5);}
-.dial-mode-btn.active{background:rgba(255,255,255,.2);color:#fff;}
-.dial-swatches{display:flex;gap:clamp(6px,1vw,12px);overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none;padding:4px 2px;scroll-snap-type:x mandatory;flex-shrink:1;}
-.dial-swatches::-webkit-scrollbar{display:none;}
-.dial-swatch{flex-shrink:0;width:clamp(42px,10vw,160px);display:flex;flex-direction:column;align-items:center;gap:clamp(3px,.5vw,6px);scroll-snap-align:center;cursor:pointer;}
-.dial-swatch-circle{width:clamp(36px,9vw,144px);height:clamp(36px,9vw,144px);border-radius:50%;border:2px solid transparent;transition:border-color .2s;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px);position:relative;overflow:hidden;}
-.dial-swatch.active .dial-swatch-circle{border-color:rgba(255,255,255,.8);}
-.dial-swatch-label{font-size:clamp(8px,1vw,14px);color:rgba(255,255,255,.4);font-weight:500;white-space:nowrap;transition:color .2s;}
-.dial-swatch.active .dial-swatch-label{color:rgba(255,255,255,.85);}
-.dial-nav{width:clamp(24px,4vw,30px);height:clamp(24px,4vw,30px);border-radius:50%;background:rgba(255,255,255,.1);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;color:rgba(255,255,255,.6);font-size:12px;transition:all .2s;}
-.dial-nav:hover{background:rgba(255,255,255,.2);color:#fff;}
+.dial-dots{position:fixed;bottom:max(12px,env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);display:flex;gap:8px;z-index:20;opacity:0;transition:opacity .6s ease;pointer-events:none;}
+.dial-dots.visible{opacity:1;}
+.dial-dot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.25);transition:all .3s;}
+.dial-dot.active{background:rgba(255,255,255,.8);}
 </style>
 </head>
 <body>
@@ -108,16 +98,7 @@ input.sv{width:120px;}
   <div class="prayers" id="prayers"></div>
 </div>
 
-<div class="dial-bar" id="dialBar">
-  <div class="dial-mode-toggle" id="modeToggle" onclick="toggleDayNight()">
-    <div class="dial-mode-btn" id="modeSun" data-m="day">☀️</div>
-    <div class="dial-mode-btn" id="modeMoon" data-m="night">🌙</div>
-    
-  </div>
-  <div class="dial-nav" onclick="scrollSwatches(-1)">‹</div>
-  <div class="dial-swatches" id="dialSwatches"></div>
-  <div class="dial-nav" onclick="scrollSwatches(1)">›</div>
-</div>
+<div class="dial-dots" id="dialDots"></div>
 
 <div class="sov" id="sov" onclick="if(event.target===this)closeSettings()">
   <div class="scard" id="scard">
@@ -1323,75 +1304,59 @@ function draw(){
 
 // ── Tap to show/hide info ──
 // ── Dial Picker Bar ──
-const DIAL_NAMES={tennis:'Tennis',white:'White',salmon:'Salmon',slate:'Slate',sky:'Signal Blue',cream:'Cream'};
-function buildDialSwatches(){
-  const container=document.getElementById('dialSwatches');
-  container.innerHTML=Object.keys(DIALS).map(key=>{
-    const d=DIALS[key];
-    return`<div class="dial-swatch ${key===S.dial?'active':''}" data-dial="${key}" onclick="pickDial('${key}')">
-      <div class="dial-swatch-circle" style="background:${d.bg};border-color:${key===S.dial?'rgba(255,255,255,.8)':'transparent'}">
-        <span style="font-size:10px;font-weight:700;color:${d.lume}">IQ</span>
-      </div>
-      <span class="dial-swatch-label">${DIAL_NAMES[key]||key}</span>
-    </div>`;
-  }).join('');
-  updateModeToggle();
+const DIAL_KEYS=Object.keys(DIALS);
+function buildDialDots(){
+  const container=document.getElementById('dialDots');
+  container.innerHTML=DIAL_KEYS.map(key=>`<div class="dial-dot${key===S.dial?' active':''}"></div>`).join('');
 }
 window.pickDial=function(key){
   S.dial=key;
   localStorage.setItem('rc6',JSON.stringify(S));
   D=DIALS[key];
   applyThemeToUI();
-  buildDialSwatches();
-  // Also update settings dropdown
+  buildDialDots();
   document.getElementById('sDial').value=key;
 };
-window.toggleDayNight=function(){
-  const current=resolveMode();
-  const next=current==='night'?'day':'night';
-  S.mode=next;
-  localStorage.setItem('rc6',JSON.stringify(S));
-  updateModeBlend();
-  updateModeToggle();
-  // Trigger celestial for night mode
-  if(next==='night'){
-    celestialTarget=1;
-  }else{
-    celestialTarget=0;
-  }
-};
-function updateModeToggle(){
-  const mode=resolveMode();
-  document.getElementById('modeSun').classList.toggle('active',mode==='day');
-  document.getElementById('modeMoon').classList.toggle('active',mode==='night');
-}
-window.scrollSwatches=function(dir){
-  const keys=Object.keys(DIALS);
-  const idx=keys.indexOf(S.dial);
-  const next=keys[(idx+dir+keys.length)%keys.length];
+function swipeDial(dir){
+  const idx=DIAL_KEYS.indexOf(S.dial);
+  const next=DIAL_KEYS[(idx+dir+DIAL_KEYS.length)%DIAL_KEYS.length];
   pickDial(next);
-  // Scroll swatch into view
-  const el=document.querySelector(`.dial-swatch[data-dial="${next}"]`);
-  if(el)el.scrollIntoView({behavior:'smooth',inline:'center',block:'nearest'});
-};
-buildDialSwatches();
+  showDots();
+}
+let dotTimer=null;
+function showDots(){
+  const dots=document.getElementById('dialDots');
+  dots.classList.add('visible');
+  clearTimeout(dotTimer);
+  dotTimer=setTimeout(()=>dots.classList.remove('visible'),1500);
+}
+// Swipe detection
+let swipeX0=null,swipeY0=null;
+cv.addEventListener('touchstart',e=>{swipeX0=e.touches[0].clientX;swipeY0=e.touches[0].clientY;},{passive:true});
+cv.addEventListener('touchend',e=>{
+  if(swipeX0===null)return;
+  const dx=e.changedTouches[0].clientX-swipeX0;
+  const dy=e.changedTouches[0].clientY-swipeY0;
+  swipeX0=null;
+  if(Math.abs(dx)>50&&Math.abs(dx)>Math.abs(dy)*1.5){
+    swipeDial(dx<0?1:-1);
+  }
+});
+buildDialDots();
 
 let infoVisible=false, infoTimer=null;
 function toggleInfo(){
   const els=document.querySelectorAll('.info');
-  const bar=document.getElementById('dialBar');
   infoVisible=!infoVisible;
   els.forEach(el=>el.classList.toggle('visible',infoVisible));
-  bar.classList.toggle('visible',infoVisible);
   clearTimeout(infoTimer);
   if(infoVisible) infoTimer=setTimeout(()=>{
     infoVisible=false;
     els.forEach(el=>el.classList.remove('visible'));
-    bar.classList.remove('visible');
-  },8000); // longer timeout for dial interaction
+  },6000);
 }
 cv.addEventListener('click',e=>{
-  if(e.target.closest('.sov')||e.target.closest('.dial-bar'))return;
+  if(e.target.closest('.sov'))return;
   toggleInfo();
 });
 
