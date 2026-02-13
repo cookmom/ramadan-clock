@@ -112,7 +112,7 @@ input.sv{width:120px;}
   <div class="dial-mode-toggle" id="modeToggle" onclick="toggleDayNight()">
     <div class="dial-mode-btn" id="modeSun" data-m="day">☀️</div>
     <div class="dial-mode-btn" id="modeMoon" data-m="night">🌙</div>
-    <div class="dial-mode-btn" id="muteBtn" title="Toggle tawaf sound">🔊</div>
+    
   </div>
   <div class="dial-nav" onclick="scrollSwatches(-1)">‹</div>
   <div class="dial-swatches" id="dialSwatches"></div>
@@ -369,9 +369,6 @@ function updateSettingsUI(){
   document.getElementById('lumeSection').style.display=resolveMode()==='night'?'block':'none';
   document.getElementById('volSlider').value=S.tickVol;
   document.getElementById('volLabel').textContent=S.tickVol+'%';
-  // Mute button state
-  const mb=document.getElementById('muteBtn');
-  if(mb){mb.textContent=tawafMuted?'🔇':'🔊';mb.classList.toggle('active',!tawafMuted);}
   buildLumeGrid();
 }
 
@@ -386,7 +383,6 @@ window.setLume=i=>{S.lumeColor=i;buildLumeGrid();};
 function applyThemeToUI(){
   const c=getColors();
   document.body.style.background=c.bg;
-  // Update CSS custom properties dynamically
   const root=document.documentElement;
   root.style.setProperty('--theme-text',c.text);
   root.style.setProperty('--theme-dim',c.textDim);
@@ -1127,15 +1123,7 @@ function drawHands(c){
 // Counter-clockwise, hands maintain mechanical relationship, time accelerates
 // 7 laps of the minute hand = 7 hours of virtual time, compressed into ~28s
 let tawafActive=false,tawafStart=0,tawafDev=false;
-let tawafMuted=true; // Sound OFF by default (masjid-safe)
-document.addEventListener('DOMContentLoaded',()=>{
-  const mb=document.getElementById('muteBtn');
-  if(mb)mb.addEventListener('click',()=>{
-    tawafMuted=!tawafMuted;
-    mb.textContent=tawafMuted?'🔇':'🔊';
-    mb.classList.toggle('active',!tawafMuted);
-  });
-});
+// Tawaf sound always on
 const TAWAF_LAPS=7,TAWAF_DURATION=14000; // 14s — two seconds per revolution
 let tawafLastLap=-1;
 function getTawafVirtualMin(){
@@ -1163,7 +1151,6 @@ function getTawafVirtualMin(){
 // Played at each revolution of the tawaf, mirroring istilam at the Black Stone
 function playTawafGong(lap){
   try{
-    if(tawafMuted)return;
     if(!qiblaAudioCtx)return;
     if(qiblaAudioCtx.state==='suspended')qiblaAudioCtx.resume();
     const t=qiblaAudioCtx.currentTime;
