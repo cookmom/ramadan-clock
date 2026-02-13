@@ -634,16 +634,16 @@ function playTick(loud){
   if(!qiblaAudioCtx)return;
   if(qiblaAudioCtx.state==='suspended')qiblaAudioCtx.resume();
   const t=qiblaAudioCtx.currentTime;
-  const vol=loud?0.2:0.15;
-  // Tick = oscillator click
+  const vol=loud?0.15:0.07;
+  // Tick = oscillator click (more reliable than noise buffer on iOS)
   const o=qiblaAudioCtx.createOscillator();
   const g=qiblaAudioCtx.createGain();
   o.connect(g);g.connect(qiblaAudioCtx.destination);
-  o.frequency.value=loud?800:1600;
-  o.type='square';
+  o.frequency.value=loud?800:2400;
+  o.type=loud?'square':'sine';
   g.gain.setValueAtTime(vol,t);
-  g.gain.exponentialRampToValueAtTime(0.001,t+(loud?0.035:0.018));
-  o.start(t);o.stop(t+0.05);
+  g.gain.exponentialRampToValueAtTime(0.001,t+(loud?0.03:0.012));
+  o.start(t);o.stop(t+0.04);
 }
 
 function tickAudio(s,ms){
