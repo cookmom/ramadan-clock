@@ -121,6 +121,14 @@ input.sv{width:120px;}
         <div class="movement-opt" data-mv="digital" onclick="setMovement('digital')">Digital</div>
       </div>
     </div>
+    <div class="sr" style="flex-direction:column;align-items:flex-start;gap:8px;">
+      <div style="display:flex;justify-content:space-between;width:100%;align-items:center;">
+        <span class="sl">Spatial Movement</span>
+        <span class="sl" id="volLabel" style="opacity:0.5;">100%</span>
+      </div>
+      <input type="range" id="volSlider" min="0" max="100" value="100" oninput="setTickVol(this.value)" style="width:100%;accent-color:currentColor;height:2px;opacity:0.7;">
+      <span style="font-size:9px;opacity:0.35;margin-top:-4px;">3D HRTF audio · best with headphones</span>
+    </div>
     <div class="sr"><span class="sl">Mode</span>
       <div class="movement-row">
         <div class="movement-opt" data-mode="day" onclick="setMode('day')">Day</div>
@@ -195,11 +203,11 @@ function loadS(){
     const s=JSON.parse(localStorage.getItem('rc6')||'{}');
     return{
       city:s.city||'Los Angeles',country:s.country||'US',method:s.method||'2',
-      numerals:s.numerals||'arabic',movement:s.movement||'mechanical',
+      numerals:s.numerals||'arabic',movement:s.movement||'mechanical',tickVol:s.tickVol!=null?s.tickVol:100,
       mode:s.mode||'day',dial:s.dial||'tennis',lumeColor:s.lumeColor||0,
     };
   }catch(e){
-    return{city:'Los Angeles',country:'US',method:'2',numerals:'arabic',movement:'mechanical',mode:'day',dial:'tennis',lumeColor:0};
+    return{city:'Los Angeles',country:'US',method:'2',numerals:'arabic',movement:'mechanical',tickVol:100,mode:'day',dial:'tennis',lumeColor:0};
   }
 }
 let S=loadS();
@@ -257,6 +265,7 @@ window.saveSettings=()=>{
   fetchPrayer();
 };
 window.setMovement=mv=>{S.movement=mv;updateSettingsUI();};
+window.setTickVol=v=>{S.tickVol=parseInt(v);document.getElementById('volLabel').textContent=v+'%';};
 window.setMode=mode=>{
   S.mode=mode;
   document.getElementById('lumeSection').style.display=mode==='night'?'block':'none';
@@ -271,6 +280,8 @@ function updateSettingsUI(){
     el.classList.toggle('active',el.dataset.mode===S.mode);
   });
   document.getElementById('lumeSection').style.display=S.mode==='night'?'block':'none';
+  document.getElementById('volSlider').value=S.tickVol;
+  document.getElementById('volLabel').textContent=S.tickVol+'%';
   buildLumeGrid();
 }
 
@@ -690,7 +701,8 @@ function playTick(loud){
   const buf=qiblaAudioCtx.createBuffer(1,bufLen,sr);
   const data=buf.getChannelData(0);
   
-  const vol=loud?0.24:0.10;
+  const baseVol=loud?0.24:0.10;
+  const vol=baseVol*(S.tickVol/100);
   
   for(let i=0;i<bufLen;i++){
     const t2=i/sr;
