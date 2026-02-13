@@ -468,7 +468,7 @@ function qiblaTick(){
     const t=qiblaAudioCtx.currentTime;
     // Minute repeater chime — three tuned gong strikes
     const notes=[1047, 1319, 1568];
-    const vol=0.15*(S.tickVol/100);
+    const vol=0.075*(S.tickVol/100);
     notes.forEach((f,i)=>{
       const start=t+i*0.18;
       const o=qiblaAudioCtx.createOscillator();
