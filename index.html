@@ -397,6 +397,12 @@ function activateAll(){
   // Dismiss overlay
   tapOverlay.style.opacity='0';
   setTimeout(()=>tapOverlay.style.display='none',500);
+  // Show info panel briefly
+  const info=document.querySelector('.info');
+  infoVisible=true;
+  info.classList.add('visible');
+  clearTimeout(infoTimer);
+  infoTimer=setTimeout(()=>{infoVisible=false;info.classList.remove('visible');},4000);
 }
 tapOverlay.addEventListener('click',activateAll,{once:true});
 tapOverlay.addEventListener('touchstart',activateAll,{once:true});
