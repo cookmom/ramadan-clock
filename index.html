@@ -174,11 +174,11 @@ function loadS(){
     const s=JSON.parse(localStorage.getItem('rc6')||'{}');
     return{
       city:s.city||'Los Angeles',country:s.country||'US',method:s.method||'2',
-      numerals:s.numerals||'arabic',movement:s.movement||'digital',
+      numerals:s.numerals||'arabic',movement:s.movement||'mechanical',
       mode:s.mode||'day',dial:s.dial||'tennis',lumeColor:s.lumeColor||0,
     };
   }catch(e){
-    return{city:'Los Angeles',country:'US',method:'2',numerals:'arabic',movement:'digital',mode:'day',dial:'tennis',lumeColor:0};
+    return{city:'Los Angeles',country:'US',method:'2',numerals:'arabic',movement:'mechanical',mode:'day',dial:'tennis',lumeColor:0};
   }
 }
 let S=loadS();
@@ -634,16 +634,16 @@ function playTick(loud){
   if(!qiblaAudioCtx)return;
   if(qiblaAudioCtx.state==='suspended')qiblaAudioCtx.resume();
   const t=qiblaAudioCtx.currentTime;
-  const vol=loud?0.15:0.07;
-  // Tick = oscillator click (more reliable than noise buffer on iOS)
+  const vol=loud?0.2:0.15;
+  // Tick = oscillator click
   const o=qiblaAudioCtx.createOscillator();
   const g=qiblaAudioCtx.createGain();
   o.connect(g);g.connect(qiblaAudioCtx.destination);
-  o.frequency.value=loud?800:2400;
-  o.type=loud?'square':'sine';
+  o.frequency.value=loud?800:1600;
+  o.type='square';
   g.gain.setValueAtTime(vol,t);
-  g.gain.exponentialRampToValueAtTime(0.001,t+(loud?0.03:0.012));
-  o.start(t);o.stop(t+0.04);
+  g.gain.exponentialRampToValueAtTime(0.001,t+(loud?0.035:0.018));
+  o.start(t);o.stop(t+0.05);
 }
 
 function tickAudio(s,ms){
