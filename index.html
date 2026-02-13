@@ -716,37 +716,37 @@ function drawSplitFlap(c){
   const isRam=devRamadan||(DD&&DD.hijri.month.number===9);
   if(!isRam)return;
 
-  // During tawaf: racing countdown to 00:00
+  // During tawaf: flap follows the spinning hands
   if(tawafState==='spinning'||tawafState==='hold'){
-    if(!flapTawafActive){flapTawafActive=true;flapTawafStart=performance.now();flapTawafLanded=false;}
-    const elapsed=performance.now()-flapTawafStart;
-    const tawafT=tawafState==='spinning'?Math.min(elapsed/(TAWAF_DURATION),1):1;
-    if(tawafT>=1&&!flapTawafLanded){flapTawafLanded=true;}
-    // Racing digits — speed increases with each gong
-    const speed=3+tawafT*12; // cycles per second, accelerating
-    const cycle=elapsed*speed/1000;
-    // Trigger click sound on each digit cycle
-    const clickCycle=Math.floor(cycle*2); // ~2 clicks per digit cycle
-    if(clickCycle>flapLastClickCycle&&!flapTawafLanded){
-      flapLastClickCycle=clickCycle;
-      playFlapClick(0.4+tawafT*0.6); // louder as it accelerates
-    }
-    let raceChars;
-    if(flapTawafLanded){
-      // Final slam — loud click burst
-      if(flapLastClickCycle!==-1){flapLastClickCycle=-1;playFlapClick(1.0);playFlapClick(1.0);}
-      raceChars=['0','0',':','0','0'];
+    if(!flapTawafActive){flapTawafActive=true;flapTawafStart=performance.now();flapTawafLanded=false;flapLastClickCycle=0;}
+    const landed=tawafState==='hold';
+    if(landed&&!flapTawafLanded){flapTawafLanded=true;playFlapClick(1.0);playFlapClick(1.0);}
+    let displayChars;
+    if(landed){
+      displayChars=['0','0',':','0','0'];
     }else{
-      // Each digit spins at slightly different phase
-      raceChars=[
-        FLAP_RACE_DIGITS[Math.floor(cycle*0.7)%10],
-        FLAP_RACE_DIGITS[Math.floor(cycle*1.1)%10],
+      // Show the virtual time the hands are displaying
+      const magMin=tawafMaghribMin||pM(PD.Maghrib);
+      let virtMin=magMin-tawafCurrentVM;
+      // Normalize to 0-1440
+      while(virtMin<0)virtMin+=1440;
+      virtMin=virtMin%1440;
+      const hh=Math.floor(virtMin/60)%12||12;
+      const mm=Math.floor(virtMin%60);
+      displayChars=[
+        String(Math.floor(hh/10)),String(hh%10),
         ':',
-        FLAP_RACE_DIGITS[Math.floor(cycle*1.3)%10],
-        FLAP_RACE_DIGITS[Math.floor(cycle*0.9)%10],
+        String(Math.floor(mm/10)),String(mm%10)
       ];
+      // Click sound synced to minute changes on the flap
+      const clickCycle=Math.floor(tawafCurrentVM/2); // click every ~2 virtual minutes
+      if(clickCycle>flapLastClickCycle){
+        flapLastClickCycle=clickCycle;
+        const intensity=0.3+0.7*Math.min(tawafCurrentVM/5040,1);
+        playFlapClick(intensity);
+      }
     }
-    drawSplitFlapChars(c,raceChars,flapTawafLanded?'IFTAR MUBARAK':'');
+    drawSplitFlapChars(c,displayChars,landed?'IFTAR MUBARAK':'');
     return;
   }else{
     if(flapTawafActive){flapTawafActive=false;flapTawafLanded=false;}
