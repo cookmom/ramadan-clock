@@ -370,13 +370,16 @@ function calcQibla(){
   qiblaAngle=Math.atan2(y,x); // radians from north clockwise
 }
 
-if(navigator.geolocation){
-  navigator.geolocation.getCurrentPosition(p=>{
-    userLat=p.coords.latitude*Math.PI/180;
-    userLng=p.coords.longitude*Math.PI/180;
-    calcQibla();
-  },()=>{/* fallback: no qibla */},{enableHighAccuracy:false,timeout:10000});
+function requestGeoForQibla(){
+  if(navigator.geolocation){
+    navigator.geolocation.getCurrentPosition(p=>{
+      userLat=p.coords.latitude*Math.PI/180;
+      userLng=p.coords.longitude*Math.PI/180;
+      calcQibla();
+    },()=>{/* fallback: no qibla */},{enableHighAccuracy:false,timeout:10000});
+  }
 }
+requestGeoForQibla();
 
 // DeviceOrientation for compass heading
 let compassSupported=false,compassInited=false;
@@ -408,6 +411,8 @@ function activateAll(){
   if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission==='function'){
     DeviceOrientationEvent.requestPermission().then(r=>{if(r==='granted')initCompass();}).catch(()=>{});
   }else{initCompass();}
+  // Retry geolocation after user gesture
+  if(qiblaAngle===null)requestGeoForQibla();
   // Dismiss overlay
   tapOverlay.style.opacity='0';
   setTimeout(()=>tapOverlay.style.display='none',500);
