@@ -466,12 +466,12 @@ function qiblaTick(){
     if(!qiblaAudioCtx)qiblaAudioCtx=new(window.AudioContext||window.webkitAudioContext)();
     if(qiblaAudioCtx.state==='suspended')qiblaAudioCtx.resume();
     const t=qiblaAudioCtx.currentTime;
-    // Bayati maqam ascent — Quran recitation scale, uplifting
-    // D5, Eqf5 (quarter-flat), F5 — just three notes, simple and warm
-    const notes=[587, 554, 698];
+    // Adhan opening contour — "Allahu Akbar" ascending phrase
+    // D4, G4, A4, Bb4, A4 — the iconic call to prayer
+    const notes=[294, 392, 440, 466, 440];
     const vol=0.15*(S.tickVol/100);
     notes.forEach((f,i)=>{
-      const start=t+i*0.22; // staggered like hammer strikes
+      const start=t+i*0.2; // staggered like hammer strikes
       const o=qiblaAudioCtx.createOscillator();
       const g=qiblaAudioCtx.createGain();
       o.connect(g);g.connect(qiblaAudioCtx.destination);
