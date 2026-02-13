@@ -476,19 +476,23 @@ function qiblaTick(){
       o.connect(g);g.connect(qiblaAudioCtx.destination);
       o.frequency.value=f;
       o.type='sine';
-      g.gain.setValueAtTime(vol,start);
-      g.gain.exponentialRampToValueAtTime(vol*0.6,start+0.05);
-      g.gain.exponentialRampToValueAtTime(0.001,start+1.2);
-      o.start(start);o.stop(start+1.3);
-      // Subtle harmonic overtone
-      const o2=qiblaAudioCtx.createOscillator();
-      const g2=qiblaAudioCtx.createGain();
-      o2.connect(g2);g2.connect(qiblaAudioCtx.destination);
-      o2.frequency.value=f*2.02;
-      o2.type='sine';
-      g2.gain.setValueAtTime(vol*0.15,start);
-      g2.gain.exponentialRampToValueAtTime(0.001,start+0.6);
-      o2.start(start);o2.stop(start+0.7);
+      // Sharp bell attack + long decay
+      g.gain.setValueAtTime(vol*1.2,start);
+      g.gain.exponentialRampToValueAtTime(vol*0.5,start+0.03);
+      g.gain.exponentialRampToValueAtTime(0.001,start+1.4);
+      o.start(start);o.stop(start+1.5);
+      // Brassy odd harmonics (3rd, 5th — what makes brass ring)
+      [3.01, 5.02, 2.01].forEach((h,hi)=>{
+        const oh=qiblaAudioCtx.createOscillator();
+        const gh=qiblaAudioCtx.createGain();
+        oh.connect(gh);gh.connect(qiblaAudioCtx.destination);
+        oh.frequency.value=f*h;
+        oh.type='sine';
+        const hv=vol*[0.18, 0.06, 0.12][hi];
+        gh.gain.setValueAtTime(hv,start);
+        gh.gain.exponentialRampToValueAtTime(0.001,start+[0.8, 0.4, 0.6][hi]);
+        oh.start(start);oh.stop(start+1.0);
+      });
     });
   }catch(e){}
 }
