@@ -361,7 +361,26 @@ const PC={Fajr:'#6ba0c4',Sunrise:'#e8c060',Dhuhr:'#f0e060',Asr:'#e0b050',Maghrib
 const PN=['Fajr','Sunrise','Dhuhr','Asr','Maghrib','Isha'];
 function pM(s){if(!s)return 0;const[h,m]=s.split(':').map(Number);return h*60+m;}
 // ── DEV MODE ──
-let devMode=false,devTimeMin=null,devRamadan=false;
+let devMode=false,devTimeMin=null,devRamadan=false,devLocation=null;
+const DEV_LOCATIONS={
+  'reykjavik':{label:'Reykjavik 🇮🇸 (~21h)',city:'Reykjavik',country:'IS',method:'3',summerFajr:'01:30',summerMag:'23:00'},
+  'stockholm':{label:'Stockholm 🇸🇪 (~19h)',city:'Stockholm',country:'SE',method:'3',summerFajr:'01:50',summerMag:'21:30'},
+  'london':{label:'London 🇬🇧 (~18h)',city:'London',country:'GB',method:'3',summerFajr:'02:30',summerMag:'21:15'},
+  'la':{label:'Los Angeles 🇺🇸 (~14h)',city:null,country:null},
+  'mecca':{label:'Mecca 🇸🇦 (~14h)',city:'Mecca',country:'SA',method:'4'},
+  'capetown':{label:'Cape Town 🇿🇦 (~11h)',city:'Cape Town',country:'ZA',method:'3'},
+};
+async function devFetchLocation(key){
+  const loc=DEV_LOCATIONS[key];if(!loc)return;
+  if(!loc.city){devLocation=null;await fetchPrayer();return;}
+  try{
+    const r=await fetch(`https://api.aladhan.com/v1/timingsByCity?city=${encodeURIComponent(loc.city)}&country=${encodeURIComponent(loc.country)}&method=${loc.method||S.method}`);
+    const j=await r.json();
+    if(j.code===200){PD=j.data.timings;DD=j.data.date;devLocation=key;
+      if(loc.summerFajr){PD.Fajr=loc.summerFajr;PD.Maghrib=loc.summerMag;PD.Sunrise=loc.summerFajr.replace(/^\d+/,h=>(parseInt(h)+1).toString().padStart(2,'0'));PD.Isha=loc.summerMag.replace(/^\d+/,h=>(parseInt(h)+1).toString().padStart(2,'0'));}
+      updateInfo();}
+  }catch(e){console.error('Dev fetch failed:',e);}
+}
 function devNow(){if(devTimeMin!==null){const d=new Date();d.setHours(Math.floor(devTimeMin/60),Math.floor(devTimeMin%60),Math.floor((devTimeMin%1)*60),0);return d;}return new Date();}
 function nM(){return devTimeMin!==null?devTimeMin:(()=>{const d=new Date();return d.getHours()*60+d.getMinutes()+d.getSeconds()/60;})();}
 function f12(m){const h=Math.floor(m/60),mi=Math.floor(m%60);return`${h%12||12}:${String(mi).padStart(2,'0')}${h>=12?'p':'a'}`;}
@@ -982,10 +1001,21 @@ draw();
     <span id="devTimeLabel" style="font-variant-numeric:tabular-nums;font-weight:500;">LIVE</span>
   </div>
   <input type="range" id="devSlider" min="0" max="1439" step="0.5" value="720" style="width:100%;accent-color:#f0e060;cursor:pointer;" oninput="devTimeMin=parseFloat(this.value);document.getElementById('devTimeLabel').textContent=((h,m)=>(h%12||12)+':'+String(m).padStart(2,'0')+(h>=12?' PM':' AM'))(Math.floor(this.value/60),Math.floor(this.value%60));updateInfo();">
+  <div style="display:flex;gap:8px;align-items:center;width:100%;margin-top:4px;">
+    <span style="font-size:10px;color:rgba(255,255,240,.5);">Location</span>
+    <select id="devLocSelect" onchange="devFetchLocation(this.value);" style="flex:1;font-size:11px;padding:4px 6px;background:rgba(240,224,96,.1);border:1px solid rgba(240,224,96,.25);border-radius:6px;color:#f0e060;cursor:pointer;">
+      <option value="la">Los Angeles 🇺🇸 (~14h)</option>
+      <option value="capetown">Cape Town 🇿🇦 (~11h)</option>
+      <option value="mecca">Mecca 🇸🇦 (~14h)</option>
+      <option value="london">London 🇬🇧 (~18h)</option>
+      <option value="stockholm">Stockholm 🇸🇪 (~19h)</option>
+      <option value="reykjavik">Reykjavik 🇮🇸 (~21h)</option>
+    </select>
+  </div>
   <div style="display:flex;gap:12px;align-items:center;width:100%;margin-top:4px;">
     <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" id="devRamToggle" onchange="devRamadan=this.checked;updateInfo();" style="accent-color:#f0e060;"> <span style="font-size:11px;">Simulate Ramadan</span></label>
     <span style="flex:1"></span>
-    <button onclick="devTimeMin=null;document.getElementById('devSlider').value=720;document.getElementById('devTimeLabel').textContent='LIVE';updateInfo();" style="font-size:10px;padding:4px 10px;background:rgba(240,224,96,.15);border:1px solid rgba(240,224,96,.3);border-radius:6px;color:#f0e060;cursor:pointer;">Reset to Live</button>
+    <button onclick="devTimeMin=null;devLocation=null;devRamadan=false;document.getElementById('devSlider').value=720;document.getElementById('devTimeLabel').textContent='LIVE';document.getElementById('devRamToggle').checked=false;document.getElementById('devLocSelect').value='la';fetchPrayer();" style="font-size:10px;padding:4px 10px;background:rgba(240,224,96,.15);border:1px solid rgba(240,224,96,.3);border-radius:6px;color:#f0e060;cursor:pointer;">Reset All</button>
   </div>
 </div>
 <script>
