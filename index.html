@@ -634,24 +634,37 @@ function playTick(loud){
   if(!qiblaAudioCtx)return;
   if(qiblaAudioCtx.state==='suspended')qiblaAudioCtx.resume();
   const t=qiblaAudioCtx.currentTime;
-  const vol=loud?0.15:0.07;
-  // Tick = short noise burst (mechanical click)
-  const bufLen=Math.floor(qiblaAudioCtx.sampleRate*(loud?0.012:0.008));
-  const buf=qiblaAudioCtx.createBuffer(1,bufLen,qiblaAudioCtx.sampleRate);
+  // Real mechanical watch: sharp impulse → case resonance → fast decay
+  // Escapement creates a brief impact, case amplifies specific frequencies
+  const sr=qiblaAudioCtx.sampleRate;
+  const dur=loud?0.018:0.006; // quartz longer, mechanical very short
+  const bufLen=Math.floor(sr*dur);
+  const buf=qiblaAudioCtx.createBuffer(1,bufLen,sr);
   const data=buf.getChannelData(0);
+  
+  // Two resonant frequencies (escapement tick + case resonance)
+  const f1=loud?1800:2200; // primary
+  const f2=loud?4200:5800; // case ring
+  const vol=loud?0.12:0.05;
+  
   for(let i=0;i<bufLen;i++){
-    const env=1-i/bufLen;
-    data[i]=(Math.random()*2-1)*env*env;
+    const t2=i/sr;
+    // Sharp exponential decay (real impact)
+    const env=Math.exp(-t2*(loud?180:400));
+    // Damped sinusoids (resonant body)
+    const s1=Math.sin(2*Math.PI*f1*t2)*0.7;
+    const s2=Math.sin(2*Math.PI*f2*t2)*0.3;
+    // Tiny noise for initial transient (first 0.5ms)
+    const click=t2<0.0005?(Math.random()*2-1)*0.5:0;
+    data[i]=(s1+s2+click)*env;
   }
+  
   const src=qiblaAudioCtx.createBufferSource();
   src.buffer=buf;
-  const bp=qiblaAudioCtx.createBiquadFilter();
-  bp.type='bandpass';bp.frequency.value=loud?3200:4800;bp.Q.value=loud?2:3;
   const g=qiblaAudioCtx.createGain();
-  g.gain.setValueAtTime(vol,t);
-  g.gain.exponentialRampToValueAtTime(0.001,t+(loud?0.025:0.015));
-  src.connect(bp);bp.connect(g);g.connect(qiblaAudioCtx.destination);
-  src.start(t);src.stop(t+0.03);
+  g.gain.value=vol;
+  src.connect(g);g.connect(qiblaAudioCtx.destination);
+  src.start(t);src.stop(t+dur+0.01);
 }
 
 function tickAudio(s,ms){
