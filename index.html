@@ -22,7 +22,7 @@ canvas{position:fixed;top:0;left:0;width:100vw;height:100vh;display:block;}
 
 .info{position:fixed;left:50%;transform:translateX(-50%);z-index:10;text-align:center;display:flex;flex-direction:column;align-items:center;gap:4px;pointer-events:none;opacity:0;transition:opacity .4s ease;}
 .info-top{top:max(20px,env(safe-area-inset-top,0px));}
-.info-bottom{bottom:max(20px,env(safe-area-inset-bottom,0px));}
+.info-bottom{bottom:max(90px,calc(env(safe-area-inset-bottom,0px) + 80px));}
 .info.visible{opacity:1;}
 .info>*{pointer-events:auto;}
 .ramadan-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.2em;transition:all .5s;}
@@ -61,6 +61,22 @@ input.sv{width:120px;}
 .movement-row{display:flex;gap:8px;align-items:center;}
 .movement-opt{flex:1;text-align:center;padding:8px 4px;border-radius:8px;cursor:pointer;font-size:11px;border:1px solid;transition:all .2s;}
 .movement-opt.active{font-weight:600;}
+
+/* Dial Picker Bar */
+.dial-bar{position:fixed;bottom:0;left:0;right:0;z-index:20;padding:12px 16px max(16px,env(safe-area-inset-bottom,0px));display:flex;align-items:center;gap:10px;opacity:0;transform:translateY(20px);transition:opacity .4s ease,transform .4s ease;pointer-events:none;justify-content:center;}
+.dial-bar.visible{opacity:1;transform:translateY(0);pointer-events:auto;}
+.dial-mode-toggle{display:flex;align-items:center;background:rgba(255,255,255,.12);backdrop-filter:blur(12px);border-radius:20px;padding:3px;flex-shrink:0;cursor:pointer;border:1px solid rgba(255,255,255,.08);}
+.dial-mode-btn{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all .3s;color:rgba(255,255,255,.5);}
+.dial-mode-btn.active{background:rgba(255,255,255,.2);color:#fff;}
+.dial-swatches{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none;padding:4px 2px;scroll-snap-type:x mandatory;flex-shrink:1;}
+.dial-swatches::-webkit-scrollbar{display:none;}
+.dial-swatch{flex-shrink:0;width:52px;display:flex;flex-direction:column;align-items:center;gap:4px;scroll-snap-align:center;cursor:pointer;}
+.dial-swatch-circle{width:44px;height:44px;border-radius:50%;border:2px solid transparent;transition:border-color .2s;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px);position:relative;overflow:hidden;}
+.dial-swatch.active .dial-swatch-circle{border-color:rgba(255,255,255,.8);}
+.dial-swatch-label{font-size:9px;color:rgba(255,255,255,.5);font-weight:500;white-space:nowrap;transition:color .2s;}
+.dial-swatch.active .dial-swatch-label{color:rgba(255,255,255,.9);}
+.dial-nav{width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.1);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;color:rgba(255,255,255,.6);font-size:12px;transition:all .2s;}
+.dial-nav:hover{background:rgba(255,255,255,.2);color:#fff;}
 </style>
 </head>
 <body>
@@ -90,6 +106,16 @@ input.sv{width:120px;}
 <div class="info info-bottom">
   <div class="fast-status" id="fastStatus"></div>
   <div class="prayers" id="prayers"></div>
+</div>
+
+<div class="dial-bar" id="dialBar">
+  <div class="dial-mode-toggle" id="modeToggle" onclick="toggleDayNight()">
+    <div class="dial-mode-btn" id="modeSun" data-m="day">☀️</div>
+    <div class="dial-mode-btn" id="modeMoon" data-m="night">🌙</div>
+  </div>
+  <div class="dial-nav" onclick="scrollSwatches(-1)">‹</div>
+  <div class="dial-swatches" id="dialSwatches"></div>
+  <div class="dial-nav" onclick="scrollSwatches(1)">›</div>
 </div>
 
 <div class="sov" id="sov" onclick="if(event.target===this)closeSettings()">
@@ -518,12 +544,14 @@ function activateAll(){
   // Dismiss overlay
   tapOverlay.style.opacity='0';
   setTimeout(()=>tapOverlay.style.display='none',500);
-  // Show info panels briefly
+  // Show info panels + dial bar briefly
   const infos=document.querySelectorAll('.info');
+  const bar=document.getElementById('dialBar');
   infoVisible=true;
   infos.forEach(el=>el.classList.add('visible'));
+  bar.classList.add('visible');
   clearTimeout(infoTimer);
-  infoTimer=setTimeout(()=>{infoVisible=false;infos.forEach(el=>el.classList.remove('visible'));},4000);
+  infoTimer=setTimeout(()=>{infoVisible=false;infos.forEach(el=>el.classList.remove('visible'));bar.classList.remove('visible');},6000);
 }
 // iOS requires click (not touchstart) for DeviceOrientation permission
 tapOverlay.addEventListener('click',activateAll,{once:true});
@@ -1279,13 +1307,14 @@ function draw(){
     modeTarget=celestialProgress;
     modeBlend=celestialProgress;
   }else if(tawafState==='hold'){
-    celestialProgress=1; // fully visible during hold
+    celestialProgress=1;
     modeTarget=1;modeBlend+=(1-modeBlend)*0.08;
   }else{
-    // Fade out after hold
-    celestialProgress+=(0-celestialProgress)*0.03;
-    if(celestialProgress<0.005)celestialProgress=0;
-    if(S.mode==='auto')updateModeBlend();
+    // Outside tawaf: celestial follows night mode
+    const nightTarget=resolveMode()==='night'?1:0;
+    celestialProgress+=(nightTarget-celestialProgress)*0.03;
+    if(Math.abs(celestialProgress-nightTarget)<0.005)celestialProgress=nightTarget;
+    updateModeBlend();
   }
 
   drawFace(c);
@@ -1303,17 +1332,71 @@ function draw(){
 }
 
 // ── Tap to show/hide info ──
+// ── Dial Picker Bar ──
+const DIAL_NAMES={tennis:'Tennis',white:'White',ocean:'Ocean',salmon:'Salmon',slate:'Slate',sky:'Signal Blue',cream:'Cream',noir:'Noir',emerald:'Emerald',midnight:'Midnight'};
+function buildDialSwatches(){
+  const container=document.getElementById('dialSwatches');
+  container.innerHTML=Object.keys(DIALS).map(key=>{
+    const d=DIALS[key];
+    return`<div class="dial-swatch ${key===S.dial?'active':''}" data-dial="${key}" onclick="pickDial('${key}')">
+      <div class="dial-swatch-circle" style="background:${d.bg};border-color:${key===S.dial?'rgba(255,255,255,.8)':'transparent'}">
+        <span style="font-size:10px;font-weight:700;color:${d.lume}">IQ</span>
+      </div>
+      <span class="dial-swatch-label">${DIAL_NAMES[key]||key}</span>
+    </div>`;
+  }).join('');
+  updateModeToggle();
+}
+window.pickDial=function(key){
+  S.dial=key;
+  localStorage.setItem('rc6',JSON.stringify(S));
+  D=DIALS[key];
+  applyThemeToUI();
+  buildDialSwatches();
+  // Also update settings dropdown
+  document.getElementById('sDial').value=key;
+};
+window.toggleDayNight=function(){
+  const current=resolveMode();
+  const next=current==='night'?'day':'night';
+  S.mode=next;
+  localStorage.setItem('rc6',JSON.stringify(S));
+  updateModeBlend();
+  updateModeToggle();
+  // Trigger celestial for night mode
+  if(next==='night'){
+    celestialTarget=1;
+  }else{
+    celestialTarget=0;
+  }
+};
+function updateModeToggle(){
+  const mode=resolveMode();
+  document.getElementById('modeSun').classList.toggle('active',mode==='day');
+  document.getElementById('modeMoon').classList.toggle('active',mode==='night');
+}
+window.scrollSwatches=function(dir){
+  const el=document.getElementById('dialSwatches');
+  el.scrollBy({left:dir*120,behavior:'smooth'});
+};
+buildDialSwatches();
+
 let infoVisible=false, infoTimer=null;
 function toggleInfo(){
   const els=document.querySelectorAll('.info');
+  const bar=document.getElementById('dialBar');
   infoVisible=!infoVisible;
   els.forEach(el=>el.classList.toggle('visible',infoVisible));
+  bar.classList.toggle('visible',infoVisible);
   clearTimeout(infoTimer);
-  if(infoVisible) infoTimer=setTimeout(()=>{infoVisible=false;els.forEach(el=>el.classList.remove('visible'));},5000);
+  if(infoVisible) infoTimer=setTimeout(()=>{
+    infoVisible=false;
+    els.forEach(el=>el.classList.remove('visible'));
+    bar.classList.remove('visible');
+  },8000); // longer timeout for dial interaction
 }
 cv.addEventListener('click',e=>{
-  // Don't toggle if clicking settings
-  if(e.target.closest('.sov'))return;
+  if(e.target.closest('.sov')||e.target.closest('.dial-bar'))return;
   toggleInfo();
 });
 
