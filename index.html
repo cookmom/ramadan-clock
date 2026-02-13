@@ -982,7 +982,7 @@ function drawHands(c){
 // Counter-clockwise, hands maintain mechanical relationship, time accelerates
 // 7 laps of the minute hand = 7 hours of virtual time, compressed into ~28s
 let tawafActive=false,tawafStart=0,tawafDev=false;
-const TAWAF_LAPS=7,TAWAF_LAP_MS=4000,TAWAF_DURATION=TAWAF_LAPS*TAWAF_LAP_MS;
+const TAWAF_LAPS=7,TAWAF_DURATION=30000; // 30 seconds for 30 days of Ramadan
 let tawafLastLap=-1;
 function getTawafVirtualMin(){
   // Returns extra virtual minutes to subtract from current time (CCW)
@@ -992,56 +992,90 @@ function getTawafVirtualMin(){
   const t=elapsed/TAWAF_DURATION;
   // Ease in-out cubic (on POSITION, 0→1, never reverses)
   const ease=t<0.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
-  // 7 laps of minute hand = 420 minutes of virtual time
+  // 7 laps of minute hand = 420 virtual minutes in 30 real seconds
   const vm=420*ease;
   // Chime on each completed lap (each 60 virtual minutes)
   const currentLap=Math.min(Math.floor(vm/60),TAWAF_LAPS-1);
   if(currentLap>tawafLastLap){
     tawafLastLap=currentLap;
-    playTawafChime(currentLap);
+    playTawafGong(currentLap);
   }
   return vm;
 }
-function playTawafChime(lap){
+// Maqam scales (ascending notes, ratios from root)
+// Quarter-tone intervals computed as 2^(cents/1200)
+const MAQAM={
+  // Bayati (D): celebratory, joyous — 0,150,300,500,700,800,1000 cents
+  bayati:[1, 1.0905, 1.1892, 1.3348, 1.4983, 1.5874, 1.7818],
+  // Ajam (C): bright, optimistic — standard major intervals
+  ajam:[1, 9/8, 5/4, 4/3, 3/2, 5/3, 15/8],
+  // Rast (C): proud, joyful — 0,200,350,500,700,900,1050 cents
+  rast:[1, 1.1225, 1.2246, 1.3348, 1.4983, 1.6818, 1.8340],
+};
+let tawafMaqam='bayati'; // default: celebratory for iftar
+function playTawafGong(lap){
   try{
     if(!qiblaAudioCtx)return;
     if(qiblaAudioCtx.state==='suspended')qiblaAudioCtx.resume();
     const t=qiblaAudioCtx.currentTime;
-    const vol=0.12*(S.tickVol/100);
-    // Rising pitch with each lap — like ascending a spiritual scale
-    const baseFreq=440;
-    const notes=[1,9/8,5/4,4/3,3/2,5/3,15/8]; // just intonation scale
-    const freq=baseFreq*notes[lap%7];
-    // Bell-like tone: fundamental + octave + fifth
-    [freq, freq*2, freq*1.5].forEach((f,i)=>{
+    const vol=0.14*(S.tickVol/100);
+    const scale=MAQAM[tawafMaqam]||MAQAM.bayati;
+    const root=293.66; // D4
+    const freq=root*scale[lap%7];
+    // Gong: inharmonic partials (metallic, not bell-like)
+    const partials=[
+      {ratio:1,    amp:1.0,  decay:3.5},  // fundamental
+      {ratio:1.47, amp:0.45, decay:2.8},  // first inharmonic
+      {ratio:2.09, amp:0.25, decay:2.2},  // second
+      {ratio:2.56, amp:0.15, decay:1.8},  // third
+      {ratio:3.14, amp:0.08, decay:1.2},  // fourth (shimmer)
+    ];
+    partials.forEach(p=>{
       const o=qiblaAudioCtx.createOscillator();
       const g=qiblaAudioCtx.createGain();
       o.connect(g);g.connect(qiblaAudioCtx.destination);
-      o.frequency.value=f;
+      o.frequency.setValueAtTime(freq*p.ratio,t);
+      // Slight downward pitch bend (gong characteristic)
+      o.frequency.exponentialRampToValueAtTime(freq*p.ratio*0.985,t+p.decay);
       o.type='sine';
-      const v=vol*(i===0?1:i===1?0.4:0.2);
-      g.gain.setValueAtTime(v,t);
-      g.gain.exponentialRampToValueAtTime(v*0.3,t+0.08);
-      g.gain.exponentialRampToValueAtTime(0.001,t+2.5);
-      o.start(t);o.stop(t+2.6);
+      const v=vol*p.amp;
+      // Sharp metallic attack → long sustain → slow decay
+      g.gain.setValueAtTime(0,t);
+      g.gain.linearRampToValueAtTime(v,t+0.003); // near-instant strike
+      g.gain.setValueAtTime(v*0.85,t+0.02); // slight dip after impact
+      g.gain.exponentialRampToValueAtTime(v*0.4,t+0.15); // sustain
+      g.gain.exponentialRampToValueAtTime(0.001,t+p.decay); // long ring-out
+      o.start(t);o.stop(t+p.decay+0.1);
     });
-    // Final lap: bonus shimmer
+    // Noise burst at strike (metallic impact texture)
+    const noiseDur=0.04;
+    const noiseBuf=qiblaAudioCtx.createBuffer(1,Math.floor(qiblaAudioCtx.sampleRate*noiseDur),qiblaAudioCtx.sampleRate);
+    const nd=noiseBuf.getChannelData(0);
+    for(let i=0;i<nd.length;i++)nd[i]=(Math.random()*2-1)*Math.exp(-i/(nd.length*0.15));
+    const ns=qiblaAudioCtx.createBufferSource();ns.buffer=noiseBuf;
+    const ng=qiblaAudioCtx.createGain();ng.gain.value=vol*0.5;
+    // Bandpass to shape the noise into metallic hit
+    const bf=qiblaAudioCtx.createBiquadFilter();bf.type='bandpass';bf.frequency.value=freq*2;bf.Q.value=2;
+    ns.connect(bf);bf.connect(ng);ng.connect(qiblaAudioCtx.destination);
+    ns.start(t);ns.stop(t+noiseDur);
+    // 7th lap: triumphant cascade — all 7 maqam notes as rapid gong sequence
     if(lap===6){
       setTimeout(()=>{
         if(!qiblaAudioCtx)return;
         const t2=qiblaAudioCtx.currentTime;
-        [880,1108.7,1318.5,1760].forEach((f,i)=>{
+        scale.forEach((ratio,i)=>{
+          const f=root*ratio*(i>=4?2:1); // top notes up an octave
+          const delay=i*0.15;
           const o=qiblaAudioCtx.createOscillator();
           const g=qiblaAudioCtx.createGain();
           o.connect(g);g.connect(qiblaAudioCtx.destination);
           o.frequency.value=f;o.type='sine';
-          const delay=i*0.12;
           g.gain.setValueAtTime(0,t2+delay);
-          g.gain.linearRampToValueAtTime(vol*0.6,t2+delay+0.05);
-          g.gain.exponentialRampToValueAtTime(0.001,t2+delay+3);
-          o.start(t2+delay);o.stop(t2+delay+3.1);
+          g.gain.linearRampToValueAtTime(vol*0.5,t2+delay+0.003);
+          g.gain.exponentialRampToValueAtTime(0.001,t2+delay+4);
+          o.start(t2+delay);o.stop(t2+delay+4.1);
         });
-      },800);
+      },600);
     }
   }catch(e){}
 }
