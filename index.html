@@ -1079,50 +1079,58 @@ function playTawafGong(lap){
     }
   }catch(e){}
 }
-// Tawaf states: idle → (dev: snap_to_mag →) spinning → hold → idle
-const TAWAF_HOLD_MS=20000; // 20s hold after tawaf completes
-let tawafState='idle'; // idle | snap_to_mag | spinning | hold
+// Tawaf states: idle → (dev: pre_mag →) spinning → hold → idle
+const TAWAF_HOLD_MS=10000; // 10s hold with normal ticking after tawaf
+// Pre-compute: first gong hits when vm=720 (first hour-hand lap)
+// With ease-in cubic (4t³ for t<0.5): t = cbrt(720/(5040*4))
+const TAWAF_PREGONG_T=Math.cbrt(720/5040/4);
+const TAWAF_PREGONG_MS=TAWAF_PREGONG_T*TAWAF_DURATION; // ~9.9s before first gong
+const TAWAF_PRESTART_MIN=TAWAF_PREGONG_MS/1000/60; // in minutes
+let tawafState='idle'; // idle | pre_mag | spinning | hold
 let tawafHoldStart=0;
-let tawafMaghribMin=null; // Maghrib time in minutes for dev sim
+let tawafMaghribMin=null;
 function startTawaf(fromDev){
   tawafLastLap=0;
   if(fromDev&&PD){
-    // Dev mode: snap to Maghrib first
     tawafMaghribMin=pM(PD.Maghrib);
-    devTimeMin=tawafMaghribMin;
-    tawafState='snap_to_mag';
     tawafDev=true;
-    // Brief pause at Maghrib before spinning (500ms)
+    // Snap to just before Maghrib (so first gong lands ON Maghrib)
+    devTimeMin=tawafMaghribMin-TAWAF_PRESTART_MIN;
+    tawafState='pre_mag';
+    // Brief pause to show pre-Maghrib moment, then spin
     setTimeout(()=>{
-      if(tawafState==='snap_to_mag'){
+      if(tawafState==='pre_mag'){
         tawafActive=true;tawafStart=performance.now();
         tawafState='spinning';
       }
     },500);
   }else{
-    // Live Maghrib trigger: start spinning immediately
+    // Live trigger: already pre-started before Maghrib
     tawafActive=true;tawafStart=performance.now();
     tawafState='spinning';
   }
 }
 function endTawafSpin(){
   tawafActive=false;
-  if(tawafDev){
-    // Hold at post-tawaf time (Maghrib + ~30s)
-    tawafState='hold';
-    tawafHoldStart=performance.now();
-    // Set time to just after Maghrib
-    if(tawafMaghribMin!==null)devTimeMin=tawafMaghribMin+0.5; // 30s after Maghrib
-  }else{
-    tawafState='idle';
+  tawafState='hold';
+  tawafHoldStart=performance.now();
+  if(tawafDev&&tawafMaghribMin!==null){
+    // Start hold at Maghrib, will tick forward naturally
+    devTimeMin=tawafMaghribMin;
   }
 }
 function checkTawafHold(){
-  if(tawafState==='hold'&&performance.now()-tawafHoldStart>=TAWAF_HOLD_MS){
+  if(tawafState!=='hold')return;
+  // Normal ticking during hold: advance from Maghrib
+  if(tawafDev&&tawafMaghribMin!==null){
+    const holdElapsed=(performance.now()-tawafHoldStart)/1000/60;
+    devTimeMin=tawafMaghribMin+holdElapsed;
+    updateModeBlend(); // may transition to night at Maghrib
+  }
+  if(performance.now()-tawafHoldStart>=TAWAF_HOLD_MS){
     // Restore live time
     tawafState='idle';tawafDev=false;
     devTimeMin=null;tawafMaghribMin=null;
-    // Reset dev panel UI
     const sl=document.getElementById('devSlider');
     const lb=document.getElementById('devTimeLabel');
     const tg=document.getElementById('devTawafToggle');
@@ -1130,16 +1138,16 @@ function checkTawafHold(){
     updateInfo();
   }
 }
-// Auto-trigger at Maghrib
+// Auto-trigger: start ~10s BEFORE Maghrib so first gong = Maghrib
 let tawafTriggered=false;
 function checkTawaf(){
   checkTawafHold();
   if(tawafState!=='idle')return;
   if(!PD)return;
   const now=nM(),mag=pM(PD.Maghrib);
-  // Trigger within 1 minute of Maghrib
-  if(now>=mag&&now<mag+1&&!tawafTriggered){tawafTriggered=true;startTawaf(false);}
-  if(now<mag)tawafTriggered=false; // reset for next day
+  const preStart=mag-TAWAF_PRESTART_MIN;
+  if(now>=preStart&&now<mag+1&&!tawafTriggered){tawafTriggered=true;startTawaf(false);}
+  if(now<preStart)tawafTriggered=false;
 }
 
 function draw(){
