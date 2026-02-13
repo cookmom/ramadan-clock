@@ -466,12 +466,12 @@ function qiblaTick(){
     if(!qiblaAudioCtx)qiblaAudioCtx=new(window.AudioContext||window.webkitAudioContext)();
     if(qiblaAudioCtx.state==='suspended')qiblaAudioCtx.resume();
     const t=qiblaAudioCtx.currentTime;
-    // Minute repeater chime — Hijaz maqam descending
-    // D6, F#5 (augmented 2nd), Eb5 — the signature Hijaz interval
-    const notes=[1175, 740, 622];
+    // Bayati maqam descent — Quran recitation scale
+    // D5, Eqf5 (quarter-flat), C5, Bb4, A4 — classic Bayati tetrachord descent
+    const notes=[587, 554, 523, 466, 440];
     const vol=0.15*(S.tickVol/100);
     notes.forEach((f,i)=>{
-      const start=t+i*0.18; // staggered like hammer strikes
+      const start=t+i*0.15; // staggered like hammer strikes
       const o=qiblaAudioCtx.createOscillator();
       const g=qiblaAudioCtx.createGain();
       o.connect(g);g.connect(qiblaAudioCtx.destination);
