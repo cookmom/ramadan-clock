@@ -681,6 +681,8 @@ function drawQiblaWindow(c){
 }
 
 // ── Split-Flap Countdown ──
+let flapPrevText='',flapAnimStart=0,flapPrevDisplay='';
+const FLAP_DUR=400; // ms — mechanical flip duration
 function drawSplitFlap(c){
   if(!PD)return;
   const isRam=devRamadan||(DD&&DD.hijri.month.number===9);
@@ -690,19 +692,26 @@ function drawSplitFlap(c){
   if(now>=fajr&&now<mag){mins=mag-now;label='IFTAR';}
   else if(now<fajr){mins=fajr-now;label='FAJR';}
   else{
-    // After Maghrib — show "MUBARAK"
-    drawSplitFlapText(c,'MUBARAK','☪');
+    drawSplitFlapRender(c,'MUBARAK','☪',0);
     return;
   }
   const h=Math.floor(mins/60),m=Math.floor(mins%60);
   const timeStr=(h>0?h+'H '+String(m).padStart(2,'0')+'M':m+'M');
-  drawSplitFlapText(c,timeStr,label);
+  // Detect change → trigger flip
+  if(timeStr!==flapPrevText){
+    flapPrevDisplay=flapPrevText||timeStr;
+    flapPrevText=timeStr;
+    flapAnimStart=performance.now();
+  }
+  const elapsed=performance.now()-flapAnimStart;
+  const t=Math.min(elapsed/FLAP_DUR,1);
+  drawSplitFlapRender(c,timeStr,label,t,flapPrevDisplay);
 }
-function drawSplitFlapText(c,main,sub){
-  // Position: 6 o'clock, inside dial
+function drawSplitFlapRender(c,main,sub,t,prev){
   const wx=cx, wy=cy+R*0.38;
   const ww=R*0.36, wh=R*0.14, wr=R*0.018;
-  const gap=0.8*dpr; // split line gap
+  const gap=1*dpr;
+  const halfH=wh/2-gap/2;
 
   ctx.save();
 
@@ -710,8 +719,8 @@ function drawSplitFlapText(c,main,sub){
   ctx.fillStyle=c.shadow;
   roundRect(ctx,wx-ww/2+1*dpr,wy-wh/2+1.5*dpr,ww,wh,wr);ctx.fill();
 
-  // Window background — darker than dial
-  ctx.fillStyle='rgba(0,0,0,0.25)';
+  // Window background
+  ctx.fillStyle='rgba(0,0,0,0.3)';
   roundRect(ctx,wx-ww/2,wy-wh/2,ww,wh,wr);ctx.fill();
 
   // Subtle inner border
@@ -719,33 +728,88 @@ function drawSplitFlapText(c,main,sub){
   ctx.lineWidth=1*dpr;
   roundRect(ctx,wx-ww/2,wy-wh/2,ww,wh,wr);ctx.stroke();
 
-  // Clip to window
+  // ── BOTTOM HALF: shows NEW text (revealed as flap falls) ──
   ctx.save();
-  roundRect(ctx,wx-ww/2,wy-wh/2,ww,wh,wr);ctx.clip();
-
-  // Split line (horizontal flap divide)
-  ctx.fillStyle='rgba(0,0,0,0.3)';
-  ctx.fillRect(wx-ww/2,wy-gap/2,ww,gap);
-
-  // Top half slightly lighter (light catch on flap)
-  ctx.fillStyle='rgba(255,255,255,0.02)';
-  ctx.fillRect(wx-ww/2,wy-wh/2,ww,wh/2-gap/2);
-
-  // Main countdown text
+  roundRect(ctx,wx-ww/2,wy+gap/2,ww,halfH,0);ctx.clip();
+  // Slightly darker bottom
+  ctx.fillStyle='rgba(0,0,0,0.08)';
+  ctx.fillRect(wx-ww/2,wy+gap/2,ww,halfH);
+  // New text
   ctx.textAlign='center';ctx.textBaseline='middle';
   ctx.font=`600 ${R*0.072}px 'Inter',system-ui,sans-serif`;
-  ctx.fillStyle=c.lume;
-  ctx.globalAlpha=0.9;
+  ctx.fillStyle=c.lume;ctx.globalAlpha=0.9;
   ctx.fillText(main,wx,wy-R*0.008);
-
-  // Sub-label (IFTAR / FAJR)
+  // Sub-label
   ctx.font=`500 ${R*0.028}px 'Inter',system-ui,sans-serif`;
-  ctx.globalAlpha=0.35;
-  ctx.fillStyle=c.lume;
+  ctx.globalAlpha=0.35;ctx.fillStyle=c.lume;
   ctx.fillText(sub,wx,wy+R*0.042);
-
   ctx.globalAlpha=1;
-  ctx.restore(); // unclip
+  ctx.restore();
+
+  // ── TOP HALF: shows NEW text (destination) ──
+  ctx.save();
+  roundRect(ctx,wx-ww/2,wy-wh/2,ww,halfH,0);ctx.clip();
+  // Light catch on top flap
+  ctx.fillStyle='rgba(255,255,255,0.03)';
+  ctx.fillRect(wx-ww/2,wy-wh/2,ww,halfH);
+  // New text
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.font=`600 ${R*0.072}px 'Inter',system-ui,sans-serif`;
+  ctx.fillStyle=c.lume;ctx.globalAlpha=0.9;
+  ctx.fillText(main,wx,wy-R*0.008);
+  ctx.font=`500 ${R*0.028}px 'Inter',system-ui,sans-serif`;
+  ctx.globalAlpha=0.35;ctx.fillStyle=c.lume;
+  ctx.fillText(sub,wx,wy+R*0.042);
+  ctx.globalAlpha=1;
+  ctx.restore();
+
+  // ── FLIPPING FLAP (top half falling down with old text) ──
+  if(t<1&&prev){
+    // Ease: fast start, decelerating (gravity + catch)
+    const ease=t<0.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
+    // Flap angle: 0 (flat, showing old top) → PI/2 (edge-on, gone)
+    const ang=ease*(Math.PI/2);
+    const scaleY=Math.cos(ang); // perspective compression
+    if(scaleY>0.01){
+      ctx.save();
+      // The flap hinges at the split line (wy)
+      ctx.translate(wx,wy);
+      ctx.scale(1,scaleY);
+      ctx.translate(-wx,-wy);
+      // Clip to top half region
+      roundRect(ctx,wx-ww/2,wy-halfH,ww,halfH,0);ctx.clip();
+      // Flap bg (gets darker as it rotates — shadow on falling flap)
+      ctx.fillStyle=`rgba(0,0,0,${0.3+0.2*ease})`;
+      ctx.fillRect(wx-ww/2,wy-halfH,ww,halfH);
+      // Light catch fading
+      ctx.fillStyle=`rgba(255,255,255,${0.03*(1-ease)})`;
+      ctx.fillRect(wx-ww/2,wy-halfH,ww,halfH);
+      // Old text on falling flap
+      ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.font=`600 ${R*0.072}px 'Inter',system-ui,sans-serif`;
+      ctx.fillStyle=c.lume;ctx.globalAlpha=0.9*(1-ease*0.3);
+      ctx.fillText(prev,wx,wy-R*0.008);
+      ctx.globalAlpha=1;
+      ctx.restore();
+    }
+    // Shadow cast by falling flap onto bottom half
+    ctx.save();
+    roundRect(ctx,wx-ww/2,wy,ww,halfH,0);ctx.clip();
+    const shadowH=halfH*0.4*(1-ease);
+    const grad=ctx.createLinearGradient(wx,wy,wx,wy+shadowH);
+    grad.addColorStop(0,`rgba(0,0,0,${0.3*(1-ease)})`);
+    grad.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=grad;
+    ctx.fillRect(wx-ww/2,wy,ww,shadowH);
+    ctx.restore();
+  }
+
+  // Split line groove
+  ctx.fillStyle='rgba(0,0,0,0.5)';
+  ctx.fillRect(wx-ww/2,wy-gap/2,ww,gap);
+  // Highlight edge on split (metal hinge catch)
+  ctx.fillStyle='rgba(255,255,255,0.04)';
+  ctx.fillRect(wx-ww/2,wy+gap/2,ww,0.5*dpr);
 
   // Outer border
   ctx.strokeStyle=c.shadow;
