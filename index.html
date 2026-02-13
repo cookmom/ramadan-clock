@@ -834,7 +834,7 @@ function drawHands(c){
   else sec=s+ms/1000;
 
   // Tick audio
-  tickAudio(s,ms);
+  try{tickAudio(s,ms);}catch(e){}
 
   const min=m+sec/60;
   const hour=h+min/60;
