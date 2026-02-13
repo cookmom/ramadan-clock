@@ -1219,7 +1219,7 @@ let tawafPreMagStart=0;
 let tawafMaghribMin=null;
 let tawafCurrentVM=0; // shared vm value for sync between gong + celestial
 function startTawaf(fromDev){
-  tawafLastLap=0;
+  tawafLastLap=0;celestialProgress=0;modeBlend=0;modeTarget=0;
   if(fromDev&&PD){
     tawafMaghribMin=pM(PD.Maghrib);
     tawafDev=true;
