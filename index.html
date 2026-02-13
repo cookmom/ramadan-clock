@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Suhoor to Iftar">
+<meta name="theme-color" content="#2e8b57">
+<link rel="manifest" href="manifest.json">
+<title>Suhoor to Iftar</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Lateef:wght@400;500;600;700&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow:hidden;touch-action:none;}
+body{
+  font-family:'Inter',system-ui,sans-serif;
+  color:#e0e8e4;
+  -webkit-font-smoothing:antialiased;
+}
+canvas{position:fixed;top:0;left:0;width:100vw;height:100vh;display:block;}
+
+.info{position:fixed;bottom:max(20px,env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);z-index:10;text-align:center;display:flex;flex-direction:column;align-items:center;gap:4px;pointer-events:none;opacity:0;transition:opacity .4s ease;}
+.info.visible{opacity:1;}
+.info>*{pointer-events:auto;}
+.ramadan-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.2em;transition:all .5s;}
+.hijri{font-size:15px;font-weight:600;letter-spacing:.03em;transition:all .5s;}
+.greg{font-size:12px;font-weight:300;letter-spacing:.02em;transition:all .5s;}
+.fast-status{font-size:16px;font-weight:600;margin-top:4px;letter-spacing:.01em;transition:all .5s;}
+.fast-status .tl{font-variant-numeric:tabular-nums;font-weight:700;transition:all .5s;}
+.prayers{display:flex;gap:20px;flex-wrap:wrap;justify-content:center;margin-top:6px;}
+.pp{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:400;letter-spacing:.03em;padding:0;border:none!important;background:none!important;backdrop-filter:none;transition:all .5s;}
+.pp .dot{width:5px;height:5px;border-radius:50%;}
+.pp .pt{font-weight:600;font-variant-numeric:tabular-nums;font-size:11px;}
+.loc{font-size:10px;font-weight:400;letter-spacing:.04em;cursor:pointer;margin-top:6px;transition:all .5s;}
+
+/* Settings overlay */
+.sov{display:none;position:fixed;inset:0;backdrop-filter:blur(12px);z-index:100;align-items:center;justify-content:center;transition:background .5s;}
+.sov.open{display:flex;}
+.scard{border:1px solid;border-radius:16px;padding:28px;width:min(90vw,360px);max-height:80vh;overflow-y:auto;transition:all .5s;}
+.scard h3{font-size:15px;font-weight:600;margin-bottom:16px;}
+.sr{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid;}
+.sr:last-child{border-bottom:none;}
+.sl{font-size:12px;}
+.sv{font-size:12px;border:1px solid;border-radius:6px;padding:4px 10px;background:transparent;}
+select.sv{-webkit-appearance:none;appearance:none;padding-right:24px;}
+input.sv{width:120px;}
+.sbtn{margin-top:16px;width:100%;padding:10px;font-size:12px;font-weight:500;border-radius:8px;cursor:pointer;border:1px solid;background:transparent;}
+
+/* Lume color picker grid */
+.lume-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:8px;}
+.lume-swatch{width:100%;aspect-ratio:1;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:border-color .2s;}
+.lume-swatch.active{border-color:rgba(255,255,240,.8);}
+
+/* Movement preview */
+.movement-row{display:flex;gap:8px;align-items:center;}
+.movement-opt{flex:1;text-align:center;padding:8px 4px;border-radius:8px;cursor:pointer;font-size:11px;border:1px solid;transition:all .2s;}
+.movement-opt.active{font-weight:600;}
+</style>
+</head>
+<body>
+
+<canvas id="c"></canvas>
+
+<div class="info">
+  <div class="ramadan-label" id="ramLabel"></div>
+  <div class="fast-status" id="fastStatus"></div>
+  <div class="prayers" id="prayers"></div>
+  <div class="hijri" id="hijri"></div>
+  <div class="greg" id="greg"></div>
+  <div class="loc" id="loc" onclick="openSettings()">📍 Loading… ⚙️</div>
+</div>
+
+<div class="sov" id="sov" onclick="if(event.target===this)closeSettings()">
+  <div class="scard" id="scard">
+    <h3 id="settingsTitle">☪ Settings</h3>
+
+    <div class="sr"><span class="sl">City</span><input class="sv" id="sCity" value="Los Angeles"></div>
+    <div class="sr"><span class="sl">Country</span><input class="sv" id="sCountry" value="US"></div>
+    <div class="sr"><span class="sl">Calculation</span>
+      <select class="sv" id="sMethod">
+        <option value="2" selected>ISNA</option><option value="1">Karachi</option>
+        <option value="3">MWL</option><option value="4">Umm Al-Qura</option>
+        <option value="5">Egyptian</option><option value="7">Tehran</option>
+        <option value="8">Gulf</option><option value="15">Moonsighting</option>
+      </select>
+    </div>
+    <div class="sr"><span class="sl">Numerals</span>
+      <select class="sv" id="sNum">
+        <option value="arabic" selected>Arabic-Indic</option>
+        <option value="western">Western</option>
+        <option value="both">Both</option>
+        <option value="none">None</option>
+      </select>
+    </div>
+    <div class="sr"><span class="sl">Movement</span>
+      <div class="movement-row">
+        <div class="movement-opt" data-mv="quartz" onclick="setMovement('quartz')">Quartz</div>
+        <div class="movement-opt" data-mv="mechanical" onclick="setMovement('mechanical')">Mechanical</div>
+        <div class="movement-opt" data-mv="digital" onclick="setMovement('digital')">Digital</div>
+      </div>
+    </div>
+    <div class="sr"><span class="sl">Mode</span>
+      <div class="movement-row">
+        <div class="movement-opt" data-mode="day" onclick="setMode('day')">Day</div>
+        <div class="movement-opt" data-mode="night" onclick="setMode('night')">Night</div>
+      </div>
+    </div>
+    <div id="lumeSection" style="display:none;">
+      <div class="sr" style="flex-direction:column;align-items:flex-start;gap:8px;">
+        <span class="sl">Lume Color</span>
+        <div class="lume-grid" id="lumeGrid"></div>
+      </div>
+    </div>
+    <div class="sr"><span class="sl">Dial</span>
+      <select class="sv" id="sDial">
+        <option value="tennis" selected>Tennis</option>
+        <option value="white">White</option>
+        <option value="ocean">Ocean</option>
+        <option value="salmon">Salmon</option>
+        <option value="slate">Slate</option>
+        <option value="sky">Sky Blue</option>
+        <option value="cream">Cream</option>
+        <option value="noir">Noir</option>
+        <option value="emerald">Emerald</option>
+        <option value="midnight">Midnight</option>
+      </select>
+    </div>
+    <button class="sbtn" id="saveBtn" onclick="saveSettings()">Save & Refresh</button>
+  </div>
+</div>
+
+<script>
+const cv=document.getElementById('c');
+const ctx=cv.getContext('2d');
+let dpr=window.devicePixelRatio||1;
+let W,H,cx,cy,R;
+
+// ── Dial Color Systems ──
+const DIALS={
+  tennis:  {bg:'#2e8b57',lume:'#c8e860',lumeDim:'#6aaa50',hand:'#f4f0e0',handStroke:'#ffffff',shadow:'rgba(0,40,20,.25)',minNum:'rgba(200,232,96,.35)',text:'rgba(255,255,240,.7)',textDim:'rgba(255,255,240,.35)',textMuted:'rgba(255,255,240,.25)',accent:'#f0e060',pillBg:'rgba(0,0,0,.08)',pillBorder:'rgba(255,255,240,.08)',cardBg:'rgba(20,60,35,.95)',cardBorder:'rgba(255,255,240,.1)'},
+  white:   {bg:'#e8e4dc',lume:'#1a1a1a',lumeDim:'#888',hand:'#111',handStroke:'#222',shadow:'rgba(0,0,0,.12)',minNum:'rgba(0,0,0,.2)',text:'rgba(0,0,0,.6)',textDim:'rgba(0,0,0,.3)',textMuted:'rgba(0,0,0,.15)',accent:'#c8a040',pillBg:'rgba(0,0,0,.04)',pillBorder:'rgba(0,0,0,.08)',cardBg:'rgba(240,236,228,.95)',cardBorder:'rgba(0,0,0,.08)'},
+  ocean:   {bg:'#1a3a5c',lume:'#a0d4f0',lumeDim:'#4a7a9a',hand:'#e8e4dc',handStroke:'#fff',shadow:'rgba(0,10,30,.3)',minNum:'rgba(160,212,240,.3)',text:'rgba(200,220,240,.7)',textDim:'rgba(200,220,240,.35)',textMuted:'rgba(200,220,240,.2)',accent:'#60c0e0',pillBg:'rgba(0,0,0,.1)',pillBorder:'rgba(200,220,240,.1)',cardBg:'rgba(15,40,65,.95)',cardBorder:'rgba(200,220,240,.1)'},
+  salmon:  {bg:'#c47a60',lume:'#fff0e0',lumeDim:'#d4a890',hand:'#f8f4ec',handStroke:'#fff',shadow:'rgba(60,20,10,.2)',minNum:'rgba(255,240,224,.3)',text:'rgba(255,240,224,.7)',textDim:'rgba(255,240,224,.35)',textMuted:'rgba(255,240,224,.2)',accent:'#f0d060',pillBg:'rgba(0,0,0,.06)',pillBorder:'rgba(255,240,224,.1)',cardBg:'rgba(140,80,55,.95)',cardBorder:'rgba(255,240,224,.1)'},
+  slate:   {bg:'#3a3a44',lume:'#c0c0ca',lumeDim:'#6a6a74',hand:'#e0e0e4',handStroke:'#f0f0f4',shadow:'rgba(0,0,0,.25)',minNum:'rgba(192,192,202,.3)',text:'rgba(224,224,228,.6)',textDim:'rgba(224,224,228,.3)',textMuted:'rgba(224,224,228,.15)',accent:'#a0a0b0',pillBg:'rgba(0,0,0,.1)',pillBorder:'rgba(224,224,228,.08)',cardBg:'rgba(45,45,55,.95)',cardBorder:'rgba(224,224,228,.08)'},
+  sky:     {bg:'#5a9ac0',lume:'#f0f8ff',lumeDim:'#8abcda',hand:'#f4f0e8',handStroke:'#fff',shadow:'rgba(0,20,40,.2)',minNum:'rgba(240,248,255,.3)',text:'rgba(240,248,255,.7)',textDim:'rgba(240,248,255,.35)',textMuted:'rgba(240,248,255,.2)',accent:'#f0e060',pillBg:'rgba(0,0,0,.06)',pillBorder:'rgba(240,248,255,.1)',cardBg:'rgba(60,110,150,.95)',cardBorder:'rgba(240,248,255,.1)'},
+  cream:   {bg:'#d8ccb4',lume:'#3a3530',lumeDim:'#8a8478',hand:'#2a2520',handStroke:'#3a3530',shadow:'rgba(0,0,0,.1)',minNum:'rgba(58,53,48,.25)',text:'rgba(58,53,48,.6)',textDim:'rgba(58,53,48,.3)',textMuted:'rgba(58,53,48,.15)',accent:'#b08840',pillBg:'rgba(0,0,0,.04)',pillBorder:'rgba(58,53,48,.1)',cardBg:'rgba(200,188,168,.95)',cardBorder:'rgba(58,53,48,.1)'},
+  noir:    {bg:'#0a0a0c',lume:'#e0e0e4',lumeDim:'#4a4a54',hand:'#e0e0e4',handStroke:'#f0f0f4',shadow:'rgba(0,0,0,.4)',minNum:'rgba(224,224,228,.25)',text:'rgba(224,224,228,.5)',textDim:'rgba(224,224,228,.25)',textMuted:'rgba(224,224,228,.12)',accent:'#f0e060',pillBg:'rgba(255,255,255,.03)',pillBorder:'rgba(224,224,228,.06)',cardBg:'rgba(18,18,22,.95)',cardBorder:'rgba(224,224,228,.06)'},
+  emerald: {bg:'#0c1a14',lume:'#d4a017',lumeDim:'#5a7a3a',hand:'#e0d8c8',handStroke:'#f0eade',shadow:'rgba(0,10,5,.35)',minNum:'rgba(212,160,23,.25)',text:'rgba(224,232,228,.5)',textDim:'rgba(224,232,228,.25)',textMuted:'rgba(224,232,228,.12)',accent:'#d4a017',pillBg:'rgba(255,255,255,.03)',pillBorder:'rgba(224,232,228,.06)',cardBg:'rgba(12,26,20,.95)',cardBorder:'rgba(224,232,228,.08)'},
+  midnight:{bg:'#0e0e1a',lume:'#6366f1',lumeDim:'#3a3a5a',hand:'#c8c8d8',handStroke:'#d8d8e8',shadow:'rgba(0,0,10,.35)',minNum:'rgba(99,102,241,.25)',text:'rgba(200,200,216,.5)',textDim:'rgba(200,200,216,.25)',textMuted:'rgba(200,200,216,.12)',accent:'#818cf8',pillBg:'rgba(255,255,255,.03)',pillBorder:'rgba(200,200,216,.06)',cardBg:'rgba(14,14,26,.95)',cardBorder:'rgba(200,200,216,.08)'},
+};
+
+// Lume colors for night mode
+const LUME_COLORS=[
+  {name:'Green',color:'#c8e860'},
+  {name:'White',color:'#e0e0e4'},
+  {name:'Blue',color:'#60a0e0'},
+  {name:'Orange',color:'#e0a040'},
+  {name:'Cyan',color:'#40d8d0'},
+  {name:'Red',color:'#d04040'},
+  {name:'Lavender',color:'#a080e0'},
+  {name:'Gold',color:'#d4a017'},
+  {name:'Salmon',color:'#e08070'},
+  {name:'Pink',color:'#e070a0'},
+  {name:'Mint',color:'#60d8a0'},
+  {name:'Yellow',color:'#e0d060'},
+  {name:'Ice',color:'#a0d0f0'},
+  {name:'Amber',color:'#d0a030'},
+];
+
+// ── Settings ──
+function loadS(){
+  try{
+    const s=JSON.parse(localStorage.getItem('rc6')||'{}');
+    return{
+      city:s.city||'Los Angeles',country:s.country||'US',method:s.method||'2',
+      numerals:s.numerals||'arabic',movement:s.movement||'digital',
+      mode:s.mode||'day',dial:s.dial||'tennis',lumeColor:s.lumeColor||0,
+    };
+  }catch(e){
+    return{city:'Los Angeles',country:'US',method:'2',numerals:'arabic',movement:'digital',mode:'day',dial:'tennis',lumeColor:0};
+  }
+}
+let S=loadS();
+let D=DIALS[S.dial]; // active dial colors
+
+function getColors(){
+  if(S.mode==='night'){
+    const lc=LUME_COLORS[S.lumeColor].color;
+    // Dim version
+    const r=parseInt(lc.slice(1,3),16),g=parseInt(lc.slice(3,5),16),b=parseInt(lc.slice(5,7),16);
+    const dim=`rgb(${Math.floor(r*.4)},${Math.floor(g*.4)},${Math.floor(b*.4)})`;
+    return{
+      bg:'#000000',lume:lc,lumeDim:dim,hand:lc,handStroke:lc,
+      shadow:'rgba(0,0,0,.5)',minNum:`rgba(${r},${g},${b},.2)`,
+      text:`rgba(${r},${g},${b},.5)`,textDim:`rgba(${r},${g},${b},.25)`,
+      textMuted:`rgba(${r},${g},${b},.12)`,accent:lc,
+      pillBg:'rgba(255,255,255,.02)',pillBorder:`rgba(${r},${g},${b},.1)`,
+      cardBg:'rgba(10,10,10,.95)',cardBorder:`rgba(${r},${g},${b},.1)`,
+    };
+  }
+  return DIALS[S.dial];
+}
+
+// Pixel shift for burn-in protection
+let pixelShiftX=0, pixelShiftY=0, lastShift=0;
+function updatePixelShift(){
+  const now=Date.now();
+  if(now-lastShift>120000){ // every 2 minutes
+    pixelShiftX=Math.round((Math.random()-0.5)*4);
+    pixelShiftY=Math.round((Math.random()-0.5)*4);
+    lastShift=now;
+  }
+}
+
+window.openSettings=()=>{
+  document.getElementById('sCity').value=S.city;
+  document.getElementById('sCountry').value=S.country;
+  document.getElementById('sMethod').value=S.method;
+  document.getElementById('sNum').value=S.numerals;
+  document.getElementById('sDial').value=S.dial;
+  updateSettingsUI();
+  document.getElementById('sov').classList.add('open');
+};
+window.closeSettings=()=>document.getElementById('sov').classList.remove('open');
+window.saveSettings=()=>{
+  S.city=document.getElementById('sCity').value.trim()||'Los Angeles';
+  S.country=document.getElementById('sCountry').value.trim()||'US';
+  S.method=document.getElementById('sMethod').value;
+  S.numerals=document.getElementById('sNum').value;
+  S.dial=document.getElementById('sDial').value;
+  localStorage.setItem('rc6',JSON.stringify(S));
+  D=getColors();
+  applyThemeToUI();
+  closeSettings();
+  fetchPrayer();
+};
+window.setMovement=mv=>{S.movement=mv;updateSettingsUI();};
+window.setMode=mode=>{
+  S.mode=mode;
+  document.getElementById('lumeSection').style.display=mode==='night'?'block':'none';
+  updateSettingsUI();
+};
+
+function updateSettingsUI(){
+  document.querySelectorAll('.movement-opt[data-mv]').forEach(el=>{
+    el.classList.toggle('active',el.dataset.mv===S.movement);
+  });
+  document.querySelectorAll('.movement-opt[data-mode]').forEach(el=>{
+    el.classList.toggle('active',el.dataset.mode===S.mode);
+  });
+  document.getElementById('lumeSection').style.display=S.mode==='night'?'block':'none';
+  buildLumeGrid();
+}
+
+function buildLumeGrid(){
+  const grid=document.getElementById('lumeGrid');
+  grid.innerHTML=LUME_COLORS.map((lc,i)=>
+    `<div class="lume-swatch ${i===S.lumeColor?'active':''}" style="background:${lc.color}" onclick="setLume(${i})" title="${lc.name}"></div>`
+  ).join('');
+}
+window.setLume=i=>{S.lumeColor=i;buildLumeGrid();};
+
+function applyThemeToUI(){
+  const c=getColors();
+  document.body.style.background=c.bg;
+  // Update CSS custom properties dynamically
+  const root=document.documentElement;
+  root.style.setProperty('--theme-text',c.text);
+  root.style.setProperty('--theme-dim',c.textDim);
+  root.style.setProperty('--theme-muted',c.textMuted);
+  root.style.setProperty('--theme-accent',c.accent);
+}
+
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSettings();});
+
+// ── Prayer ──
+let PD=null,DD=null;
+const PC={Fajr:'#6ba0c4',Sunrise:'#e8c060',Dhuhr:'#f0e060',Asr:'#e0b050',Maghrib:'#d06040',Isha:'#8a7abf'};
+const PN=['Fajr','Sunrise','Dhuhr','Asr','Maghrib','Isha'];
+function pM(s){if(!s)return 0;const[h,m]=s.split(':').map(Number);return h*60+m;}
+function nM(){const d=new Date();return d.getHours()*60+d.getMinutes()+d.getSeconds()/60;}
+function f12(m){const h=Math.floor(m/60),mi=Math.floor(m%60);return`${h%12||12}:${String(mi).padStart(2,'0')}${h>=12?'p':'a'}`;}
+const MN={'1':'Karachi','2':'ISNA','3':'MWL','4':'Umm Al-Qura','5':'Egyptian','7':'Tehran','8':'Gulf','15':'Moonsighting'};
+
+async function fetchPrayer(){
+  try{const r=await fetch(`https://api.aladhan.com/v1/timingsByCity?city=${encodeURIComponent(S.city)}&country=${encodeURIComponent(S.country)}&method=${S.method}`);const j=await r.json();if(j.code===200){PD=j.data.timings;DD=j.data.date;updateInfo();}}catch(e){document.getElementById('loc').textContent='📍 Failed — tap ⚙️';}
+}
+
+function updateInfo(){
+  if(!DD)return;
+  const c=getColors();
+  const h=DD.hijri,g=DD.gregorian;
+  document.getElementById('hijri').textContent=`${h.day} ${h.month.en} ${h.year} AH`;
+  document.getElementById('hijri').style.color=c.text;
+  document.getElementById('greg').textContent=`${g.weekday.en}, ${g.day} ${g.month.en} ${g.year}`;
+  document.getElementById('greg').style.color=c.textDim;
+  document.getElementById('loc').textContent=`📍 ${S.city} · ${MN[S.method]||'ISNA'} ⚙️`;
+  document.getElementById('loc').style.color=c.textMuted;
+  const lbl=document.getElementById('ramLabel');
+  lbl.style.color=c.accent;
+  if(h.month.number===9)lbl.textContent=`RAMADAN · DAY ${h.day}`;
+  else if(h.month.number===8){const dl=(h.month.days||30)-parseInt(h.day);lbl.textContent=dl<=15?`${dl} DAYS TO RAMADAN`:`SHA'BĀN ${h.day}`;}
+  else lbl.textContent='';
+
+  const now=nM();
+  const ps=PN.map(n=>({name:n,time:pM(PD[n]),color:PC[n]}));
+  let ni=ps.findIndex(p=>p.time>now);if(ni===-1)ni=0;
+  let ci=ni-1;if(ci<0)ci=ps.length-1;
+  document.getElementById('prayers').innerHTML=ps.map((p,i)=>{
+    const isActive=i===ci,isNext=i===ni;
+    const nameColor=isNext?c.accent:isActive?c.lume:c.textDim;
+    const timeColor=isNext?c.accent:isActive?c.lume:c.text;
+    const opacity=isActive?'1':isNext?'1':'0.6';
+    return`<div class="pp" style="color:${nameColor};opacity:${opacity}"><span class="dot" style="background:${isNext?c.accent:isActive?c.lume:c.lumeDim}"></span>${p.name} <span class="pt" style="color:${timeColor}">${f12(p.time)}</span></div>`;
+  }).join('');
+
+  const fajr=pM(PD.Fajr),mag=pM(PD.Maghrib),el=document.getElementById('fastStatus');
+  el.style.color=c.text;
+  if(h.month.number===9){
+    if(now>=fajr&&now<mag){const l=mag-now;el.innerHTML=`Fasting · <span class="tl" style="color:${c.accent}">${Math.floor(l/60)}h ${Math.floor(l%60)}m to Iftar</span>`;}
+    else if(now<fajr){const l=fajr-now;el.innerHTML=`Suhoor · <span class="tl" style="color:${c.accent}">${Math.floor(l/60)}h ${Math.floor(l%60)}m to Fajr</span>`;}
+    else el.innerHTML=`<span style="color:${c.accent}">Iftar Mubarak ☪</span>`;
+  }else{el.innerHTML=`Fajr <span class="tl" style="color:${c.accent}">${f12(fajr)}</span> · Maghrib <span class="tl" style="color:${c.accent}">${f12(mag)}</span>`;}
+}
+
+// ── Resize ──
+function resize(){
+  dpr=window.devicePixelRatio||1;
+  W=window.innerWidth*dpr;H=window.innerHeight*dpr;
+  cv.width=W;cv.height=H;
+  cv.style.width=window.innerWidth+'px';
+  cv.style.height=window.innerHeight+'px';
+  cx=W/2;cy=H/2;
+  R=Math.min(W,H)*0.42;
+}
+resize();
+window.addEventListener('resize',resize);
+
+// ── Qibla ──
+const MECCA_LAT=21.4225*Math.PI/180, MECCA_LNG=39.8262*Math.PI/180;
+let userLat=null,userLng=null,deviceHeading=null,qiblaAngle=null;
+
+function calcQibla(){
+  if(userLat===null)return;
+  const dLng=MECCA_LNG-userLng;
+  const y=Math.sin(dLng)*Math.cos(MECCA_LAT);
+  const x=Math.cos(userLat)*Math.sin(MECCA_LAT)-Math.sin(userLat)*Math.cos(MECCA_LAT)*Math.cos(dLng);
+  qiblaAngle=Math.atan2(y,x); // radians from north clockwise
+}
+
+if(navigator.geolocation){
+  navigator.geolocation.getCurrentPosition(p=>{
+    userLat=p.coords.latitude*Math.PI/180;
+    userLng=p.coords.longitude*Math.PI/180;
+    calcQibla();
+  },()=>{/* fallback: no qibla */},{enableHighAccuracy:false,timeout:10000});
+}
+
+// DeviceOrientation for compass heading
+let compassSupported=false;
+function initCompass(){
+  window.addEventListener('deviceorientationabsolute',e=>{
+    if(e.alpha!=null){deviceHeading=(360-e.alpha)*Math.PI/180;compassSupported=true;}
+  },{once:false});
+  window.addEventListener('deviceorientation',e=>{
+    if(compassSupported)return; // prefer absolute
+    if(e.webkitCompassHeading!=null){deviceHeading=e.webkitCompassHeading*Math.PI/180;}
+    else if(e.alpha!=null){deviceHeading=(360-e.alpha)*Math.PI/180;}
+  },{once:false});
+}
+// iOS 13+ requires permission
+if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission==='function'){
+  cv.addEventListener('click',function iosPerm(){
+    DeviceOrientationEvent.requestPermission().then(r=>{if(r==='granted')initCompass();});
+    cv.removeEventListener('click',iosPerm);
+  },{once:true});
+}else{initCompass();}
+
+function drawQiblaWindow(c){
+  if(qiblaAngle===null)return;
+  // Position: 3 o'clock, like Rolex day window
+  const wx=cx+R*0.48, wy=cy;
+  const ww=R*0.14, wh=R*0.09, wr=R*0.015;
+  // Window depression
+  ctx.save();
+  ctx.fillStyle=c.shadow;
+  roundRect(ctx,wx-ww/2+1*dpr,wy-wh/2+1.5*dpr,ww,wh,wr);ctx.fill();
+  // Window bg (slightly darker than face)
+  ctx.fillStyle=c.bg;
+  roundRect(ctx,wx-ww/2,wy-wh/2,ww,wh,wr);ctx.fill();
+  // Inner shadow for depth
+  ctx.strokeStyle=c.shadow;ctx.lineWidth=1*dpr;
+  roundRect(ctx,wx-ww/2,wy-wh/2,ww,wh,wr);ctx.stroke();
+  // Qibla arrow
+  let arrowAng=qiblaAngle; // north-referenced bearing
+  if(deviceHeading!==null) arrowAng=qiblaAngle-deviceHeading; // relative to device
+  // Draw small arrow pointing toward Qibla
+  const arrLen=wh*0.32;
+  const arrTipX=wx+Math.sin(arrowAng)*arrLen;
+  const arrTipY=wy-Math.cos(arrowAng)*arrLen;
+  const arrTailX=wx-Math.sin(arrowAng)*arrLen*0.5;
+  const arrTailY=wy+Math.cos(arrowAng)*arrLen*0.5;
+  const perpX=Math.cos(arrowAng)*arrLen*0.3;
+  const perpY=Math.sin(arrowAng)*arrLen*0.3;
+  ctx.fillStyle=c.accent;ctx.globalAlpha=0.9;
+  ctx.beginPath();
+  ctx.moveTo(arrTipX,arrTipY);
+  ctx.lineTo(arrTailX+perpX,arrTailY+perpY);
+  ctx.lineTo(arrTailX-perpX,arrTailY-perpY);
+  ctx.closePath();ctx.fill();
+  // Small "Q" label
+  ctx.font=`600 ${R*0.022}px Inter,system-ui,sans-serif`;
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillStyle=c.text;ctx.globalAlpha=0.5;
+  ctx.fillText('Q',wx+ww*0.35,wy);
+  ctx.globalAlpha=1;
+  ctx.restore();
+}
+
+// ── Drawing ──
+const ARABIC=['١٢','١','٢','٣','٤','٥','٦','٧','٨','٩','١٠','١١'];
+const WESTERN=['12','1','2','3','4','5','6','7','8','9','10','11'];
+const MIN_LABELS=['60','','','','','05','','','','','10','','','','','15','','','','','20','','','','','25','','','','','30','','','','','35','','','','','40','','','','','45','','','','','50','','','','','55','','','',''];
+
+function roundRect(c,x,y,w,h,r){
+  c.beginPath();c.moveTo(x+r,y);c.lineTo(x+w-r,y);c.quadraticCurveTo(x+w,y,x+w,y+r);
+  c.lineTo(x+w,y+h-r);c.quadraticCurveTo(x+w,y+h,x+w-r,y+h);c.lineTo(x+r,y+h);
+  c.quadraticCurveTo(x,y+h,x,y+h-r);c.lineTo(x,y+r);c.quadraticCurveTo(x,y,x+r,y);c.closePath();
+}
+
+function drawFace(c){
+  ctx.fillStyle=c.bg;
+  ctx.fillRect(0,0,W,H);
+  // Subtle stipple texture
+  ctx.globalAlpha=0.012;
+  for(let i=0;i<600;i++){
+    const x=Math.random()*W,y=Math.random()*H;
+    ctx.fillStyle=Math.random()>0.5?'#fff':'#000';
+    ctx.fillRect(x,y,dpr,dpr);
+  }
+  ctx.globalAlpha=1;
+}
+
+function drawIndices(c){
+  for(let i=0;i<60;i++){
+    const ang=(i/60)*Math.PI*2-Math.PI/2;
+    const isHour=i%5===0;
+    if(isHour){
+      const inner=R-R*0.18,outer=R-R*0.03,capW=R*0.035;
+      const midR=(inner+outer)/2;
+      // Shadow
+      ctx.save();
+      ctx.translate(cx+Math.cos(ang)*midR+3*dpr,cy+Math.sin(ang)*midR+4*dpr);
+      ctx.rotate(ang+Math.PI/2);
+      ctx.fillStyle=c.shadow;
+      ctx.shadowColor=c.shadow;ctx.shadowBlur=6*dpr;
+      roundRect(ctx,-capW,(outer-inner)/-2,capW*2,outer-inner,capW);ctx.fill();
+      ctx.shadowBlur=0;ctx.restore();
+      // Capsule
+      ctx.save();
+      ctx.translate(cx+Math.cos(ang)*midR,cy+Math.sin(ang)*midR);
+      ctx.rotate(ang+Math.PI/2);
+      ctx.shadowColor=c.lume+'60';ctx.shadowBlur=14*dpr;
+      ctx.fillStyle=c.lume;
+      roundRect(ctx,-capW,(outer-inner)/-2,capW*2,outer-inner,capW);ctx.fill();ctx.shadowBlur=0;
+      // Bevel
+      ctx.fillStyle=c.lumeDim;
+      roundRect(ctx,-capW,(outer-inner)/-2+1*dpr,capW*2,outer-inner,capW);ctx.fill();
+      ctx.fillStyle=c.lume;
+      roundRect(ctx,-capW,(outer-inner)/-2,capW*2,outer-inner-1.5*dpr,capW);ctx.fill();
+      // Highlight
+      ctx.fillStyle='rgba(255,255,240,.25)';
+      roundRect(ctx,-capW*0.45,(outer-inner)/-2+1.5*dpr,capW*0.9,outer-inner-5*dpr,capW*0.4);ctx.fill();
+      ctx.restore();
+    }else{
+      const inner=R-R*0.07,outer=R-R*0.03;
+      ctx.strokeStyle=c.shadow;ctx.lineWidth=2*dpr;ctx.lineCap='round';
+      ctx.beginPath();ctx.moveTo(cx+Math.cos(ang)*inner+1*dpr,cy+Math.sin(ang)*inner+1.5*dpr);
+      ctx.lineTo(cx+Math.cos(ang)*outer+1*dpr,cy+Math.sin(ang)*outer+1.5*dpr);ctx.stroke();
+      ctx.strokeStyle=c.lumeDim;ctx.lineWidth=1.5*dpr;
+      ctx.beginPath();ctx.moveTo(cx+Math.cos(ang)*inner,cy+Math.sin(ang)*inner);
+      ctx.lineTo(cx+Math.cos(ang)*outer,cy+Math.sin(ang)*outer);ctx.stroke();
+    }
+  }
+}
+
+function drawNumerals(c){
+  if(S.numerals==='none')return;
+  const showA=S.numerals==='arabic'||S.numerals==='both';
+  const showW=S.numerals==='western'||S.numerals==='both';
+  for(let i=0;i<12;i++){
+    const ang=(i/12)*Math.PI*2-Math.PI/2;
+    if(showA&&showW){
+      const rA=R-R*0.3,rW=R-R*0.42;
+      ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.font=`700 ${R*0.13}px Lateef,system-ui,sans-serif`;
+      ctx.fillStyle=c.shadow;ctx.fillText(ARABIC[i],cx+Math.cos(ang)*rA+1.5*dpr,cy+Math.sin(ang)*rA+2*dpr);
+      ctx.fillStyle=c.lume;ctx.shadowColor=c.lume+'40';ctx.shadowBlur=8*dpr;
+      ctx.fillText(ARABIC[i],cx+Math.cos(ang)*rA,cy+Math.sin(ang)*rA);ctx.shadowBlur=0;
+      ctx.font=`400 ${R*0.05}px Inter,system-ui,sans-serif`;ctx.fillStyle=c.lumeDim;
+      ctx.fillText(WESTERN[i],cx+Math.cos(ang)*rW,cy+Math.sin(ang)*rW);
+    }else{
+      const r=R-R*0.32;const nums=showA?ARABIC:WESTERN;
+      ctx.textAlign='center';ctx.textBaseline='middle';
+      const isArabicNums=showA;
+      ctx.font=isArabicNums?`700 ${R*0.14}px Lateef,system-ui,sans-serif`:`700 ${R*0.11}px Inter,system-ui,sans-serif`;
+      ctx.fillStyle=c.shadow;ctx.fillText(nums[i],cx+Math.cos(ang)*r+1.5*dpr,cy+Math.sin(ang)*r+2*dpr);
+      ctx.fillStyle=c.lume;ctx.shadowColor=c.lume+'40';ctx.shadowBlur=10*dpr;
+      ctx.fillText(nums[i],cx+Math.cos(ang)*r,cy+Math.sin(ang)*r);ctx.shadowBlur=0;
+    }
+  }
+  for(let i=0;i<60;i+=5){
+    const ang=(i/60)*Math.PI*2-Math.PI/2;
+    const r=R+R*0.06;const label=MIN_LABELS[i];if(!label)continue;
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.font=`500 ${R*0.045}px Inter,system-ui,sans-serif`;
+    ctx.fillStyle=c.minNum;ctx.fillText(label,cx+Math.cos(ang)*r,cy+Math.sin(ang)*r);
+  }
+}
+
+function drawFastingArc(c){
+  if(!PD)return;
+  const fajr=pM(PD.Fajr),mag=pM(PD.Maghrib),now=nM();
+  const startAng=((fajr%720)/720)*Math.PI*2-Math.PI/2;
+  const endAng=((mag%720)/720)*Math.PI*2-Math.PI/2;
+  const arcR=R+R*0.14;
+  ctx.strokeStyle=c.accent+'1a';ctx.lineWidth=4*dpr;ctx.lineCap='round';
+  ctx.beginPath();ctx.arc(cx,cy,arcR,startAng,endAng);ctx.stroke();
+  if(now>=fajr&&now<=mag){
+    const nowAng=((now%720)/720)*Math.PI*2-Math.PI/2;
+    ctx.strokeStyle=c.accent+'50';ctx.lineWidth=4*dpr;ctx.lineCap='round';
+    ctx.beginPath();ctx.arc(cx,cy,arcR,startAng,nowAng);ctx.stroke();
+    ctx.fillStyle=c.accent;ctx.shadowColor=c.accent+'70';ctx.shadowBlur=10*dpr;
+    ctx.beginPath();ctx.arc(cx+Math.cos(nowAng)*arcR,cy+Math.sin(nowAng)*arcR,3.5*dpr,0,Math.PI*2);ctx.fill();
+    ctx.shadowBlur=0;
+  }
+}
+
+function drawPrayerMarkers(c){
+  if(!PD)return;
+  const midR=R*0.80;
+  PN.forEach(name=>{
+    const mins=pM(PD[name]);
+    const ang=((mins%720)/720)*Math.PI*2-Math.PI/2;
+    const mx=cx+Math.cos(ang)*midR, my=cy+Math.sin(ang)*midR;
+    const dotR=3*dpr;
+    // Shadow
+    ctx.fillStyle=c.shadow;ctx.beginPath();
+    ctx.arc(mx+1*dpr,my+1.5*dpr,dotR,0,Math.PI*2);ctx.fill();
+    // Dot
+    ctx.fillStyle=PC[name];ctx.globalAlpha=0.85;ctx.beginPath();
+    ctx.arc(mx,my,dotR,0,Math.PI*2);ctx.fill();
+    // Highlight
+    ctx.fillStyle='rgba(255,255,240,.35)';ctx.beginPath();
+    ctx.arc(mx-0.8*dpr,my-0.8*dpr,dotR*0.4,0,Math.PI*2);ctx.fill();
+    ctx.globalAlpha=1;
+  });
+}
+
+function drawHand(c,angle,length,width,taperTip,tail){
+  const tipX=cx+Math.cos(angle)*length,tipY=cy+Math.sin(angle)*length;
+  const tailX=tail?cx-Math.cos(angle)*tail:cx,tailY=tail?cy-Math.sin(angle)*tail:cy;
+  const perpX=Math.cos(angle+Math.PI/2),perpY=Math.sin(angle+Math.PI/2);
+  // Shadow
+  ctx.save();ctx.translate(3*dpr,4*dpr);
+  ctx.fillStyle=c.shadow;ctx.shadowColor=c.shadow;ctx.shadowBlur=6*dpr;
+  ctx.beginPath();ctx.moveTo(tailX-perpX*width,tailY-perpY*width);
+  ctx.lineTo(tipX-perpX*taperTip,tipY-perpY*taperTip);
+  ctx.lineTo(tipX+perpX*taperTip,tipY+perpY*taperTip);
+  ctx.lineTo(tailX+perpX*width,tailY+perpY*width);ctx.closePath();ctx.fill();
+  ctx.shadowBlur=0;ctx.restore();
+  // Bevel
+  ctx.save();ctx.translate(0.8*dpr,1.2*dpr);
+  ctx.fillStyle=c.lumeDim;ctx.beginPath();
+  ctx.moveTo(tailX-perpX*width,tailY-perpY*width);ctx.lineTo(tipX-perpX*taperTip,tipY-perpY*taperTip);
+  ctx.lineTo(tipX+perpX*taperTip,tipY+perpY*taperTip);ctx.lineTo(tailX+perpX*width,tailY+perpY*width);
+  ctx.closePath();ctx.fill();ctx.restore();
+  // Body
+  ctx.fillStyle=c.hand;ctx.strokeStyle=c.handStroke;ctx.lineWidth=0.5*dpr;
+  ctx.beginPath();ctx.moveTo(tailX-perpX*width,tailY-perpY*width);
+  ctx.lineTo(tipX-perpX*taperTip,tipY-perpY*taperTip);
+  ctx.lineTo(tipX+perpX*taperTip,tipY+perpY*taperTip);
+  ctx.lineTo(tailX+perpX*width,tailY+perpY*width);ctx.closePath();ctx.fill();ctx.stroke();
+  // Top highlight
+  ctx.strokeStyle='rgba(255,255,250,.12)';ctx.lineWidth=0.5*dpr;
+  ctx.beginPath();ctx.moveTo(tailX-perpX*width*0.5,tailY-perpY*width*0.5);
+  ctx.lineTo(tipX-perpX*taperTip*0.5,tipY-perpY*taperTip*0.5);ctx.stroke();
+  // Lume strip
+  ctx.strokeStyle=c.lume;ctx.lineWidth=width*0.6;ctx.lineCap='round';
+  ctx.shadowColor=c.lume+'40';ctx.shadowBlur=8*dpr;
+  ctx.beginPath();ctx.moveTo(tailX+Math.cos(angle)*width*2,tailY+Math.sin(angle)*width*2);
+  ctx.lineTo(tipX-Math.cos(angle)*taperTip*4,tipY-Math.sin(angle)*taperTip*4);ctx.stroke();
+  ctx.shadowBlur=0;
+}
+
+function drawHands(c){
+  const now=new Date();
+  const h=now.getHours()%12,m=now.getMinutes(),s=now.getSeconds(),ms=now.getMilliseconds();
+
+  // Movement types
+  let sec;
+  if(S.movement==='quartz') sec=s; // 1Hz tick
+  else if(S.movement==='mechanical') sec=Math.floor(s*8+ms/1000*8)/8; // 4Hz = 28,800 BPH
+  else sec=s+ms/1000; // digital smooth
+
+  const min=m+sec/60;
+  const hour=h+min/60;
+
+  const hourAng=(hour/12)*Math.PI*2-Math.PI/2;
+  const minAng=(min/60)*Math.PI*2-Math.PI/2;
+  const secAng=(sec/60)*Math.PI*2-Math.PI/2;
+
+  drawHand(c,hourAng,R*0.52,R*0.028,R*0.008,R*0.06);
+  drawHand(c,minAng,R*0.72,R*0.022,R*0.005,R*0.08);
+
+  // Second hand
+  const secLen=R*0.78,secTailLen=R*0.18;
+  ctx.save();ctx.translate(2*dpr,3*dpr);
+  ctx.strokeStyle=c.shadow;ctx.lineWidth=2.5*dpr;ctx.lineCap='round';
+  ctx.beginPath();ctx.moveTo(cx-Math.cos(secAng)*secTailLen,cy-Math.sin(secAng)*secTailLen);
+  ctx.lineTo(cx+Math.cos(secAng)*secLen,cy+Math.sin(secAng)*secLen);ctx.stroke();ctx.restore();
+  ctx.strokeStyle=c.handStroke;ctx.lineWidth=1.5*dpr;ctx.lineCap='round';
+  ctx.beginPath();ctx.moveTo(cx-Math.cos(secAng)*secTailLen,cy-Math.sin(secAng)*secTailLen);
+  ctx.lineTo(cx+Math.cos(secAng)*secLen,cy+Math.sin(secAng)*secLen);ctx.stroke();
+
+  // Center cap
+  ctx.save();ctx.fillStyle=c.shadow;
+  ctx.beginPath();ctx.arc(cx+3*dpr,cy+4*dpr,R*0.04,0,Math.PI*2);ctx.fill();ctx.restore();
+  ctx.save();ctx.shadowColor=c.shadow;ctx.shadowBlur=10*dpr;ctx.shadowOffsetY=3*dpr;
+  ctx.fillStyle=c.hand;ctx.beginPath();ctx.arc(cx,cy,R*0.04,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;ctx.restore();
+  ctx.fillStyle=c.lume;ctx.globalAlpha=0.3;
+  ctx.beginPath();ctx.arc(cx,cy,R*0.032,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+  ctx.fillStyle='rgba(255,255,245,.3)';
+  ctx.beginPath();ctx.arc(cx-1*dpr,cy-1.5*dpr,R*0.015,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#444';
+  ctx.beginPath();ctx.arc(cx,cy,R*0.012,0,Math.PI*2);ctx.fill();
+}
+
+function draw(){
+  const c=getColors();
+  updatePixelShift();
+
+  ctx.save();
+  ctx.translate(pixelShiftX*dpr,pixelShiftY*dpr);
+
+  ctx.clearRect(-10,-10,W+20,H+20);
+  drawFace(c);
+  drawFastingArc(c);
+  drawQiblaWindow(c);
+  drawPrayerMarkers(c);
+  drawIndices(c);
+  drawNumerals(c);
+  drawHands(c);
+
+  ctx.restore();
+  requestAnimationFrame(draw);
+}
+
+// ── Tap to show/hide info ──
+let infoVisible=false, infoTimer=null;
+function toggleInfo(){
+  const el=document.querySelector('.info');
+  infoVisible=!infoVisible;
+  el.classList.toggle('visible',infoVisible);
+  clearTimeout(infoTimer);
+  if(infoVisible) infoTimer=setTimeout(()=>{infoVisible=false;el.classList.remove('visible');},5000);
+}
+cv.addEventListener('click',e=>{
+  // Don't toggle if clicking settings
+  if(e.target.closest('.sov'))return;
+  toggleInfo();
+});
+
+// ── Init ──
+D=getColors();
+applyThemeToUI();
+fetchPrayer();
+setInterval(fetchPrayer,30*60*1000);
+setInterval(updateInfo,1000);
+draw();
+</script>
+</body>
+</html>
