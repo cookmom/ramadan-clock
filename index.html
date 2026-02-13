@@ -450,7 +450,7 @@ function updateInfo(){
   let ci=ni-1;if(ci<0)ci=ps.length-1;
   const pEl=document.getElementById('prayers');
   pEl.style.color=c.minNum||c.textDim;
-  pEl.style.fontSize=Math.round(R*0.18/dpr)+'px';
+  pEl.style.fontSize=Math.round(R*0.72/dpr)+'px';
   pEl.innerHTML=ps.map((p,i)=>{
     return`<span class="pp">${p.name} ${f12(p.time)}</span>`;
   }).join(' · ');
