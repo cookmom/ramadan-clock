@@ -1147,50 +1147,51 @@ function getTawafVirtualMin(){
   }
   return vm;
 }
-// Duff (frame drum) strike — the only drum explicitly permitted in Islamic tradition
-// Played at each revolution of the tawaf, mirroring istilam at the Black Stone
+// Oud pluck — warm string sound at each revolution (istilam at the Black Stone)
 function playTawafGong(lap){
   try{
     if(!qiblaAudioCtx)return;
     if(qiblaAudioCtx.state==='suspended')qiblaAudioCtx.resume();
     const t=qiblaAudioCtx.currentTime;
-    const vol=0.25*(S.tickVol/100);
-    const freq=80; // Low duff fundamental ~80Hz
-
-    // Membrane: pitched sine with rapid downward sweep (drum head tension release)
-    const membrane=qiblaAudioCtx.createOscillator();
-    const memGain=qiblaAudioCtx.createGain();
-    membrane.connect(memGain);memGain.connect(qiblaAudioCtx.destination);
-    membrane.type='sine';
-    membrane.frequency.setValueAtTime(freq*2.5,t);
-    membrane.frequency.exponentialRampToValueAtTime(freq,t+0.04);
-    membrane.frequency.exponentialRampToValueAtTime(freq*0.7,t+0.4);
-    memGain.gain.setValueAtTime(0,t);
-    memGain.gain.linearRampToValueAtTime(vol,t+0.002);
-    memGain.gain.exponentialRampToValueAtTime(vol*0.3,t+0.1);
-    memGain.gain.exponentialRampToValueAtTime(0.001,t+0.8);
-    membrane.start(t);membrane.stop(t+0.9);
-
-    // Overtone: second mode of circular membrane (ratio 1.59, not harmonic)
-    const ot=qiblaAudioCtx.createOscillator();
-    const otG=qiblaAudioCtx.createGain();
-    ot.connect(otG);otG.connect(qiblaAudioCtx.destination);
-    ot.type='sine';
-    ot.frequency.setValueAtTime(freq*1.59*2,t);
-    ot.frequency.exponentialRampToValueAtTime(freq*1.59,t+0.03);
-    otG.gain.setValueAtTime(0,t);
-    otG.gain.linearRampToValueAtTime(vol*0.3,t+0.002);
-    otG.gain.exponentialRampToValueAtTime(0.001,t+0.4);
-    ot.start(t);ot.stop(t+0.5);
-
-    // Skin slap noise — palm/fingers hitting goatskin
-    const noiseDur=0.06;
+    const vol=0.22*(S.tickVol/100);
+    const freq=293.66; // D4 — oud open string tuning
+    // Oud: integer harmonics with strong 2nd/3rd, triangle wave, warm body
+    const partials=[
+      {ratio:1,   amp:1.0,  decay:1.6},
+      {ratio:2,   amp:0.55, decay:1.0},
+      {ratio:3,   amp:0.35, decay:0.7},
+      {ratio:4,   amp:0.15, decay:0.5},
+      {ratio:5,   amp:0.06, decay:0.3},
+    ];
+    const bodyFilter=qiblaAudioCtx.createBiquadFilter();
+    bodyFilter.type='peaking';bodyFilter.frequency.value=freq*1.5;
+    bodyFilter.Q.value=2;bodyFilter.gain.value=4;
+    bodyFilter.connect(qiblaAudioCtx.destination);
+    partials.forEach(p=>{
+      const o=qiblaAudioCtx.createOscillator();
+      const g=qiblaAudioCtx.createGain();
+      o.connect(g);g.connect(bodyFilter);
+      // Slight upward pitch bend on attack (string stretch from pluck)
+      o.frequency.setValueAtTime(freq*p.ratio*1.008,t);
+      o.frequency.exponentialRampToValueAtTime(freq*p.ratio,t+0.03);
+      o.type='triangle';
+      const v=vol*p.amp;
+      // Pluck envelope: instant attack → fast snap → gentle ring
+      g.gain.setValueAtTime(0,t);
+      g.gain.linearRampToValueAtTime(v,t+0.001);
+      g.gain.exponentialRampToValueAtTime(v*0.35,t+0.06);
+      g.gain.exponentialRampToValueAtTime(v*0.12,t+0.3);
+      g.gain.exponentialRampToValueAtTime(0.001,t+p.decay);
+      o.start(t);o.stop(t+p.decay+0.1);
+    });
+    // Pluck noise — finger on string transient
+    const noiseDur=0.025;
     const noiseBuf=qiblaAudioCtx.createBuffer(1,Math.floor(qiblaAudioCtx.sampleRate*noiseDur),qiblaAudioCtx.sampleRate);
     const nd=noiseBuf.getChannelData(0);
-    for(let i=0;i<nd.length;i++)nd[i]=(Math.random()*2-1)*Math.exp(-i/(nd.length*0.12));
+    for(let i=0;i<nd.length;i++)nd[i]=(Math.random()*2-1)*Math.exp(-i/(nd.length*0.08));
     const ns=qiblaAudioCtx.createBufferSource();ns.buffer=noiseBuf;
-    const ng=qiblaAudioCtx.createGain();ng.gain.value=vol*0.6;
-    const bf=qiblaAudioCtx.createBiquadFilter();bf.type='bandpass';bf.frequency.value=1800;bf.Q.value=1.5;
+    const ng=qiblaAudioCtx.createGain();ng.gain.value=vol*0.4;
+    const bf=qiblaAudioCtx.createBiquadFilter();bf.type='highpass';bf.frequency.value=800;bf.Q.value=1;
     ns.connect(bf);bf.connect(ng);ng.connect(qiblaAudioCtx.destination);
     ns.start(t);ns.stop(t+noiseDur);
   }catch(e){}
