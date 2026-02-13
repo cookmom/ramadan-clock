@@ -131,6 +131,7 @@ input.sv{width:120px;}
     </div>
     <div class="sr"><span class="sl">Mode</span>
       <div class="movement-row">
+        <div class="movement-opt" data-mode="auto" onclick="setMode('auto')">Auto</div>
         <div class="movement-opt" data-mode="day" onclick="setMode('day')">Day</div>
         <div class="movement-opt" data-mode="night" onclick="setMode('night')">Night</div>
       </div>
@@ -207,7 +208,7 @@ function loadS(){
       mode:s.mode||'day',dial:s.dial||'tennis',lumeColor:s.lumeColor||0,
     };
   }catch(e){
-    return{city:'Los Angeles',country:'US',method:'2',numerals:'arabic',movement:'quartz',tickVol:100,mode:'day',dial:'tennis',lumeColor:0};
+    return{city:'Los Angeles',country:'US',method:'2',numerals:'arabic',movement:'quartz',tickVol:100,mode:'auto',dial:'tennis',lumeColor:0};
   }
 }
 let S=loadS();
@@ -217,7 +218,7 @@ let D=DIALS[S.dial]; // active dial colors
 let modeBlend=0; // 0=day, 1=night
 let modeTarget=0;
 function updateModeBlend(){
-  const target=S.mode==='night'?1:0;
+  const target=resolveMode()==='night'?1:0;
   modeTarget=target;
 }
 function lerpColor(a,b,t){
@@ -317,9 +318,17 @@ window.setTickVol=v=>{S.tickVol=parseInt(v);document.getElementById('volLabel').
 window.setMode=mode=>{
   S.mode=mode;
   updateModeBlend();
-  document.getElementById('lumeSection').style.display=mode==='night'?'block':'none';
+  const effectiveMode=resolveMode();
+  document.getElementById('lumeSection').style.display=effectiveMode==='night'?'block':'none';
   updateSettingsUI();
 };
+// Resolve auto mode using prayer times: night between Maghrib→Fajr
+function resolveMode(){
+  if(S.mode!=='auto')return S.mode;
+  if(!PD)return 'day';
+  const now=nM(),fajr=pM(PD.Fajr),mag=pM(PD.Maghrib);
+  return (now>=fajr&&now<mag)?'day':'night';
+}
 
 function updateSettingsUI(){
   document.querySelectorAll('.movement-opt[data-mv]').forEach(el=>{
@@ -328,7 +337,7 @@ function updateSettingsUI(){
   document.querySelectorAll('.movement-opt[data-mode]').forEach(el=>{
     el.classList.toggle('active',el.dataset.mode===S.mode);
   });
-  document.getElementById('lumeSection').style.display=S.mode==='night'?'block':'none';
+  document.getElementById('lumeSection').style.display=resolveMode()==='night'?'block':'none';
   document.getElementById('volSlider').value=S.tickVol;
   document.getElementById('volLabel').textContent=S.tickVol+'%';
   buildLumeGrid();
@@ -954,6 +963,7 @@ function drawHands(c){
 }
 
 function draw(){
+  if(S.mode==='auto')updateModeBlend();
   const c=getColors();
   updatePixelShift();
 
@@ -990,7 +1000,7 @@ cv.addEventListener('click',e=>{
 
 // ── Init ──
 updateModeBlend();
-if(S.mode==='night')modeBlend=1; // no transition on load
+if(resolveMode()==='night')modeBlend=1; // no transition on load
 D=getColors();
 applyThemeToUI();
 calcQibla(); // try city fallback immediately
