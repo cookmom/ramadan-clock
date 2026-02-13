@@ -174,11 +174,11 @@ function loadS(){
     const s=JSON.parse(localStorage.getItem('rc6')||'{}');
     return{
       city:s.city||'Los Angeles',country:s.country||'US',method:s.method||'2',
-      numerals:s.numerals||'arabic',movement:s.movement||'digital',
+      numerals:s.numerals||'arabic',movement:s.movement||'mechanical',
       mode:s.mode||'day',dial:s.dial||'tennis',lumeColor:s.lumeColor||0,
     };
   }catch(e){
-    return{city:'Los Angeles',country:'US',method:'2',numerals:'arabic',movement:'digital',mode:'day',dial:'tennis',lumeColor:0};
+    return{city:'Los Angeles',country:'US',method:'2',numerals:'arabic',movement:'mechanical',mode:'day',dial:'tennis',lumeColor:0};
   }
 }
 let S=loadS();
