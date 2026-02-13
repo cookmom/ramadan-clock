@@ -20,7 +20,9 @@ body{
 }
 canvas{position:fixed;top:0;left:0;width:100vw;height:100vh;display:block;}
 
-.info{position:fixed;top:max(20px,env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);z-index:10;text-align:center;display:flex;flex-direction:column;align-items:center;gap:4px;pointer-events:none;opacity:0;transition:opacity .4s ease;}
+.info{position:fixed;left:50%;transform:translateX(-50%);z-index:10;text-align:center;display:flex;flex-direction:column;align-items:center;gap:4px;pointer-events:none;opacity:0;transition:opacity .4s ease;}
+.info-top{top:max(20px,env(safe-area-inset-top,0px));}
+.info-bottom{bottom:max(20px,env(safe-area-inset-bottom,0px));}
 .info.visible{opacity:1;}
 .info>*{pointer-events:auto;}
 .ramadan-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.2em;transition:all .5s;}
@@ -69,13 +71,15 @@ input.sv{width:120px;}
   </div>
 </div>
 
-<div class="info">
+<div class="info info-top">
   <div class="ramadan-label" id="ramLabel"></div>
-  <div class="fast-status" id="fastStatus"></div>
-  <div class="prayers" id="prayers"></div>
   <div class="hijri" id="hijri"></div>
   <div class="greg" id="greg"></div>
   <div class="loc" id="loc" onclick="openSettings()">📍 Loading… ⚙️</div>
+</div>
+<div class="info info-bottom">
+  <div class="fast-status" id="fastStatus"></div>
+  <div class="prayers" id="prayers"></div>
 </div>
 
 <div class="sov" id="sov" onclick="if(event.target===this)closeSettings()">
@@ -397,12 +401,12 @@ function activateAll(){
   // Dismiss overlay
   tapOverlay.style.opacity='0';
   setTimeout(()=>tapOverlay.style.display='none',500);
-  // Show info panel briefly
-  const info=document.querySelector('.info');
+  // Show info panels briefly
+  const infos=document.querySelectorAll('.info');
   infoVisible=true;
-  info.classList.add('visible');
+  infos.forEach(el=>el.classList.add('visible'));
   clearTimeout(infoTimer);
-  infoTimer=setTimeout(()=>{infoVisible=false;info.classList.remove('visible');},4000);
+  infoTimer=setTimeout(()=>{infoVisible=false;infos.forEach(el=>el.classList.remove('visible'));},4000);
 }
 tapOverlay.addEventListener('click',activateAll,{once:true});
 tapOverlay.addEventListener('touchstart',activateAll,{once:true});
@@ -809,11 +813,11 @@ function draw(){
 // ── Tap to show/hide info ──
 let infoVisible=false, infoTimer=null;
 function toggleInfo(){
-  const el=document.querySelector('.info');
+  const els=document.querySelectorAll('.info');
   infoVisible=!infoVisible;
-  el.classList.toggle('visible',infoVisible);
+  els.forEach(el=>el.classList.toggle('visible',infoVisible));
   clearTimeout(infoTimer);
-  if(infoVisible) infoTimer=setTimeout(()=>{infoVisible=false;el.classList.remove('visible');},5000);
+  if(infoVisible) infoTimer=setTimeout(()=>{infoVisible=false;els.forEach(el=>el.classList.remove('visible'));},5000);
 }
 cv.addEventListener('click',e=>{
   // Don't toggle if clicking settings
