@@ -34,7 +34,10 @@ canvas{position:fixed;top:0;left:0;width:100vw;height:100vh;display:block;}
 .pp{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:400;letter-spacing:.03em;padding:0;border:none!important;background:none!important;backdrop-filter:none;transition:all .5s;}
 .pp .dot{width:5px;height:5px;border-radius:50%;}
 .pp .pt{font-weight:600;font-variant-numeric:tabular-nums;font-size:11px;}
-.loc{font-size:10px;font-weight:400;letter-spacing:.04em;cursor:pointer;margin-top:6px;transition:all .5s;}
+.loc{font-size:10px;font-weight:400;letter-spacing:.04em;margin-top:6px;transition:all .5s;}
+.settings-btn{position:fixed;top:max(16px,env(safe-area-inset-top,0px));right:16px;z-index:15;width:32px;height:32px;cursor:pointer;opacity:0.3;transition:opacity .3s;}
+.settings-btn:hover,.settings-btn:active{opacity:0.6;}
+.settings-btn svg{width:100%;height:100%;}
 
 /* Settings overlay */
 .sov{display:none;position:fixed;inset:0;backdrop-filter:blur(12px);z-index:100;align-items:center;justify-content:center;transition:background .5s;}
@@ -64,6 +67,13 @@ input.sv{width:120px;}
 
 <canvas id="c"></canvas>
 
+<div class="settings-btn" onclick="openSettings()">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="3"/>
+    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+  </svg>
+</div>
+
 <div id="tapOverlay" style="position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.4);backdrop-filter:blur(8px);cursor:pointer;transition:opacity .5s;">
   <div style="text-align:center;color:rgba(255,255,240,.8);">
     <div style="font-size:32px;margin-bottom:12px;">☽</div>
@@ -75,7 +85,7 @@ input.sv{width:120px;}
   <div class="ramadan-label" id="ramLabel"></div>
   <div class="hijri" id="hijri"></div>
   <div class="greg" id="greg"></div>
-  <div class="loc" id="loc" onclick="openSettings()">📍 Loading… ⚙️</div>
+  <div class="loc" id="loc" onclick="openSettings()">Loading…</div>
 </div>
 <div class="info info-bottom">
   <div class="fast-status" id="fastStatus"></div>
@@ -295,7 +305,7 @@ function f12(m){const h=Math.floor(m/60),mi=Math.floor(m%60);return`${h%12||12}:
 const MN={'1':'Karachi','2':'ISNA','3':'MWL','4':'Umm Al-Qura','5':'Egyptian','7':'Tehran','8':'Gulf','15':'Moonsighting'};
 
 async function fetchPrayer(){
-  try{const r=await fetch(`https://api.aladhan.com/v1/timingsByCity?city=${encodeURIComponent(S.city)}&country=${encodeURIComponent(S.country)}&method=${S.method}`);const j=await r.json();if(j.code===200){PD=j.data.timings;DD=j.data.date;updateInfo();}}catch(e){document.getElementById('loc').textContent='📍 Failed — tap ⚙️';}
+  try{const r=await fetch(`https://api.aladhan.com/v1/timingsByCity?city=${encodeURIComponent(S.city)}&country=${encodeURIComponent(S.country)}&method=${S.method}`);const j=await r.json();if(j.code===200){PD=j.data.timings;DD=j.data.date;updateInfo();}}catch(e){document.getElementById('loc').textContent='Failed to load';}
 }
 
 function updateInfo(){
@@ -306,7 +316,7 @@ function updateInfo(){
   document.getElementById('hijri').style.color=c.text;
   document.getElementById('greg').textContent=`${g.weekday.en}, ${g.day} ${g.month.en} ${g.year}`;
   document.getElementById('greg').style.color=c.textDim;
-  document.getElementById('loc').textContent=`📍 ${S.city} · ${MN[S.method]||'ISNA'} ⚙️`;
+  document.getElementById('loc').textContent=`${S.city} · ${MN[S.method]||'ISNA'}`;
   document.getElementById('loc').style.color=c.textMuted;
   const lbl=document.getElementById('ramLabel');
   lbl.style.color=c.accent;
