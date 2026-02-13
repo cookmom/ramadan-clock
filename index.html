@@ -706,41 +706,33 @@ document.addEventListener('touchstart',ensureTickCtx,{once:false});
 document.addEventListener('click',ensureTickCtx);
 
 let currentSecAngle=0;
-// Pre-generate tick buffers once (avoids GC pressure from per-tick allocation)
-let tickBufQuartz=null,tickBufMech=null;
-function buildTickBuffers(){
-  if(!qiblaAudioCtx)return;
-  const sr=qiblaAudioCtx.sampleRate;
-  // Quartz buffer
-  const qLen=Math.floor(sr*0.018);
-  tickBufQuartz=qiblaAudioCtx.createBuffer(1,qLen,sr);
-  const qd=tickBufQuartz.getChannelData(0);
-  for(let i=0;i<qLen;i++){
-    const t2=i/sr;const env=Math.exp(-t2*600);
-    qd[i]=((i<3?1:0)*0.4+(Math.random()*2-1)*0.6)*env;
-  }
-  // Mechanical buffer
-  const mLen=Math.floor(sr*0.006);
-  tickBufMech=qiblaAudioCtx.createBuffer(1,mLen,sr);
-  const md=tickBufMech.getChannelData(0);
-  for(let i=0;i<mLen;i++){
-    const t2=i/sr;const env=Math.exp(-t2*400);
-    const s1=Math.sin(2*Math.PI*2200*t2)*0.7;
-    const s2=Math.sin(2*Math.PI*5800*t2)*0.3;
-    const click=t2<0.0003?(Math.random()*2-1)*0.3:0;
-    md[i]=(s1+s2+click)*env;
-  }
-}
 
 function playTick(loud){
   if(!qiblaAudioCtx)return;
   if(qiblaAudioCtx.state==='suspended')qiblaAudioCtx.resume();
-  if(!tickBufQuartz)buildTickBuffers();
   const t=qiblaAudioCtx.currentTime;
-  const buf=loud?tickBufQuartz:tickBufMech;
+  const sr=qiblaAudioCtx.sampleRate;
+  const dur=loud?0.018:0.006;
+  const bufLen=Math.floor(sr*dur);
+  const buf=qiblaAudioCtx.createBuffer(1,bufLen,sr);
+  const data=buf.getChannelData(0);
   
   const baseVol=loud?1.0:0.60;
   const vol=baseVol*(S.tickVol/100);
+  
+  for(let i=0;i<bufLen;i++){
+    const t2=i/sr;
+    if(loud){
+      const env=Math.exp(-t2*600);
+      data[i]=((i<3?1:0)*0.4+(Math.random()*2-1)*0.6)*env;
+    }else{
+      const env=Math.exp(-t2*400);
+      const s1=Math.sin(2*Math.PI*2200*t2)*0.7;
+      const s2=Math.sin(2*Math.PI*5800*t2)*0.3;
+      const click=t2<0.0003?(Math.random()*2-1)*0.3:0;
+      data[i]=(s1+s2+click)*env;
+    }
+  }
   
   const src=qiblaAudioCtx.createBufferSource();
   src.buffer=buf;
