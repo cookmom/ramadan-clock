@@ -1096,12 +1096,13 @@ function getTawafVirtualMin(){
   // Returns extra virtual minutes to subtract from current time (CCW)
   if(!tawafActive)return 0;
   const elapsed=performance.now()-tawafStart;
-  if(elapsed>=TAWAF_DURATION){endTawafSpin();return 0;}
+  if(elapsed>=TAWAF_DURATION){endTawafSpin();tawafCurrentVM=0;return 0;}
   const t=elapsed/TAWAF_DURATION;
   // Ease in-out cubic (on POSITION, 0→1, never reverses)
   const ease=t<0.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
   // 7 laps of hour hand = 84 hours = 5040 virtual minutes in 30 real seconds
   const vm=5040*ease;
+  tawafCurrentVM=vm;
   // Gong AFTER each completed hour-hand revolution (720 virtual min = 12h)
   const completedLaps=Math.floor(vm/720);
   if(completedLaps>tawafLastLap&&completedLaps<=TAWAF_LAPS){
@@ -1198,6 +1199,7 @@ let tawafState='idle'; // idle | pre_mag | spinning | hold
 let tawafHoldStart=0;
 let tawafPreMagStart=0;
 let tawafMaghribMin=null;
+let tawafCurrentVM=0; // shared vm value for sync between gong + celestial
 function startTawaf(fromDev){
   tawafLastLap=0;
   if(fromDev&&PD){
@@ -1281,11 +1283,10 @@ function draw(){
   // Celestial: tied to tawaf gong timing
   // First gong at vm=720, last at vm=5040. Celestial maps across that range.
   if(tawafState==='spinning'&&tawafActive){
-    const elapsed=performance.now()-tawafStart;
-    const t=Math.min(elapsed/TAWAF_DURATION,1);
-    const ease=t<0.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
-    const vm=5040*ease;
-    celestialProgress=Math.max(0,Math.min(1,(vm-720)/3600)); // 0 at first gong, 1 at 6th gong (settled before 7th)
+    // Use shared vm from getTawafVirtualMin — exact sync with gong timing
+    const vm=tawafCurrentVM;
+    // Celestial only starts AFTER first gong (vm>=720)
+    celestialProgress=vm>=720?Math.min(1,(vm-720)/3600):0;
     modeTarget=celestialProgress; // night fade synced to celestial
     modeBlend+=(modeTarget-modeBlend)*0.08;
   }else if(tawafState==='hold'){
