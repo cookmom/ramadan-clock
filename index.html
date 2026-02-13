@@ -391,6 +391,19 @@ if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.re
 }else{initCompass();}
 
 let qiblaAligned=false, lastHaptic=0;
+// Audio tick for Qibla alignment (iOS has no Vibration API)
+let qiblaAudioCtx=null,qiblaWasAligned=false;
+function qiblaTick(){
+  try{
+    if(!qiblaAudioCtx)qiblaAudioCtx=new(window.AudioContext||window.webkitAudioContext)();
+    const o=qiblaAudioCtx.createOscillator(),g=qiblaAudioCtx.createGain();
+    o.connect(g);g.connect(qiblaAudioCtx.destination);
+    o.frequency.value=880;o.type='sine';
+    g.gain.setValueAtTime(0.08,qiblaAudioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001,qiblaAudioCtx.currentTime+0.06);
+    o.start();o.stop(qiblaAudioCtx.currentTime+0.06);
+  }catch(e){}
+}
 function drawQiblaWindow(c){
   if(qiblaAngle===null)return;
   // Position: 3 o'clock, like Rolex day window
@@ -408,10 +421,12 @@ function drawQiblaWindow(c){
   qiblaAligned=aligned;
   // Pulse animation
   const pulse=aligned?0.15*Math.sin(Date.now()*0.006)*0.5+0.5:0;
-  // Haptic feedback when entering alignment
-  if(aligned&&Date.now()-lastHaptic>2000&&navigator.vibrate){
-    navigator.vibrate(50);lastHaptic=Date.now();
+  // Feedback when entering alignment
+  if(aligned&&!qiblaWasAligned){
+    qiblaTick();
+    if(navigator.vibrate)navigator.vibrate(50);
   }
+  qiblaWasAligned=aligned;
   // Glow when aligned
   if(aligned){
     ctx.save();
