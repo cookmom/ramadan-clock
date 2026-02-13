@@ -433,12 +433,6 @@ function drawQiblaWindow(c){
   ctx.lineTo(arrTailX+perpX,arrTailY+perpY);
   ctx.lineTo(arrTailX-perpX,arrTailY-perpY);
   ctx.closePath();ctx.fill();
-  // Label — kaaba when aligned, Q otherwise
-  ctx.font=`600 ${R*0.022}px Inter,system-ui,sans-serif`;
-  ctx.textAlign='center';ctx.textBaseline='middle';
-  ctx.fillStyle=aligned?'#4ade80':c.text;
-  ctx.globalAlpha=aligned?0.9:0.5;
-  ctx.fillText(aligned?'🕋':'Q',wx+ww*0.35,wy);
   ctx.globalAlpha=1;
   ctx.restore();
 }
