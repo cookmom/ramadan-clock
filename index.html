@@ -620,6 +620,56 @@ function drawPrayerMarkers(c){
   });
 }
 
+// ── Watch tick audio ──
+let tickAudioCtx=null,lastTickStep=-1,tickEnabled=false;
+// Unlock audio on user gesture
+function ensureTickCtx(){
+  if(!tickAudioCtx)tickAudioCtx=new(window.AudioContext||window.webkitAudioContext)();
+  if(tickAudioCtx.state==='suspended')tickAudioCtx.resume();
+  tickEnabled=true;
+}
+document.addEventListener('touchstart',ensureTickCtx,{once:false});
+document.addEventListener('click',ensureTickCtx);
+
+function playTick(loud){
+  if(!tickAudioCtx||tickAudioCtx.state!=='running')return;
+  const t=tickAudioCtx.currentTime;
+  const vol=loud?0.06:0.03;
+  // Tick = short noise burst (mechanical click)
+  const bufLen=Math.floor(tickAudioCtx.sampleRate*(loud?0.012:0.008));
+  const buf=tickAudioCtx.createBuffer(1,bufLen,tickAudioCtx.sampleRate);
+  const data=buf.getChannelData(0);
+  for(let i=0;i<bufLen;i++){
+    const env=1-i/bufLen;
+    data[i]=(Math.random()*2-1)*env*env;
+  }
+  const src=tickAudioCtx.createBufferSource();
+  src.buffer=buf;
+  // Bandpass to sound metallic
+  const bp=tickAudioCtx.createBiquadFilter();
+  bp.type='bandpass';bp.frequency.value=loud?3200:4800;bp.Q.value=loud?2:3;
+  const g=tickAudioCtx.createGain();
+  g.gain.setValueAtTime(vol,t);
+  g.gain.exponentialRampToValueAtTime(0.001,t+(loud?0.025:0.015));
+  src.connect(bp);bp.connect(g);g.connect(tickAudioCtx.destination);
+  src.start(t);src.stop(t+0.03);
+}
+
+function tickAudio(s,ms){
+  if(!tickEnabled||S.movement==='digital')return;
+  let step,rate;
+  if(S.movement==='quartz'){
+    step=s;rate=1;
+  }else{
+    step=Math.floor(s*8+ms/1000*8);rate=8;
+  }
+  if(step!==lastTickStep){
+    // Quartz: louder single tick. Mechanical: softer rapid ticks
+    playTick(S.movement==='quartz');
+    lastTickStep=step;
+  }
+}
+
 function drawHand(c,angle,length,width,taperTip,tail){
   const tipX=cx+Math.cos(angle)*length,tipY=cy+Math.sin(angle)*length;
   const tailX=tail?cx-Math.cos(angle)*tail:cx,tailY=tail?cy-Math.sin(angle)*tail:cy;
@@ -662,9 +712,12 @@ function drawHands(c){
 
   // Movement types
   let sec;
-  if(S.movement==='quartz') sec=s; // 1Hz tick
-  else if(S.movement==='mechanical') sec=Math.floor(s*8+ms/1000*8)/8; // 4Hz = 28,800 BPH
-  else sec=s+ms/1000; // digital smooth
+  if(S.movement==='quartz') sec=s;
+  else if(S.movement==='mechanical') sec=Math.floor(s*8+ms/1000*8)/8;
+  else sec=s+ms/1000;
+
+  // Tick audio
+  tickAudio(s,ms);
 
   const min=m+sec/60;
   const hour=h+min/60;
