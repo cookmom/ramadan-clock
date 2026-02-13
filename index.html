@@ -701,7 +701,7 @@ function playTick(loud){
   const buf=qiblaAudioCtx.createBuffer(1,bufLen,sr);
   const data=buf.getChannelData(0);
   
-  const baseVol=loud?0.24:0.10;
+  const baseVol=loud?0.36:0.15;
   const vol=baseVol*(S.tickVol/100);
   
   for(let i=0;i<bufLen;i++){
