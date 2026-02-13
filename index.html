@@ -471,26 +471,56 @@ function qiblaTick(){
     const notes=[294, 392, 440, 466, 440];
     const vol=0.15*(S.tickVol/100);
     notes.forEach((f,i)=>{
-      const start=t+i*0.2; // staggered like hammer strikes
+      const start=t+i*0.25;
+      const dur=i===notes.length-1?1.4:0.22; // last note sustains
+      
+      // Ney flute — fundamental with vibrato
       const o=qiblaAudioCtx.createOscillator();
       const g=qiblaAudioCtx.createGain();
-      o.connect(g);g.connect(qiblaAudioCtx.destination);
-      o.frequency.value=f;
       o.type='sine';
-      // Long bell decay — gong resonance
-      g.gain.setValueAtTime(vol,start);
-      g.gain.exponentialRampToValueAtTime(vol*0.6,start+0.05);
-      g.gain.exponentialRampToValueAtTime(0.001,start+1.2);
-      o.start(start);o.stop(start+1.3);
-      // Subtle harmonic overtone
+      o.frequency.value=f;
+      // Vibrato (characteristic ney wavering)
+      const vib=qiblaAudioCtx.createOscillator();
+      const vibG=qiblaAudioCtx.createGain();
+      vib.frequency.value=5.5; // vibrato rate
+      vibG.gain.value=f*0.012; // subtle pitch wobble
+      vib.connect(vibG);vibG.connect(o.frequency);
+      vib.start(start);vib.stop(start+dur+0.1);
+      
+      // Breathy noise layer (ney air sound)
+      const nLen=Math.floor(qiblaAudioCtx.sampleRate*dur);
+      const nBuf=qiblaAudioCtx.createBuffer(1,nLen,qiblaAudioCtx.sampleRate);
+      const nd=nBuf.getChannelData(0);
+      for(let j=0;j<nLen;j++){nd[j]=(Math.random()*2-1);}
+      const nSrc=qiblaAudioCtx.createBufferSource();
+      nSrc.buffer=nBuf;
+      const bp=qiblaAudioCtx.createBiquadFilter();
+      bp.type='bandpass';bp.frequency.value=f*1.5;bp.Q.value=2;
+      const nG=qiblaAudioCtx.createGain();
+      nG.gain.setValueAtTime(vol*0.12,start);
+      nG.gain.exponentialRampToValueAtTime(0.001,start+dur);
+      nSrc.connect(bp);bp.connect(nG);nG.connect(qiblaAudioCtx.destination);
+      nSrc.start(start);nSrc.stop(start+dur);
+      
+      // Soft attack, gentle decay (not bell-like)
+      g.gain.setValueAtTime(0.001,start);
+      g.gain.exponentialRampToValueAtTime(vol,start+0.04);
+      g.gain.setValueAtTime(vol*0.8,start+dur*0.3);
+      g.gain.exponentialRampToValueAtTime(0.001,start+dur);
+      
+      // 2nd harmonic (ney overblown quality)
       const o2=qiblaAudioCtx.createOscillator();
       const g2=qiblaAudioCtx.createGain();
-      o2.connect(g2);g2.connect(qiblaAudioCtx.destination);
-      o2.frequency.value=f*2.02; // slightly detuned 2nd harmonic
+      o2.frequency.value=f*2.01;
       o2.type='sine';
-      g2.gain.setValueAtTime(vol*0.15,start);
-      g2.gain.exponentialRampToValueAtTime(0.001,start+0.6);
-      o2.start(start);o2.stop(start+0.7);
+      g2.gain.setValueAtTime(0.001,start);
+      g2.gain.exponentialRampToValueAtTime(vol*0.2,start+0.05);
+      g2.gain.exponentialRampToValueAtTime(0.001,start+dur*0.7);
+      o2.connect(g2);g2.connect(qiblaAudioCtx.destination);
+      
+      o.connect(g);g.connect(qiblaAudioCtx.destination);
+      o.start(start);o.stop(start+dur+0.1);
+      o2.start(start);o2.stop(start+dur);
     });
   }catch(e){}
 }
