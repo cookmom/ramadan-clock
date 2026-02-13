@@ -377,25 +377,48 @@ if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.re
   },{once:true});
 }else{initCompass();}
 
+let qiblaAligned=false, lastHaptic=0;
 function drawQiblaWindow(c){
   if(qiblaAngle===null)return;
   // Position: 3 o'clock, like Rolex day window
   const wx=cx+R*0.48, wy=cy;
   const ww=R*0.14, wh=R*0.09, wr=R*0.015;
+  // Qibla direction relative to device
+  let arrowAng=qiblaAngle;
+  if(deviceHeading!==null) arrowAng=qiblaAngle-deviceHeading;
+  // Normalize to -PI..PI
+  let normAng=arrowAng%( Math.PI*2);
+  if(normAng>Math.PI)normAng-=Math.PI*2;
+  if(normAng<-Math.PI)normAng+=Math.PI*2;
+  // Aligned = arrow pointing up (toward top of screen) within 5°
+  const aligned=deviceHeading!==null&&Math.abs(normAng)<(5*Math.PI/180);
+  qiblaAligned=aligned;
+  // Pulse animation
+  const pulse=aligned?0.15*Math.sin(Date.now()*0.006)*0.5+0.5:0;
+  // Haptic feedback when entering alignment
+  if(aligned&&Date.now()-lastHaptic>2000&&navigator.vibrate){
+    navigator.vibrate(50);lastHaptic=Date.now();
+  }
+  // Glow when aligned
+  if(aligned){
+    ctx.save();
+    ctx.shadowColor='#4ade80';ctx.shadowBlur=(20+pulse*10)*dpr;
+    ctx.fillStyle='rgba(74,222,128,0.15)';
+    roundRect(ctx,wx-ww/2-4*dpr,wy-wh/2-4*dpr,ww+8*dpr,wh+8*dpr,wr+2*dpr);ctx.fill();
+    ctx.shadowBlur=0;ctx.restore();
+  }
   // Window depression
   ctx.save();
   ctx.fillStyle=c.shadow;
   roundRect(ctx,wx-ww/2+1*dpr,wy-wh/2+1.5*dpr,ww,wh,wr);ctx.fill();
-  // Window bg (slightly darker than face)
-  ctx.fillStyle=c.bg;
+  // Window bg
+  ctx.fillStyle=aligned?'rgba(74,222,128,0.08)':c.bg;
   roundRect(ctx,wx-ww/2,wy-wh/2,ww,wh,wr);ctx.fill();
-  // Inner shadow for depth
-  ctx.strokeStyle=c.shadow;ctx.lineWidth=1*dpr;
+  // Border — green when aligned, subtle otherwise
+  ctx.strokeStyle=aligned?'rgba(74,222,128,'+(0.6+pulse*0.3)+')':c.shadow;
+  ctx.lineWidth=(aligned?1.5:1)*dpr;
   roundRect(ctx,wx-ww/2,wy-wh/2,ww,wh,wr);ctx.stroke();
-  // Qibla arrow
-  let arrowAng=qiblaAngle; // north-referenced bearing
-  if(deviceHeading!==null) arrowAng=qiblaAngle-deviceHeading; // relative to device
-  // Draw small arrow pointing toward Qibla
+  // Arrow
   const arrLen=wh*0.32;
   const arrTipX=wx+Math.sin(arrowAng)*arrLen;
   const arrTipY=wy-Math.cos(arrowAng)*arrLen;
@@ -403,17 +426,19 @@ function drawQiblaWindow(c){
   const arrTailY=wy+Math.cos(arrowAng)*arrLen*0.5;
   const perpX=Math.cos(arrowAng)*arrLen*0.3;
   const perpY=Math.sin(arrowAng)*arrLen*0.3;
-  ctx.fillStyle=c.accent;ctx.globalAlpha=0.9;
+  ctx.fillStyle=aligned?'#4ade80':c.accent;
+  ctx.globalAlpha=aligned?(0.95+pulse*0.05):0.9;
   ctx.beginPath();
   ctx.moveTo(arrTipX,arrTipY);
   ctx.lineTo(arrTailX+perpX,arrTailY+perpY);
   ctx.lineTo(arrTailX-perpX,arrTailY-perpY);
   ctx.closePath();ctx.fill();
-  // Small "Q" label
+  // Label — kaaba when aligned, Q otherwise
   ctx.font=`600 ${R*0.022}px Inter,system-ui,sans-serif`;
   ctx.textAlign='center';ctx.textBaseline='middle';
-  ctx.fillStyle=c.text;ctx.globalAlpha=0.5;
-  ctx.fillText('Q',wx+ww*0.35,wy);
+  ctx.fillStyle=aligned?'#4ade80':c.text;
+  ctx.globalAlpha=aligned?0.9:0.5;
+  ctx.fillText(aligned?'🕋':'Q',wx+ww*0.35,wy);
   ctx.globalAlpha=1;
   ctx.restore();
 }
