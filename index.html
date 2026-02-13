@@ -1171,25 +1171,7 @@ function playTawafGong(lap){
     const bf=qiblaAudioCtx.createBiquadFilter();bf.type='bandpass';bf.frequency.value=freq*2;bf.Q.value=2;
     ns.connect(bf);bf.connect(ng);ng.connect(qiblaAudioCtx.destination);
     ns.start(t);ns.stop(t+noiseDur);
-    // 7th lap: triumphant cascade — all 7 maqam notes as rapid gong sequence
-    if(lap===6){
-      setTimeout(()=>{
-        if(!qiblaAudioCtx)return;
-        const t2=qiblaAudioCtx.currentTime;
-        scale.forEach((ratio,i)=>{
-          const f=root*ratio*(i>=4?2:1); // top notes up an octave
-          const delay=i*0.15;
-          const o=qiblaAudioCtx.createOscillator();
-          const g=qiblaAudioCtx.createGain();
-          o.connect(g);g.connect(qiblaAudioCtx.destination);
-          o.frequency.value=f;o.type='sine';
-          g.gain.setValueAtTime(0,t2+delay);
-          g.gain.linearRampToValueAtTime(vol*0.5,t2+delay+0.003);
-          g.gain.exponentialRampToValueAtTime(0.001,t2+delay+4);
-          o.start(t2+delay);o.stop(t2+delay+4.1);
-        });
-      },600);
-    }
+    // No extra cascade — each gong stands alone
   }catch(e){}
 }
 // Tawaf states: idle → (dev: pre_mag →) spinning → hold → idle
@@ -1291,8 +1273,9 @@ function draw(){
     const vm=tawafCurrentVM;
     // Celestial only starts AFTER first gong (vm>=720)
     celestialProgress=vm>=720?Math.min(1,(vm-720)/3600):0;
-    modeTarget=celestialProgress; // night fade synced to celestial
-    modeBlend+=(modeTarget-modeBlend)*0.08;
+    // Night fade directly tracks celestial — no lerp lag
+    modeTarget=celestialProgress;
+    modeBlend=celestialProgress;
   }else if(tawafState==='hold'){
     celestialProgress=1; // fully visible during hold
     modeTarget=1;modeBlend+=(1-modeBlend)*0.08;
