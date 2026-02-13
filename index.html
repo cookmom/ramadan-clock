@@ -658,12 +658,14 @@ let celestialTarget=0;
 function drawStars(c){
   if(celestialProgress<0.01)return;
   const now=Date.now();
+  // Stars fade in dim first, twinkle only kicks in near the end
+  const fadeIn=Math.min(celestialProgress*1.5,1); // stars appear early but dim
+  const twinkleAmt=Math.max(0,(celestialProgress-0.7)/0.3); // twinkle only after ~5th gong
   ctx.save();
   STARS.forEach(s=>{
-    const twinkle=0.4+0.6*Math.sin(now*s.speed+s.offset);
-    const a=celestialProgress*s.bright*twinkle;
-    ctx.fillStyle=`rgba(255,255,240,${a*0.7})`;
-    // Subtle glow
+    const twinkle=twinkleAmt>0.01?(1-twinkleAmt*0.6)+twinkleAmt*0.6*Math.sin(now*s.speed+s.offset):1;
+    const a=fadeIn*s.bright*twinkle*0.7;
+    ctx.fillStyle=`rgba(255,255,240,${a})`;
     ctx.shadowColor='rgba(255,255,240,0.3)';ctx.shadowBlur=3*dpr;
     ctx.beginPath();ctx.arc(s.x*W,s.y*H,s.r*dpr,0,Math.PI*2);ctx.fill();
   });
@@ -1276,18 +1278,25 @@ function draw(){
 
   ctx.clearRect(-10,-10,W+20,H+20);
 
-  // Celestial: animate based on tawaf state
-  if(tawafState==='pre_mag'||tawafState==='spinning'||tawafState==='hold'){
-    celestialTarget=1;
-    // Force night mode transition during tawaf
-    modeTarget=1;
+  // Celestial: tied to tawaf gong timing
+  // First gong at vm=720, last at vm=5040. Celestial maps across that range.
+  if(tawafState==='spinning'&&tawafActive){
+    const elapsed=performance.now()-tawafStart;
+    const t=Math.min(elapsed/TAWAF_DURATION,1);
+    const ease=t<0.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
+    const vm=5040*ease;
+    celestialProgress=Math.max(0,Math.min(1,(vm-720)/4320)); // 0 at first gong, 1 at last
+    modeTarget=celestialProgress; // night fade synced to celestial
+    modeBlend+=(modeTarget-modeBlend)*0.08;
+  }else if(tawafState==='hold'){
+    celestialProgress=1; // fully visible during hold
+    modeTarget=1;modeBlend+=(1-modeBlend)*0.08;
   }else{
-    celestialTarget=0;
-    // Don't force — let resolveMode() decide
+    // Fade out after hold
+    celestialProgress+=(0-celestialProgress)*0.03;
+    if(celestialProgress<0.005)celestialProgress=0;
     if(S.mode==='auto')updateModeBlend();
   }
-  celestialProgress+=(celestialTarget-celestialProgress)*0.03;
-  if(Math.abs(celestialProgress-celestialTarget)<0.001)celestialProgress=celestialTarget;
 
   drawFace(c);
   drawStars(c); // behind everything
