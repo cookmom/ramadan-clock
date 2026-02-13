@@ -471,8 +471,8 @@ function qiblaTick(){
     const notes=[294, 392, 440, 466, 440];
     const vol=0.15*(S.tickVol/100);
     notes.forEach((f,i)=>{
-      const start=t+i*0.28;
-      const dur=i===notes.length-1?1.6:0.26;
+      const start=t+i*0.16;
+      const dur=i===notes.length-1?1.2:0.14;
       
       // Vocal timbre — wordless voice singing
       // Fundamental
