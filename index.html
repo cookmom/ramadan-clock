@@ -237,6 +237,7 @@ function parseCol(c){
   return m?m.slice(0,3).map(Number):null;
 }
 function lerpVal(a,b,t){return a+(b-a)*t;}
+function colAlpha(col,a){const p=parseCol(col);if(!p)return col;return`rgba(${p[0]},${p[1]},${p[2]},${a})`;}
 
 function getColors(){
   // Animate blend toward target
@@ -760,14 +761,14 @@ function drawFastingArc(c){
   const sweepAng=(fastDur/720)*Math.PI*2;
   const endAng=startAng+sweepAng;
   const arcR=R+R*0.14;
-  ctx.strokeStyle=c.accent+'1a';ctx.lineWidth=1*dpr;ctx.lineCap='round';
+  ctx.strokeStyle=colAlpha(c.accent,0.1);ctx.lineWidth=1*dpr;ctx.lineCap='round';
   ctx.beginPath();ctx.arc(cx,cy,arcR,startAng,endAng);ctx.stroke();
   if(now>=fajr&&now<=mag){
     const elapsed=now-fajr;
     const nowAng=startAng+(elapsed/720)*Math.PI*2;
-    ctx.strokeStyle=c.accent+'50';ctx.lineWidth=4*dpr;ctx.lineCap='round';
+    ctx.strokeStyle=colAlpha(c.accent,0.3);ctx.lineWidth=4*dpr;ctx.lineCap='round';
     ctx.beginPath();ctx.arc(cx,cy,arcR,startAng,nowAng);ctx.stroke();
-    ctx.fillStyle=c.accent;ctx.shadowColor=c.accent+'70';ctx.shadowBlur=10*dpr;
+    ctx.fillStyle=c.accent;ctx.shadowColor=colAlpha(c.accent,0.45);ctx.shadowBlur=10*dpr;
     ctx.beginPath();ctx.arc(cx+Math.cos(nowAng)*arcR,cy+Math.sin(nowAng)*arcR,3.5*dpr,0,Math.PI*2);ctx.fill();
     // For fasts >12h (Nordic summer), arc will wrap past the start point
     ctx.shadowBlur=0;
