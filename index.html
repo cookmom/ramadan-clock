@@ -62,6 +62,13 @@ input.sv{width:120px;}
 
 <canvas id="c"></canvas>
 
+<div id="tapOverlay" style="position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.4);backdrop-filter:blur(8px);cursor:pointer;transition:opacity .5s;">
+  <div style="text-align:center;color:rgba(255,255,240,.8);">
+    <div style="font-size:32px;margin-bottom:12px;">☽</div>
+    <div style="font-size:13px;font-weight:500;letter-spacing:.08em;">tap to start</div>
+  </div>
+</div>
+
 <div class="info">
   <div class="ramadan-label" id="ramLabel"></div>
   <div class="fast-status" id="fastStatus"></div>
@@ -377,18 +384,26 @@ function initCompass(){
     }
   });
 }
-// iOS 13+ requires user gesture for permission
-let iosPermRequested=false;
-function requestIOSPermission(){
-  if(iosPermRequested)return;iosPermRequested=true;
+// Tap-to-start: unlock audio + gyro in one gesture
+const tapOverlay=document.getElementById('tapOverlay');
+function activateAll(){
+  // Audio
+  if(!qiblaAudioCtx)qiblaAudioCtx=new(window.AudioContext||window.webkitAudioContext)();
+  if(qiblaAudioCtx.state==='suspended')qiblaAudioCtx.resume();
+  // Gyro (iOS permission)
   if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission==='function'){
     DeviceOrientationEvent.requestPermission().then(r=>{if(r==='granted')initCompass();}).catch(()=>{});
-  }
+  }else{initCompass();}
+  // Dismiss overlay
+  tapOverlay.style.opacity='0';
+  setTimeout(()=>tapOverlay.style.display='none',500);
 }
-if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission==='function'){
-  // iOS — request on any tap
-  document.addEventListener('click',()=>requestIOSPermission(),{once:false});
-}else{initCompass();}
+tapOverlay.addEventListener('click',activateAll,{once:true});
+tapOverlay.addEventListener('touchstart',activateAll,{once:true});
+// Non-iOS: init compass immediately (no permission needed)
+if(typeof DeviceOrientationEvent==='undefined'||typeof DeviceOrientationEvent.requestPermission!=='function'){
+  initCompass();
+}
 
 let qiblaAligned=false, lastHaptic=0;
 // Audio tick for Qibla alignment (iOS has no Vibration API)
