@@ -393,15 +393,30 @@ if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.re
 let qiblaAligned=false, lastHaptic=0;
 // Audio tick for Qibla alignment (iOS has no Vibration API)
 let qiblaAudioCtx=null,qiblaWasAligned=false;
+// Must create & resume AudioContext from user gesture on iOS
+document.addEventListener('touchstart',function unlockAudio(){
+  if(!qiblaAudioCtx)qiblaAudioCtx=new(window.AudioContext||window.webkitAudioContext)();
+  if(qiblaAudioCtx.state==='suspended')qiblaAudioCtx.resume();
+},{once:false});
+document.addEventListener('click',function unlockAudio2(){
+  if(!qiblaAudioCtx)qiblaAudioCtx=new(window.AudioContext||window.webkitAudioContext)();
+  if(qiblaAudioCtx.state==='suspended')qiblaAudioCtx.resume();
+});
 function qiblaTick(){
   try{
     if(!qiblaAudioCtx)qiblaAudioCtx=new(window.AudioContext||window.webkitAudioContext)();
-    const o=qiblaAudioCtx.createOscillator(),g=qiblaAudioCtx.createGain();
-    o.connect(g);g.connect(qiblaAudioCtx.destination);
-    o.frequency.value=880;o.type='sine';
-    g.gain.setValueAtTime(0.08,qiblaAudioCtx.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.001,qiblaAudioCtx.currentTime+0.06);
-    o.start();o.stop(qiblaAudioCtx.currentTime+0.06);
+    if(qiblaAudioCtx.state==='suspended')qiblaAudioCtx.resume();
+    const t=qiblaAudioCtx.currentTime;
+    // Two-tone tick: 1200Hz + 900Hz for clarity
+    [1200,900].forEach((f,i)=>{
+      const o=qiblaAudioCtx.createOscillator(),g=qiblaAudioCtx.createGain();
+      o.connect(g);g.connect(qiblaAudioCtx.destination);
+      o.frequency.value=f;o.type='sine';
+      const start=t+i*0.04;
+      g.gain.setValueAtTime(0.25,start);
+      g.gain.exponentialRampToValueAtTime(0.001,start+0.08);
+      o.start(start);o.stop(start+0.08);
+    });
   }catch(e){}
 }
 function drawQiblaWindow(c){
