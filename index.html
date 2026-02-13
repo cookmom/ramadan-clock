@@ -718,7 +718,7 @@ function drawSplitFlap(c){
 
   // During tawaf: flap follows the spinning hands
   if(tawafState==='spinning'||tawafState==='hold'){
-    if(!flapTawafActive){flapTawafActive=true;flapTawafStart=performance.now();flapTawafLanded=false;flapLastClickCycle=0;}
+    if(!flapTawafActive){flapTawafActive=true;flapTawafStart=performance.now();flapTawafLanded=false;flapLastClickCycle=-1;tawafCurrentVM=0;}
     const landed=tawafState==='hold';
     if(landed&&!flapTawafLanded){flapTawafLanded=true;playFlapClick(1.0);playFlapClick(1.0);}
     let displayChars;
