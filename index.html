@@ -665,14 +665,14 @@ function ensureTickCtx(){
 document.addEventListener('touchstart',ensureTickCtx,{once:false});
 document.addEventListener('click',ensureTickCtx);
 
+let currentSecAngle=0; // updated in drawHands for spatial audio
+
 function playTick(loud){
   if(!qiblaAudioCtx)return;
   if(qiblaAudioCtx.state==='suspended')qiblaAudioCtx.resume();
   const t=qiblaAudioCtx.currentTime;
-  // Real mechanical watch: sharp impulse → case resonance → fast decay
-  // Escapement creates a brief impact, case amplifies specific frequencies
   const sr=qiblaAudioCtx.sampleRate;
-  const dur=loud?0.018:0.006; // quartz longer, mechanical very short
+  const dur=loud?0.018:0.006;
   const bufLen=Math.floor(sr*dur);
   const buf=qiblaAudioCtx.createBuffer(1,bufLen,sr);
   const data=buf.getChannelData(0);
@@ -682,11 +682,9 @@ function playTick(loud){
   for(let i=0;i<bufLen;i++){
     const t2=i/sr;
     if(loud){
-      // Quartz: single sharp click — no resonance, pure impulse decay
       const env=Math.exp(-t2*600);
       data[i]=((i<3?1:0)*0.4+(Math.random()*2-1)*0.6)*env;
     }else{
-      // Mechanical: tiny escapement with case resonance
       const env=Math.exp(-t2*400);
       const s1=Math.sin(2*Math.PI*2200*t2)*0.7;
       const s2=Math.sin(2*Math.PI*5800*t2)*0.3;
@@ -699,7 +697,24 @@ function playTick(loud){
   src.buffer=buf;
   const g=qiblaAudioCtx.createGain();
   g.gain.value=vol;
-  src.connect(g);g.connect(qiblaAudioCtx.destination);
+  
+  // Spatial audio — tick follows second hand around the clock face
+  // HRTF panner places sound in 3D space around listener's head
+  const panner=qiblaAudioCtx.createPanner();
+  panner.panningModel='HRTF';
+  panner.distanceModel='inverse';
+  panner.refDistance=1;
+  panner.maxDistance=10;
+  panner.rolloffFactor=1;
+  // Map second hand angle to position on circle around listener
+  // 12 o'clock = front (0,0,-1), 3 = right (1,0,0), 6 = behind (0,0,1), 9 = left (-1,0,0)
+  const ang=currentSecAngle+Math.PI/2; // offset: canvas 12 o'clock is -PI/2
+  const spatialR=1.5;
+  panner.positionX.setValueAtTime(Math.cos(ang)*spatialR,t);
+  panner.positionY.setValueAtTime(0,t);
+  panner.positionZ.setValueAtTime(-Math.sin(ang)*spatialR,t);
+  
+  src.connect(g);g.connect(panner);panner.connect(qiblaAudioCtx.destination);
   src.start(t);src.stop(t+dur+0.01);
 }
 
@@ -774,6 +789,7 @@ function drawHands(c){
   const hourAng=(hour/12)*Math.PI*2-Math.PI/2;
   const minAng=(min/60)*Math.PI*2-Math.PI/2;
   const secAng=(sec/60)*Math.PI*2-Math.PI/2;
+  currentSecAngle=secAng;
 
   drawHand(c,hourAng,R*0.52,R*0.028,R*0.008,R*0.06);
   drawHand(c,minAng,R*0.72,R*0.022,R*0.005,R*0.08);
