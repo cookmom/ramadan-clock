@@ -1165,42 +1165,49 @@ function playTawafGong(lap){
     if(!qiblaAudioCtx)return;
     if(qiblaAudioCtx.state==='suspended')qiblaAudioCtx.resume();
     const t=qiblaAudioCtx.currentTime;
-    const vol=0.14*(S.tickVol/100);
-    const freq=ADHAN_MELODY[0]; // same low note every gong
-    // Gong: inharmonic partials (metallic, not bell-like)
+    const vol=0.22*(S.tickVol/100);
+    const freq=ADHAN_MELODY[0]; // D4 — oud open string tuning
+    // Oud pluck: harmonic string partials with sharp attack + warm decay
+    // Oud has integer harmonics (unlike gong) with strong 2nd/3rd
     const partials=[
-      {ratio:1,    amp:1.0,  decay:1.8},  // fundamental — fills 2s window
-      {ratio:1.47, amp:0.45, decay:1.4},  // first inharmonic
-      {ratio:2.09, amp:0.25, decay:1.1},  // second
-      {ratio:2.56, amp:0.15, decay:0.8},  // third
-      {ratio:3.14, amp:0.08, decay:0.5},  // fourth (shimmer)
+      {ratio:1,   amp:1.0,  decay:1.6},  // fundamental — warm body
+      {ratio:2,   amp:0.55, decay:1.0},  // 2nd harmonic — strong on oud
+      {ratio:3,   amp:0.35, decay:0.7},  // 3rd — gives the "woody" character
+      {ratio:4,   amp:0.15, decay:0.5},  // 4th — brightness
+      {ratio:5,   amp:0.06, decay:0.3},  // 5th — air/shimmer
     ];
+    // Body resonance filter (oud has a round, warm body)
+    const bodyFilter=qiblaAudioCtx.createBiquadFilter();
+    bodyFilter.type='peaking';bodyFilter.frequency.value=freq*1.5;
+    bodyFilter.Q.value=2;bodyFilter.gain.value=4;
+    bodyFilter.connect(qiblaAudioCtx.destination);
     partials.forEach(p=>{
       const o=qiblaAudioCtx.createOscillator();
       const g=qiblaAudioCtx.createGain();
-      o.connect(g);g.connect(qiblaAudioCtx.destination);
+      o.connect(g);g.connect(bodyFilter);
       o.frequency.setValueAtTime(freq*p.ratio,t);
-      // Slight downward pitch bend (gong characteristic)
-      o.frequency.exponentialRampToValueAtTime(freq*p.ratio*0.985,t+p.decay);
-      o.type='sine';
+      // Slight upward pitch bend on attack (string stretch from pluck)
+      o.frequency.setValueAtTime(freq*p.ratio*1.008,t);
+      o.frequency.exponentialRampToValueAtTime(freq*p.ratio,t+0.03);
+      o.type='triangle'; // softer than sine, closer to string timbre
       const v=vol*p.amp;
-      // Sharp metallic attack → long sustain → slow decay
+      // Pluck envelope: instant attack → fast initial decay → slow ring
       g.gain.setValueAtTime(0,t);
-      g.gain.linearRampToValueAtTime(v,t+0.003); // near-instant strike
-      g.gain.setValueAtTime(v*0.85,t+0.02); // slight dip after impact
-      g.gain.exponentialRampToValueAtTime(v*0.4,t+0.15); // sustain
-      g.gain.exponentialRampToValueAtTime(0.001,t+p.decay); // long ring-out
+      g.gain.linearRampToValueAtTime(v,t+0.001); // instant pluck
+      g.gain.exponentialRampToValueAtTime(v*0.35,t+0.06); // fast string snap
+      g.gain.exponentialRampToValueAtTime(v*0.12,t+0.3); // sustain
+      g.gain.exponentialRampToValueAtTime(0.001,t+p.decay); // ring out
       o.start(t);o.stop(t+p.decay+0.1);
     });
-    // Noise burst at strike (metallic impact texture)
-    const noiseDur=0.04;
+    // Pluck noise — finger/nail on string texture (shorter than metallic hit)
+    const noiseDur=0.025;
     const noiseBuf=qiblaAudioCtx.createBuffer(1,Math.floor(qiblaAudioCtx.sampleRate*noiseDur),qiblaAudioCtx.sampleRate);
     const nd=noiseBuf.getChannelData(0);
-    for(let i=0;i<nd.length;i++)nd[i]=(Math.random()*2-1)*Math.exp(-i/(nd.length*0.15));
+    for(let i=0;i<nd.length;i++)nd[i]=(Math.random()*2-1)*Math.exp(-i/(nd.length*0.08));
     const ns=qiblaAudioCtx.createBufferSource();ns.buffer=noiseBuf;
-    const ng=qiblaAudioCtx.createGain();ng.gain.value=vol*0.5;
-    // Bandpass to shape the noise into metallic hit
-    const bf=qiblaAudioCtx.createBiquadFilter();bf.type='bandpass';bf.frequency.value=freq*2;bf.Q.value=2;
+    const ng=qiblaAudioCtx.createGain();ng.gain.value=vol*0.4;
+    // Highpass — pluck transient is bright, not boomy
+    const bf=qiblaAudioCtx.createBiquadFilter();bf.type='highpass';bf.frequency.value=800;bf.Q.value=1;
     ns.connect(bf);bf.connect(ng);ng.connect(qiblaAudioCtx.destination);
     ns.start(t);ns.stop(t+noiseDur);
     // No extra cascade — each gong stands alone
