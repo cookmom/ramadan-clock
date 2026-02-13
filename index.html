@@ -466,8 +466,8 @@ function qiblaTick(){
     if(!qiblaAudioCtx)qiblaAudioCtx=new(window.AudioContext||window.webkitAudioContext)();
     if(qiblaAudioCtx.state==='suspended')qiblaAudioCtx.resume();
     const t=qiblaAudioCtx.currentTime;
-    // Hijaz maqam descending — minute repeater gong strikes
-    const notes=[1175, 740, 622];
+    // Minute repeater chime — three tuned gong strikes
+    const notes=[1047, 1319, 1568];
     const vol=0.15*(S.tickVol/100);
     notes.forEach((f,i)=>{
       const start=t+i*0.18;
