@@ -677,20 +677,18 @@ function playTick(loud){
   const buf=qiblaAudioCtx.createBuffer(1,bufLen,sr);
   const data=buf.getChannelData(0);
   
-  // Two resonant frequencies (escapement tick + case resonance)
-  const f1=loud?900:2200; // primary
-  const f2=loud?2200:5800; // case ring
+  // Quartz: dry plastic tick. Mechanical: tiny escapement click.
+  const f1=loud?1400:2200;
+  const f2=loud?3400:5800;
   const vol=loud?0.025:0.008;
   
   for(let i=0;i<bufLen;i++){
     const t2=i/sr;
-    // Sharp exponential decay (real impact)
-    const env=Math.exp(-t2*(loud?180:400));
-    // Damped sinusoids (resonant body)
-    const s1=Math.sin(2*Math.PI*f1*t2)*0.7;
-    const s2=Math.sin(2*Math.PI*f2*t2)*0.3;
-    // Tiny noise for initial transient (first 0.5ms)
-    const click=t2<0.0005?(Math.random()*2-1)*0.5:0;
+    const env=Math.exp(-t2*(loud?350:400));
+    const s1=Math.sin(2*Math.PI*f1*t2)*(loud?0.5:0.7);
+    const s2=Math.sin(2*Math.PI*f2*t2)*(loud?0.5:0.3);
+    // No noise transient for quartz (removes pop), tiny for mechanical
+    const click=loud?0:(t2<0.0003?(Math.random()*2-1)*0.3:0);
     data[i]=(s1+s2+click)*env;
   }
   
