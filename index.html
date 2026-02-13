@@ -1096,20 +1096,20 @@ function getTawafVirtualMin(){
   // Returns extra virtual minutes to subtract from current time (CCW)
   if(!tawafActive)return 0;
   const elapsed=performance.now()-tawafStart;
-  if(elapsed>=TAWAF_DURATION){
-    // Fire final gong if missed (ease never quite reaches 5040 on last frame)
-    if(tawafLastLap<TAWAF_LAPS){tawafLastLap=TAWAF_LAPS;playTawafGong(TAWAF_LAPS-1);}
+  if(elapsed>=TAWAF_DURATION+500){
+    // Extra 500ms for final gong to ring, then end
     tawafCurrentVM=5040;endTawafSpin();return 0;
   }
-  const t=elapsed/TAWAF_DURATION;
+  const t=Math.min(elapsed/TAWAF_DURATION,1);
   // Ease in-out cubic (on POSITION, 0→1, never reverses)
   const ease=t<0.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
   // 7 laps of hour hand = 84 hours = 5040 virtual minutes in 30 real seconds
-  const vm=5040*ease;
+  const vm=Math.min(5040,5040*ease);
   tawafCurrentVM=vm;
   // Gong AFTER each completed hour-hand revolution (720 virtual min = 12h)
-  const completedLaps=Math.floor(vm/720);
-  if(completedLaps>tawafLastLap&&completedLaps<=TAWAF_LAPS){
+  // Use threshold slightly below 720 to catch the 7th lap at vm≈5040
+  const completedLaps=Math.min(TAWAF_LAPS,Math.floor((vm+1)/720));
+  if(completedLaps>tawafLastLap){
     tawafLastLap=completedLaps;
     playTawafGong(completedLaps-1);
   }
@@ -1209,8 +1209,8 @@ function startTawaf(fromDev){
   if(fromDev&&PD){
     tawafMaghribMin=pM(PD.Maghrib);
     tawafDev=true;
-    // Snap to 1 minute before Maghrib — tick normally until auto-trigger
-    devTimeMin=tawafMaghribMin-1;
+    // Snap to 5 seconds before tawaf auto-trigger point
+    devTimeMin=tawafMaghribMin-TAWAF_PRESTART_MIN-(5/60);
     tawafState='pre_mag';
     tawafPreMagStart=performance.now();
     // Don't start spinning — checkTawaf will auto-trigger when devTime reaches the pre-start mark
