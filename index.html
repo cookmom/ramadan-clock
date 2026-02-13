@@ -1088,22 +1088,18 @@ const TAWAF_PREGONG_MS=TAWAF_PREGONG_T*TAWAF_DURATION; // ~9.9s before first gon
 const TAWAF_PRESTART_MIN=TAWAF_PREGONG_MS/1000/60; // in minutes
 let tawafState='idle'; // idle | pre_mag | spinning | hold
 let tawafHoldStart=0;
+let tawafPreMagStart=0;
 let tawafMaghribMin=null;
 function startTawaf(fromDev){
   tawafLastLap=0;
   if(fromDev&&PD){
     tawafMaghribMin=pM(PD.Maghrib);
     tawafDev=true;
-    // Snap to just before Maghrib (so first gong lands ON Maghrib)
-    devTimeMin=tawafMaghribMin-TAWAF_PRESTART_MIN;
+    // Snap to 1 minute before Maghrib — tick normally until auto-trigger
+    devTimeMin=tawafMaghribMin-1;
     tawafState='pre_mag';
-    // Brief pause to show pre-Maghrib moment, then spin
-    setTimeout(()=>{
-      if(tawafState==='pre_mag'){
-        tawafActive=true;tawafStart=performance.now();
-        tawafState='spinning';
-      }
-    },500);
+    tawafPreMagStart=performance.now();
+    // Don't start spinning — checkTawaf will auto-trigger when devTime reaches the pre-start mark
   }else{
     // Live trigger: already pre-started before Maghrib
     tawafActive=true;tawafStart=performance.now();
@@ -1142,6 +1138,19 @@ function checkTawafHold(){
 let tawafTriggered=false;
 function checkTawaf(){
   checkTawafHold();
+  // Dev pre_mag: tick forward from 1min before Maghrib, auto-trigger at pre-start mark
+  if(tawafState==='pre_mag'&&tawafMaghribMin!==null){
+    const elapsed=(performance.now()-tawafPreMagStart)/1000/60; // real minutes elapsed
+    devTimeMin=tawafMaghribMin-1+elapsed;
+    updateInfo();
+    // When virtual time reaches the pre-start mark, begin spinning
+    const preStart=tawafMaghribMin-TAWAF_PRESTART_MIN;
+    if(devTimeMin>=preStart){
+      tawafActive=true;tawafStart=performance.now();
+      tawafState='spinning';
+    }
+    return;
+  }
   if(tawafState!=='idle')return;
   if(!PD)return;
   const now=nM(),mag=pM(PD.Maghrib);
