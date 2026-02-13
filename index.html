@@ -358,23 +358,36 @@ if(navigator.geolocation){
 }
 
 // DeviceOrientation for compass heading
-let compassSupported=false;
+let compassSupported=false,compassInited=false;
 function initCompass(){
-  window.addEventListener('deviceorientationabsolute',e=>{
-    if(e.alpha!=null){deviceHeading=(360-e.alpha)*Math.PI/180;compassSupported=true;}
-  },{once:false});
+  if(compassInited)return;compassInited=true;
+  // Prefer absolute (Android)
+  if('ondeviceorientationabsolute' in window){
+    window.addEventListener('deviceorientationabsolute',e=>{
+      if(e.alpha!=null){deviceHeading=(360-e.alpha)*Math.PI/180;compassSupported=true;}
+    });
+  }
+  // Fallback / iOS
   window.addEventListener('deviceorientation',e=>{
-    if(compassSupported)return; // prefer absolute
-    if(e.webkitCompassHeading!=null){deviceHeading=e.webkitCompassHeading*Math.PI/180;}
-    else if(e.alpha!=null){deviceHeading=(360-e.alpha)*Math.PI/180;}
-  },{once:false});
+    if(compassSupported)return;
+    if(e.webkitCompassHeading!=null){
+      deviceHeading=e.webkitCompassHeading*Math.PI/180;
+    }else if(e.alpha!=null&&e.absolute){
+      deviceHeading=(360-e.alpha)*Math.PI/180;
+    }
+  });
 }
-// iOS 13+ requires permission
+// iOS 13+ requires user gesture for permission
+let iosPermRequested=false;
+function requestIOSPermission(){
+  if(iosPermRequested)return;iosPermRequested=true;
+  if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission==='function'){
+    DeviceOrientationEvent.requestPermission().then(r=>{if(r==='granted')initCompass();}).catch(()=>{});
+  }
+}
 if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission==='function'){
-  cv.addEventListener('click',function iosPerm(){
-    DeviceOrientationEvent.requestPermission().then(r=>{if(r==='granted')initCompass();});
-    cv.removeEventListener('click',iosPerm);
-  },{once:true});
+  // iOS — request on any tap
+  document.addEventListener('click',()=>requestIOSPermission(),{once:false});
 }else{initCompass();}
 
 let qiblaAligned=false, lastHaptic=0;
