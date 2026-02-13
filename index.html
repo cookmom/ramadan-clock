@@ -654,30 +654,30 @@ function drawIndices(c){
       ctx.save();
       ctx.translate(cx+Math.cos(ang)*midR,cy+Math.sin(ang)*midR);
       ctx.rotate(ang+Math.PI/2);
-      // Brushed aluminum body — gradient along length for directional grain
+      // Directional light — light source at ~10 o'clock (upper left)
+      const lightAng=-Math.PI*0.65; // light direction
+      const lightDot=Math.cos(ang-lightAng); // -1 to 1, how much this index faces the light
+      const brightness=0.5+lightDot*0.3; // 0.2 (shadow) to 0.8 (lit)
+      const base=Math.floor(120+brightness*80);
+      const peak=Math.floor(150+brightness*70);
+      const dark=Math.floor(80+brightness*60);
+      // Brushed aluminum body
       const metalGrad=ctx.createLinearGradient(-capW,0,capW,0);
-      metalGrad.addColorStop(0,'rgba(145,148,145,.85)');
-      metalGrad.addColorStop(0.3,'rgba(175,178,175,.9)');
-      metalGrad.addColorStop(0.5,'rgba(190,193,190,.92)');
-      metalGrad.addColorStop(0.7,'rgba(170,173,170,.88)');
-      metalGrad.addColorStop(1,'rgba(140,143,140,.82)');
+      metalGrad.addColorStop(0,`rgba(${base-15},${base-12},${base-15},.85)`);
+      metalGrad.addColorStop(0.35,`rgba(${peak-10},${peak-7},${peak-10},.9)`);
+      metalGrad.addColorStop(0.5,`rgba(${peak},${peak+3},${peak},.92)`);
+      metalGrad.addColorStop(0.65,`rgba(${peak-15},${peak-12},${peak-15},.88)`);
+      metalGrad.addColorStop(1,`rgba(${base-20},${base-17},${base-20},.82)`);
       ctx.fillStyle=metalGrad;
       roundRect(ctx,-capW,capH/-2,capW*2,capH,capW);ctx.fill();
-      // Bottom edge (shadow from depth)
-      ctx.fillStyle='rgba(100,103,100,.5)';
+      // Bottom edge
+      ctx.fillStyle=`rgba(${dark},${dark+3},${dark},.5)`;
       roundRect(ctx,-capW,capH/-2+capH*0.8,capW*2,capH*0.2,capW*0.3);ctx.fill();
-      // Top edge catch (subtle, not glossy)
-      ctx.fillStyle='rgba(210,213,210,.3)';
-      roundRect(ctx,-capW*0.7,capH/-2+1*dpr,capW*1.4,capH*0.15,capW*0.3);ctx.fill();
-      // Micro grain texture (brushed lines)
-      ctx.globalAlpha=0.06;
-      for(let g=0;g<6;g++){
-        const gy=capH/-2+capH*(g/6)+Math.random()*2;
-        ctx.strokeStyle=Math.random()>0.5?'rgba(255,255,255,1)':'rgba(0,0,0,1)';
-        ctx.lineWidth=0.5*dpr;
-        ctx.beginPath();ctx.moveTo(-capW*0.8,gy);ctx.lineTo(capW*0.8,gy);ctx.stroke();
+      // Specular catch — only on lit indices
+      if(lightDot>0.2){
+        ctx.fillStyle=`rgba(255,255,250,${(lightDot-0.2)*0.35})`;
+        roundRect(ctx,-capW*0.5,capH/-2+1*dpr,capW*1.0,capH*0.12,capW*0.2);ctx.fill();
       }
-      ctx.globalAlpha=1;
       // Lume insert (inset strip)
       const insetW=capW*0.55,insetH=capH*0.75;
       ctx.shadowColor=c.lume+'80';ctx.shadowBlur=10*dpr;
@@ -689,12 +689,15 @@ function drawIndices(c){
       roundRect(ctx,-insetW*0.4,insetH/-2+1*dpr,insetW*0.8,insetH*0.4,insetW*0.3);ctx.fill();
       ctx.restore();
     }else{
-      // Minute ticks — more contrast
+      // Minute ticks — directional light
+      const lightAng2=-Math.PI*0.65;
+      const ld=Math.cos(ang-lightAng2);
+      const tickAlpha=0.35+ld*0.2;
       const inner=R-R*0.07,outer=R-R*0.03;
       ctx.strokeStyle=c.shadow;ctx.lineWidth=2*dpr;ctx.lineCap='round';
       ctx.beginPath();ctx.moveTo(cx+Math.cos(ang)*inner+1*dpr,cy+Math.sin(ang)*inner+1.5*dpr);
       ctx.lineTo(cx+Math.cos(ang)*outer+1*dpr,cy+Math.sin(ang)*outer+1.5*dpr);ctx.stroke();
-      ctx.strokeStyle=c.lume;ctx.globalAlpha=0.5;ctx.lineWidth=1.5*dpr;
+      ctx.strokeStyle=c.lume;ctx.globalAlpha=tickAlpha;ctx.lineWidth=1.5*dpr;
       ctx.beginPath();ctx.moveTo(cx+Math.cos(ang)*inner,cy+Math.sin(ang)*inner);
       ctx.lineTo(cx+Math.cos(ang)*outer,cy+Math.sin(ang)*outer);ctx.stroke();
       ctx.globalAlpha=1;
