@@ -771,9 +771,15 @@ function drawSplitFlap(c){
   // Pad arrays to same length
   while(flapPrevChars.length<chars.length)flapPrevChars.push('');
   while(flapCharAnims.length<chars.length)flapCharAnims.push({t:1,prev:''});
+  let changed=false;
   for(let i=0;i<chars.length;i++){
     if(chars[i]!==flapPrevChars[i]){
       flapCharAnims[i]={start:nowMs+i*FLAP_STAGGER,prev:flapPrevChars[i]||chars[i]};
+      // Schedule click sound at the stagger time
+      if(chars[i]!==':'){
+        setTimeout(()=>playFlapClick(0.6),i*FLAP_STAGGER);
+        changed=true;
+      }
     }
   }
   flapPrevChars=chars.slice();
