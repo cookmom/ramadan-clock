@@ -32,7 +32,7 @@ canvas{position:fixed;top:0;left:0;width:100vw;height:100vh;display:block;}
 .fast-status .tl{font-variant-numeric:tabular-nums;font-weight:700;transition:all .5s;}
 .prayers{display:flex;gap:6px;flex-wrap:nowrap;justify-content:center;margin-top:6px;font-family:Inter,system-ui,sans-serif;letter-spacing:.04em;font-weight:500;transition:all .5s;}
 .pp{display:inline;font-size:11px;font-weight:400;letter-spacing:.03em;padding:0;border:none!important;background:none!important;backdrop-filter:none;transition:all .5s;}
-.pp .dot{display:none;}
+.pp .dot{width:8px;height:8px;border-radius:50%;display:inline-block;vertical-align:middle;margin-right:4px;}
 .pp .pt{font-weight:500;font-variant-numeric:tabular-nums;font-size:11px;}
 .loc{font-size:10px;font-weight:400;letter-spacing:.04em;margin-top:6px;transition:all .5s;}
 .settings-btn{position:fixed;top:max(16px,env(safe-area-inset-top,0px));right:16px;z-index:15;width:32px;height:32px;cursor:pointer;opacity:0.3;transition:opacity .3s;}
@@ -452,7 +452,7 @@ function updateInfo(){
   pEl.style.color=c.minNum||c.textDim;
   pEl.style.fontSize=Math.round(R*0.72/dpr)+'px';
   pEl.innerHTML=ps.map((p,i)=>{
-    return`<span class="pp">${p.name} ${f12(p.time)}</span>`;
+    return`<span class="pp"><span class="dot" style="background:${p.color}"></span>${p.name} ${f12(p.time)}</span>`;
   }).join(' · ');
 
   const fajr=pM(PD.Fajr),mag=pM(PD.Maghrib),el=document.getElementById('fastStatus');
