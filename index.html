@@ -680,6 +680,81 @@ function drawQiblaWindow(c){
   ctx.restore();
 }
 
+// ── Split-Flap Countdown ──
+function drawSplitFlap(c){
+  if(!PD)return;
+  const isRam=devRamadan||(DD&&DD.hijri.month.number===9);
+  if(!isRam)return;
+  const fajr=pM(PD.Fajr),mag=pM(PD.Maghrib),now=nM();
+  let label='',mins=0;
+  if(now>=fajr&&now<mag){mins=mag-now;label='IFTAR';}
+  else if(now<fajr){mins=fajr-now;label='FAJR';}
+  else{
+    // After Maghrib — show "MUBARAK"
+    drawSplitFlapText(c,'MUBARAK','☪');
+    return;
+  }
+  const h=Math.floor(mins/60),m=Math.floor(mins%60);
+  const timeStr=(h>0?h+'H '+String(m).padStart(2,'0')+'M':m+'M');
+  drawSplitFlapText(c,timeStr,label);
+}
+function drawSplitFlapText(c,main,sub){
+  // Position: 6 o'clock, inside dial
+  const wx=cx, wy=cy+R*0.38;
+  const ww=R*0.36, wh=R*0.14, wr=R*0.018;
+  const gap=0.8*dpr; // split line gap
+
+  ctx.save();
+
+  // Shadow/depression
+  ctx.fillStyle=c.shadow;
+  roundRect(ctx,wx-ww/2+1*dpr,wy-wh/2+1.5*dpr,ww,wh,wr);ctx.fill();
+
+  // Window background — darker than dial
+  ctx.fillStyle='rgba(0,0,0,0.25)';
+  roundRect(ctx,wx-ww/2,wy-wh/2,ww,wh,wr);ctx.fill();
+
+  // Subtle inner border
+  ctx.strokeStyle='rgba(255,255,255,0.06)';
+  ctx.lineWidth=1*dpr;
+  roundRect(ctx,wx-ww/2,wy-wh/2,ww,wh,wr);ctx.stroke();
+
+  // Clip to window
+  ctx.save();
+  roundRect(ctx,wx-ww/2,wy-wh/2,ww,wh,wr);ctx.clip();
+
+  // Split line (horizontal flap divide)
+  ctx.fillStyle='rgba(0,0,0,0.3)';
+  ctx.fillRect(wx-ww/2,wy-gap/2,ww,gap);
+
+  // Top half slightly lighter (light catch on flap)
+  ctx.fillStyle='rgba(255,255,255,0.02)';
+  ctx.fillRect(wx-ww/2,wy-wh/2,ww,wh/2-gap/2);
+
+  // Main countdown text
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.font=`600 ${R*0.072}px 'Inter',system-ui,sans-serif`;
+  ctx.fillStyle=c.lume;
+  ctx.globalAlpha=0.9;
+  ctx.fillText(main,wx,wy-R*0.008);
+
+  // Sub-label (IFTAR / FAJR)
+  ctx.font=`500 ${R*0.028}px 'Inter',system-ui,sans-serif`;
+  ctx.globalAlpha=0.35;
+  ctx.fillStyle=c.lume;
+  ctx.fillText(sub,wx,wy+R*0.042);
+
+  ctx.globalAlpha=1;
+  ctx.restore(); // unclip
+
+  // Outer border
+  ctx.strokeStyle=c.shadow;
+  ctx.lineWidth=1*dpr;
+  roundRect(ctx,wx-ww/2,wy-wh/2,ww,wh,wr);ctx.stroke();
+
+  ctx.restore();
+}
+
 // ── Drawing ──
 const ARABIC=['١٢','١','٢','٣','٤','٥','٦','٧','٨','٩','١٠','١١'];
 const WESTERN=['12','1','2','3','4','5','6','7','8','9','10','11'];
@@ -1339,6 +1414,7 @@ function draw(){
   drawStars(c); // behind everything
   drawFastingArc(c);
   drawQiblaWindow(c);
+  drawSplitFlap(c);
   drawPrayerMarkers(c);
   drawIndices(c);
   drawNumerals(c);
