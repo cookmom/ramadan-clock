@@ -952,7 +952,7 @@ function drawPrayerMarkers(c){
     ctx.fillStyle=c.shadow;ctx.beginPath();
     ctx.arc(mx+1*dpr,my+1.5*dpr,dotR,0,Math.PI*2);ctx.fill();
     // Dot
-    ctx.fillStyle=PC[name];ctx.globalAlpha=0.85;ctx.beginPath();
+    ctx.fillStyle=c.lume;ctx.globalAlpha=0.85;ctx.beginPath();
     ctx.arc(mx,my,dotR,0,Math.PI*2);ctx.fill();
     // Highlight
     ctx.fillStyle='rgba(255,255,240,.35)';ctx.beginPath();
