@@ -988,17 +988,17 @@ function getTawafVirtualMin(){
   // Returns extra virtual minutes to subtract from current time (CCW)
   if(!tawafActive)return 0;
   const elapsed=performance.now()-tawafStart;
-  if(elapsed>=TAWAF_DURATION){tawafActive=false;tawafDev=false;tawafLastLap=-1;return 0;}
+  if(elapsed>=TAWAF_DURATION){tawafActive=false;tawafDev=false;tawafLastLap=0;return 0;}
   const t=elapsed/TAWAF_DURATION;
   // Ease in-out cubic (on POSITION, 0→1, never reverses)
   const ease=t<0.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
   // 7 laps of hour hand = 84 hours = 5040 virtual minutes in 30 real seconds
   const vm=5040*ease;
-  // Chime on each completed hour-hand lap (each 720 virtual minutes = 12 hours)
-  const currentLap=Math.min(Math.floor(vm/720),TAWAF_LAPS-1);
-  if(currentLap>tawafLastLap){
-    tawafLastLap=currentLap;
-    playTawafGong(currentLap);
+  // Gong AFTER each completed hour-hand revolution (720 virtual min = 12h)
+  const completedLaps=Math.floor(vm/720);
+  if(completedLaps>tawafLastLap&&completedLaps<=TAWAF_LAPS){
+    tawafLastLap=completedLaps;
+    playTawafGong(completedLaps-1);
   }
   return vm;
 }
@@ -1079,7 +1079,7 @@ function playTawafGong(lap){
     }
   }catch(e){}
 }
-function startTawaf(){tawafActive=true;tawafStart=performance.now();tawafLastLap=-1;}
+function startTawaf(){tawafActive=true;tawafStart=performance.now();tawafLastLap=0;}
 // Auto-trigger at Maghrib
 let tawafTriggered=false;
 function checkTawaf(){
