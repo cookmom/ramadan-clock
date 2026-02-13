@@ -82,10 +82,54 @@ input.sv{width:120px;}
   </svg>
 </div>
 
-<div id="tapOverlay" style="position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.4);backdrop-filter:blur(8px);cursor:pointer;transition:opacity .5s;">
-  <div style="text-align:center;color:rgba(255,255,240,.8);">
-    <div style="font-size:32px;margin-bottom:12px;">☽</div>
-    <div style="font-size:13px;font-weight:500;letter-spacing:.08em;">tap to start</div>
+<div id="tapOverlay" style="position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.5);backdrop-filter:blur(30px) saturate(180%);-webkit-backdrop-filter:blur(30px) saturate(180%);cursor:pointer;transition:opacity .6s cubic-bezier(.4,0,.2,1);">
+  <div style="text-align:center;color:rgba(255,255,240,.85);max-width:320px;padding:0 24px;">
+    <div style="font-size:clamp(36px,6vw,52px);margin-bottom:4px;">☽</div>
+    <div style="font-size:clamp(9px,1.3vw,11px);font-weight:600;letter-spacing:.25em;text-transform:uppercase;opacity:.5;margin-bottom:20px;">Suhoor to Iftar</div>
+    
+    <div style="display:flex;flex-direction:column;gap:16px;margin:28px 0;">
+      <div style="display:flex;align-items:center;gap:16px;">
+        <div style="width:44px;height:44px;border-radius:12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,240,.5)" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M12 5v2m0 10v2m-7-7h2m10 0h2"/></svg>
+        </div>
+        <div style="text-align:left;">
+          <div style="font-size:clamp(12px,1.6vw,14px);font-weight:400;letter-spacing:.02em;">Tap</div>
+          <div style="font-size:clamp(10px,1.3vw,12px);font-weight:300;opacity:.45;margin-top:1px;">Show prayer times & info</div>
+        </div>
+      </div>
+      
+      <div style="display:flex;align-items:center;gap:16px;">
+        <div style="width:44px;height:44px;border-radius:12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,240,.5)" stroke-width="1.5"><path d="M8 12h8m-4-4l4 4-4 4"/></svg>
+        </div>
+        <div style="text-align:left;">
+          <div style="font-size:clamp(12px,1.6vw,14px);font-weight:400;letter-spacing:.02em;">Swipe left · right</div>
+          <div style="font-size:clamp(10px,1.3vw,12px);font-weight:300;opacity:.45;margin-top:1px;">Change watch face</div>
+        </div>
+      </div>
+      
+      <div style="display:flex;align-items:center;gap:16px;">
+        <div style="width:44px;height:44px;border-radius:12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,240,.5)" stroke-width="1.5"><path d="M12 8v8m-4-4l4-4 4 4"/></svg>
+        </div>
+        <div style="text-align:left;">
+          <div style="font-size:clamp(12px,1.6vw,14px);font-weight:400;letter-spacing:.02em;">Swipe up</div>
+          <div style="font-size:clamp(10px,1.3vw,12px);font-weight:300;opacity:.45;margin-top:1px;">Day mode</div>
+        </div>
+      </div>
+      
+      <div style="display:flex;align-items:center;gap:16px;">
+        <div style="width:44px;height:44px;border-radius:12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,240,.5)" stroke-width="1.5"><path d="M12 16V8m-4 4l4 4 4-4"/></svg>
+        </div>
+        <div style="text-align:left;">
+          <div style="font-size:clamp(12px,1.6vw,14px);font-weight:400;letter-spacing:.02em;">Swipe down</div>
+          <div style="font-size:clamp(10px,1.3vw,12px);font-weight:300;opacity:.45;margin-top:1px;">Night mode</div>
+        </div>
+      </div>
+    </div>
+    
+    <div style="font-size:clamp(11px,1.4vw,13px);font-weight:300;letter-spacing:.06em;opacity:.35;margin-top:8px;">tap anywhere to begin</div>
   </div>
 </div>
 
