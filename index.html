@@ -947,12 +947,12 @@ function drawPrayerMarkers(c){
     const mins=pM(PD[name]);
     const ang=((mins%720)/720)*Math.PI*2-Math.PI/2;
     const mx=cx+Math.cos(ang)*midR, my=cy+Math.sin(ang)*midR;
-    const dotR=(name==='Fajr'||name==='Maghrib'?6:3)*dpr;
+    const dotR=3*dpr;
     // Shadow
     ctx.fillStyle=c.shadow;ctx.beginPath();
     ctx.arc(mx+1*dpr,my+1.5*dpr,dotR,0,Math.PI*2);ctx.fill();
     // Dot
-    ctx.fillStyle=c.lume;ctx.globalAlpha=0.85;ctx.beginPath();
+    ctx.fillStyle=PC[name];ctx.globalAlpha=0.85;ctx.beginPath();
     ctx.arc(mx,my,dotR,0,Math.PI*2);ctx.fill();
     // Highlight
     ctx.fillStyle='rgba(255,255,240,.35)';ctx.beginPath();
