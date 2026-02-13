@@ -466,54 +466,29 @@ function qiblaTick(){
     if(!qiblaAudioCtx)qiblaAudioCtx=new(window.AudioContext||window.webkitAudioContext)();
     if(qiblaAudioCtx.state==='suspended')qiblaAudioCtx.resume();
     const t=qiblaAudioCtx.currentTime;
-    // Adhan opening contour — "Allahu Akbar" ascending phrase
-    // D4, G4, A4, Bb4, A4 — the iconic call to prayer
-    const notes=[294, 392, 440, 466, 440];
+    // Hijaz maqam descending — minute repeater gong strikes
+    const notes=[1175, 740, 622];
     const vol=0.15*(S.tickVol/100);
     notes.forEach((f,i)=>{
-      const start=t+i*0.16;
-      const dur=i===notes.length-1?1.2:0.14;
-      
-      // Vocal timbre — wordless voice singing
-      // Fundamental
+      const start=t+i*0.18;
       const o=qiblaAudioCtx.createOscillator();
       const g=qiblaAudioCtx.createGain();
-      o.type='sine';
-      o.frequency.value=f;
-      // Vocal vibrato (slower, warmer than ney)
-      const vib=qiblaAudioCtx.createOscillator();
-      const vibG=qiblaAudioCtx.createGain();
-      vib.frequency.value=5.2;
-      vibG.gain.value=f*0.025;
-      vib.connect(vibG);vibG.connect(o.frequency);
-      vib.start(start);vib.stop(start+dur+0.1);
-      
-      // Vocal formants — what makes a voice sound human
-      // "ah" vowel formants: ~800Hz, ~1200Hz, ~2500Hz
-      [800,1200,2500].forEach((ff,fi)=>{
-        const fo=qiblaAudioCtx.createOscillator();
-        const fg=qiblaAudioCtx.createGain();
-        const fbp=qiblaAudioCtx.createBiquadFilter();
-        fo.type='sawtooth';
-        fo.frequency.value=f;
-        fbp.type='bandpass';fbp.frequency.value=ff;fbp.Q.value=fi===2?8:5;
-        const fv=vol*[0.12,0.08,0.03][fi];
-        fg.gain.setValueAtTime(0.001,start);
-        fg.gain.exponentialRampToValueAtTime(fv,start+0.06);
-        fg.gain.setValueAtTime(fv*0.7,start+dur*0.4);
-        fg.gain.exponentialRampToValueAtTime(0.001,start+dur);
-        fo.connect(fbp);fbp.connect(fg);fg.connect(qiblaAudioCtx.destination);
-        fo.start(start);fo.stop(start+dur+0.05);
-      });
-      
-      // Soft breath attack
-      g.gain.setValueAtTime(0.001,start);
-      g.gain.exponentialRampToValueAtTime(vol*0.7,start+0.06);
-      g.gain.setValueAtTime(vol*0.5,start+dur*0.4);
-      g.gain.exponentialRampToValueAtTime(0.001,start+dur);
-      
       o.connect(g);g.connect(qiblaAudioCtx.destination);
-      o.start(start);o.stop(start+dur+0.1);
+      o.frequency.value=f;
+      o.type='sine';
+      g.gain.setValueAtTime(vol,start);
+      g.gain.exponentialRampToValueAtTime(vol*0.6,start+0.05);
+      g.gain.exponentialRampToValueAtTime(0.001,start+1.2);
+      o.start(start);o.stop(start+1.3);
+      // Subtle harmonic overtone
+      const o2=qiblaAudioCtx.createOscillator();
+      const g2=qiblaAudioCtx.createGain();
+      o2.connect(g2);g2.connect(qiblaAudioCtx.destination);
+      o2.frequency.value=f*2.02;
+      o2.type='sine';
+      g2.gain.setValueAtTime(vol*0.15,start);
+      g2.gain.exponentialRampToValueAtTime(0.001,start+0.6);
+      o2.start(start);o2.stop(start+0.7);
     });
   }catch(e){}
 }
