@@ -22,15 +22,15 @@ canvas{position:fixed;top:0;left:0;width:100vw;height:100vh;display:block;}
 
 .info{position:fixed;left:50%;transform:translateX(-50%);z-index:10;text-align:center;display:flex;flex-direction:column;align-items:center;gap:4px;pointer-events:none;opacity:0;transition:opacity .4s ease;}
 .info-top{top:max(20px,env(safe-area-inset-top,0px));}
-.info-bottom{bottom:max(200px,calc(env(safe-area-inset-bottom,0px) + 190px));}
+.info-bottom{bottom:max(clamp(80px,18vh,200px),calc(env(safe-area-inset-bottom,0px) + clamp(70px,17vh,190px)));}
 .info.visible{opacity:1;}
 .info>*{pointer-events:auto;}
 .ramadan-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.2em;transition:all .5s;}
 .hijri{font-size:15px;font-weight:600;letter-spacing:.03em;transition:all .5s;}
 .greg{font-size:12px;font-weight:300;letter-spacing:.02em;transition:all .5s;}
-.fast-status{font-size:16px;font-weight:600;margin-top:4px;letter-spacing:.01em;transition:all .5s;}
+.fast-status{font-size:clamp(11px,1.5vw,16px);font-weight:600;margin-top:4px;letter-spacing:.01em;transition:all .5s;}
 .fast-status .tl{font-variant-numeric:tabular-nums;font-weight:700;transition:all .5s;}
-.prayers{display:flex;gap:14px;flex-wrap:nowrap;justify-content:center;margin-top:6px;font-family:Inter,system-ui,sans-serif;letter-spacing:.04em;font-weight:500;text-transform:uppercase;transition:all .5s;}
+.prayers{display:flex;gap:clamp(6px,1.2vw,14px);flex-wrap:wrap;justify-content:center;margin-top:6px;font-family:Inter,system-ui,sans-serif;letter-spacing:.04em;font-weight:500;text-transform:uppercase;transition:all .5s;}
 .pp{display:inline-flex;align-items:center;gap:4px;font-weight:500;letter-spacing:.03em;padding:0;border:none!important;background:none!important;backdrop-filter:none;transition:all .5s;}
 .pp .dot{width:4px;height:4px;border-radius:50%;flex-shrink:0;}
 .pp .pt{font-weight:500;font-variant-numeric:tabular-nums;}
@@ -63,19 +63,19 @@ input.sv{width:120px;}
 .movement-opt.active{font-weight:600;}
 
 /* Dial Picker Bar */
-.dial-bar{position:fixed;bottom:0;left:50%;transform:translateX(-50%) translateY(20px);z-index:20;padding:10px 0 max(14px,env(safe-area-inset-bottom,0px));display:flex;align-items:center;gap:8px;opacity:0;transition:opacity .4s ease,transform .4s ease;pointer-events:none;justify-content:center;width:min(80%,480px);}
+.dial-bar{position:fixed;bottom:0;left:50%;transform:translateX(-50%) translateY(20px);z-index:20;padding:10px 0 max(14px,env(safe-area-inset-bottom,0px));display:flex;align-items:center;gap:8px;opacity:0;transition:opacity .4s ease,transform .4s ease;pointer-events:none;justify-content:center;width:min(85%,600px);}
 .dial-bar.visible{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto;}
 .dial-mode-toggle{display:flex;align-items:center;background:rgba(255,255,255,.12);backdrop-filter:blur(12px);border-radius:20px;padding:3px;flex-shrink:0;cursor:pointer;border:1px solid rgba(255,255,255,.08);}
-.dial-mode-btn{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all .3s;color:rgba(255,255,255,.5);}
+.dial-mode-btn{width:clamp(24px,4vw,30px);height:clamp(24px,4vw,30px);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:clamp(11px,1.5vw,14px);transition:all .3s;color:rgba(255,255,255,.5);}
 .dial-mode-btn.active{background:rgba(255,255,255,.2);color:#fff;}
-.dial-swatches{display:flex;gap:12px;overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none;padding:4px 2px;scroll-snap-type:x mandatory;flex-shrink:1;}
+.dial-swatches{display:flex;gap:clamp(6px,1vw,12px);overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none;padding:4px 2px;scroll-snap-type:x mandatory;flex-shrink:1;}
 .dial-swatches::-webkit-scrollbar{display:none;}
-.dial-swatch{flex-shrink:0;width:160px;display:flex;flex-direction:column;align-items:center;gap:6px;scroll-snap-align:center;cursor:pointer;}
-.dial-swatch-circle{width:144px;height:144px;border-radius:50%;border:3px solid transparent;transition:border-color .2s;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px);position:relative;overflow:hidden;}
+.dial-swatch{flex-shrink:0;width:clamp(42px,10vw,160px);display:flex;flex-direction:column;align-items:center;gap:clamp(3px,.5vw,6px);scroll-snap-align:center;cursor:pointer;}
+.dial-swatch-circle{width:clamp(36px,9vw,144px);height:clamp(36px,9vw,144px);border-radius:50%;border:2px solid transparent;transition:border-color .2s;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px);position:relative;overflow:hidden;}
 .dial-swatch.active .dial-swatch-circle{border-color:rgba(255,255,255,.8);}
-.dial-swatch-label{font-size:14px;color:rgba(255,255,255,.4);font-weight:500;white-space:nowrap;transition:color .2s;}
+.dial-swatch-label{font-size:clamp(8px,1vw,14px);color:rgba(255,255,255,.4);font-weight:500;white-space:nowrap;transition:color .2s;}
 .dial-swatch.active .dial-swatch-label{color:rgba(255,255,255,.85);}
-.dial-nav{width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.1);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;color:rgba(255,255,255,.6);font-size:12px;transition:all .2s;}
+.dial-nav{width:clamp(24px,4vw,30px);height:clamp(24px,4vw,30px);border-radius:50%;background:rgba(255,255,255,.1);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;color:rgba(255,255,255,.6);font-size:12px;transition:all .2s;}
 .dial-nav:hover{background:rgba(255,255,255,.2);color:#fff;}
 </style>
 </head>
