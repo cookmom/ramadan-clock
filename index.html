@@ -1255,7 +1255,7 @@ function checkTawaf(){
   // Dev pre_mag: tick forward from 1min before Maghrib, auto-trigger at pre-start mark
   if(tawafState==='pre_mag'&&tawafMaghribMin!==null){
     const elapsed=(performance.now()-tawafPreMagStart)/1000/60; // real minutes elapsed
-    devTimeMin=tawafMaghribMin-1+elapsed;
+    devTimeMin=(tawafMaghribMin-TAWAF_PRESTART_MIN-(5/60))+elapsed;
     updateInfo();
     // When virtual time reaches the pre-start mark, begin spinning
     const preStart=tawafMaghribMin-TAWAF_PRESTART_MIN;
