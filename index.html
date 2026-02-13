@@ -717,7 +717,8 @@ function drawSplitFlap(c){
   // Show flap: always during Ramadan, Mon/Thu (Sunnah fasting), or dev mode
   const dayOfWeek=new Date().getDay(); // 0=Sun,1=Mon,...4=Thu
   const isSunnahDay=dayOfWeek===1||dayOfWeek===4;
-  const showFlap=isRam||isSunnahDay||devRamadan;
+  // Always show during dev period — revert after Ramadan launch
+  const showFlap=true;
   if(!showFlap)return;
 
   // During tawaf: flap follows the spinning hands
