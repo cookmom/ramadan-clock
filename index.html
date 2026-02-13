@@ -537,7 +537,7 @@ function drawQiblaWindow(c){
   ctx.lineWidth=(aligned?1.5:1)*dpr;
   roundRect(ctx,wx-ww/2,wy-wh/2,ww,wh,wr);ctx.stroke();
   // Arrow
-  const arrLen=wh*0.32;
+  const arrLen=wh*0.42;
   const arrTipX=wx+Math.sin(arrowAng)*arrLen;
   const arrTipY=wy-Math.cos(arrowAng)*arrLen;
   const arrTailX=wx-Math.sin(arrowAng)*arrLen*0.5;
