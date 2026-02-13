@@ -483,8 +483,8 @@ function qiblaTick(){
       // Vocal vibrato (slower, warmer than ney)
       const vib=qiblaAudioCtx.createOscillator();
       const vibG=qiblaAudioCtx.createGain();
-      vib.frequency.value=4.8;
-      vibG.gain.value=f*0.008;
+      vib.frequency.value=5.2;
+      vibG.gain.value=f*0.025;
       vib.connect(vibG);vibG.connect(o.frequency);
       vib.start(start);vib.stop(start+dur+0.1);
       
