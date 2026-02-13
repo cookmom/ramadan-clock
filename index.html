@@ -1134,10 +1134,8 @@ function getTawafVirtualMin(){
     tawafCurrentVM=5040;endTawafSpin();return 0;
   }
   const t=Math.min(elapsed/TAWAF_DURATION,1);
-  // Ease-out quadratic: fast start (first gong ~2s), gentle deceleration to 7th
-  const ease=t*(2-t);
-  // 7 laps of hour hand = 84 hours = 5040 virtual minutes in 30 real seconds
-  const vm=Math.min(5040,5040*ease);
+  // Linear — each revolution exactly 2 seconds, no easing
+  const vm=Math.min(5040,5040*t);
   tawafCurrentVM=vm;
   // Gong AFTER each completed hour-hand revolution (720 virtual min = 12h)
   // Use threshold slightly below 720 to catch the 7th lap at vm≈5040
@@ -1212,8 +1210,8 @@ function playTawafGong(lap){
 const TAWAF_HOLD_MS=10000; // 10s hold with normal ticking after tawaf
 // Pre-compute: first gong hits when vm=720 (first hour-hand lap)
 // With ease-out quadratic t*(2-t)=1/7: t = 1 - sqrt(1 - 1/7)
-const TAWAF_PREGONG_T=1-Math.sqrt(1-1/7);
-const TAWAF_PREGONG_MS=TAWAF_PREGONG_T*TAWAF_DURATION; // ~2.2s before first gong
+const TAWAF_PREGONG_T=1/7; // linear: first gong at exactly 1/7 of duration (2s)
+const TAWAF_PREGONG_MS=TAWAF_PREGONG_T*TAWAF_DURATION; // 2s before first gong
 const TAWAF_PRESTART_MIN=TAWAF_PREGONG_MS/1000/60; // in minutes
 let tawafState='idle'; // idle | pre_mag | spinning | hold
 let tawafHoldStart=0;
