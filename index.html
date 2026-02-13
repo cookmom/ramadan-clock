@@ -1015,7 +1015,7 @@ draw();
     <span style="flex:1"></span>
     <span id="devTimeLabel" style="font-variant-numeric:tabular-nums;font-weight:500;">LIVE</span>
   </div>
-  <input type="range" id="devSlider" min="0" max="1439" step="0.5" value="720" style="width:100%;accent-color:#f0e060;cursor:pointer;" oninput="devTimeMin=parseFloat(this.value);document.getElementById('devTimeLabel').textContent=((h,m)=>(h%12||12)+':'+String(m).padStart(2,'0')+(h>=12?' PM':' AM'))(Math.floor(this.value/60),Math.floor(this.value%60));updateInfo();">
+  <input type="range" id="devSlider" min="0" max="1439" step="0.5" value="720" style="width:100%;accent-color:#f0e060;cursor:pointer;" oninput="devTimeMin=parseFloat(this.value);document.getElementById('devTimeLabel').textContent=((h,m)=>(h%12||12)+':'+String(m).padStart(2,'0')+(h>=12?' PM':' AM'))(Math.floor(this.value/60),Math.floor(this.value%60));updateModeBlend();updateInfo();">
   <div style="display:flex;gap:8px;align-items:center;width:100%;margin-top:4px;">
     <span style="font-size:10px;color:rgba(255,255,240,.5);">Location</span>
     <select id="devLocSelect" onchange="devFetchLocation(this.value);" style="flex:1;font-size:11px;padding:4px 6px;background:rgba(240,224,96,.1);border:1px solid rgba(240,224,96,.25);border-radius:6px;color:#f0e060;cursor:pointer;">
