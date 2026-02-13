@@ -1244,7 +1244,7 @@ function checkTawafHold(){
   if(performance.now()-tawafHoldStart>=TAWAF_HOLD_MS){
     // Restore live time
     tawafState='idle';tawafDev=false;
-    devTimeMin=null;tawafMaghribMin=null;
+    devTimeMin=null;tawafMaghribMin=null;celestialProgress=0;modeBlend=0;modeTarget=0;
     const sl=document.getElementById('devSlider');
     const lb=document.getElementById('devTimeLabel');
     const tg=document.getElementById('devTawafToggle');
@@ -1431,9 +1431,9 @@ draw();
   </div>
   <div style="display:flex;gap:12px;align-items:center;width:100%;margin-top:4px;">
     <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" id="devRamToggle" onchange="devRamadan=this.checked;updateInfo();" style="accent-color:#f0e060;"> <span style="font-size:11px;">Ramadan</span></label>
-    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" id="devTawafToggle" onchange="if(this.checked){startTawaf(true);}else{tawafActive=false;tawafDev=false;tawafState='idle';devTimeMin=null;tawafMaghribMin=null;document.getElementById('devSlider').value=720;document.getElementById('devTimeLabel').textContent='LIVE';updateInfo();}" style="accent-color:#f0e060;"> <span style="font-size:11px;">Tawaf</span></label>
+    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" id="devTawafToggle" onchange="if(this.checked){celestialProgress=0;modeBlend=0;modeTarget=0;startTawaf(true);}else{tawafActive=false;tawafDev=false;tawafState='idle';celestialProgress=0;modeBlend=0;modeTarget=0;devTimeMin=null;tawafMaghribMin=null;document.getElementById('devSlider').value=720;document.getElementById('devTimeLabel').textContent='LIVE';updateInfo();}" style="accent-color:#f0e060;"> <span style="font-size:11px;">Tawaf</span></label>
     <span style="flex:1"></span>
-    <button onclick="devTimeMin=null;devLocation=null;devRamadan=false;tawafActive=false;tawafDev=false;tawafState='idle';tawafMaghribMin=null;document.getElementById('devSlider').value=720;document.getElementById('devTimeLabel').textContent='LIVE';document.getElementById('devRamToggle').checked=false;document.getElementById('devTawafToggle').checked=false;document.getElementById('devLocSelect').value='la';fetchPrayer();" style="font-size:10px;padding:4px 10px;background:rgba(240,224,96,.15);border:1px solid rgba(240,224,96,.3);border-radius:6px;color:#f0e060;cursor:pointer;">Reset All</button>
+    <button onclick="devTimeMin=null;devLocation=null;devRamadan=false;tawafActive=false;tawafDev=false;tawafState='idle';tawafMaghribMin=null;celestialProgress=0;modeBlend=0;modeTarget=0;document.getElementById('devSlider').value=720;document.getElementById('devTimeLabel').textContent='LIVE';document.getElementById('devRamToggle').checked=false;document.getElementById('devTawafToggle').checked=false;document.getElementById('devLocSelect').value='la';fetchPrayer();" style="font-size:10px;padding:4px 10px;background:rgba(240,224,96,.15);border:1px solid rgba(240,224,96,.3);border-radius:6px;color:#f0e060;cursor:pointer;">Reset All</button>
   </div>
 </div>
 <script>
