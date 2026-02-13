@@ -1285,7 +1285,7 @@ function draw(){
     const t=Math.min(elapsed/TAWAF_DURATION,1);
     const ease=t<0.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
     const vm=5040*ease;
-    celestialProgress=Math.max(0,Math.min(1,(vm-720)/4320)); // 0 at first gong, 1 at last
+    celestialProgress=Math.max(0,Math.min(1,(vm-720)/3600)); // 0 at first gong, 1 at 6th gong (settled before 7th)
     modeTarget=celestialProgress; // night fade synced to celestial
     modeBlend+=(modeTarget-modeBlend)*0.08;
   }else if(tawafState==='hold'){
