@@ -623,7 +623,8 @@ function drawQiblaWindow(c){
   if(qiblaAngle===null)return;
   // Position: 12 o'clock marker — the crown
   const qr=R*0.045; // circle radius
-  const qx=cx, qy=cy-R*0.72; // just inside the dial edge
+  const midR=(R-R*0.18+R-R*0.03)/2; // same position as hour index markers
+  const qx=cx, qy=cy-midR;
   // Qibla direction relative to device
   let arrowAng=qiblaAngle;
   if(deviceHeading!==null) arrowAng=qiblaAngle-deviceHeading;
@@ -1144,8 +1145,6 @@ function drawNumerals(c){
   const showA=S.numerals==='arabic'||S.numerals==='both';
   const showW=S.numerals==='western'||S.numerals==='both';
   for(let i=0;i<12;i++){
-    // Skip 12 o'clock numeral — qibla compass sits there
-    if(i===0&&qiblaAngle!==null)continue;
     const ang=(i/12)*Math.PI*2-Math.PI/2;
     if(showA&&showW){
       const rA=R-R*0.3,rW=R-R*0.42;
