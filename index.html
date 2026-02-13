@@ -30,10 +30,10 @@ canvas{position:fixed;top:0;left:0;width:100vw;height:100vh;display:block;}
 .greg{font-size:12px;font-weight:300;letter-spacing:.02em;transition:all .5s;}
 .fast-status{font-size:16px;font-weight:600;margin-top:4px;letter-spacing:.01em;transition:all .5s;}
 .fast-status .tl{font-variant-numeric:tabular-nums;font-weight:700;transition:all .5s;}
-.prayers{display:flex;gap:20px;flex-wrap:wrap;justify-content:center;margin-top:6px;}
-.pp{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:400;letter-spacing:.03em;padding:0;border:none!important;background:none!important;backdrop-filter:none;transition:all .5s;}
-.pp .dot{width:5px;height:5px;border-radius:50%;}
-.pp .pt{font-weight:600;font-variant-numeric:tabular-nums;font-size:11px;}
+.prayers{display:flex;gap:6px;flex-wrap:nowrap;justify-content:center;margin-top:6px;font-size:11px;letter-spacing:.04em;font-weight:500;opacity:.35;transition:all .5s;}
+.pp{display:inline;font-size:11px;font-weight:400;letter-spacing:.03em;padding:0;border:none!important;background:none!important;backdrop-filter:none;transition:all .5s;}
+.pp .dot{display:none;}
+.pp .pt{font-weight:500;font-variant-numeric:tabular-nums;font-size:11px;}
 .loc{font-size:10px;font-weight:400;letter-spacing:.04em;margin-top:6px;transition:all .5s;}
 .settings-btn{position:fixed;top:max(16px,env(safe-area-inset-top,0px));right:16px;z-index:15;width:32px;height:32px;cursor:pointer;opacity:0.3;transition:opacity .3s;}
 .settings-btn:hover,.settings-btn:active{opacity:0.6;}
@@ -448,13 +448,11 @@ function updateInfo(){
   const ps=PN.map(n=>({name:n,time:pM(PD[n]),color:PC[n]}));
   let ni=ps.findIndex(p=>p.time>now);if(ni===-1)ni=0;
   let ci=ni-1;if(ci<0)ci=ps.length-1;
-  document.getElementById('prayers').innerHTML=ps.map((p,i)=>{
-    const isActive=i===ci,isNext=i===ni;
-    const nameColor=isNext?c.accent:isActive?c.lume:c.textDim;
-    const timeColor=isNext?c.accent:isActive?c.lume:c.text;
-    const opacity=isActive?'1':isNext?'1':'0.6';
-    return`<div class="pp" style="color:${nameColor};opacity:${opacity}"><span class="dot" style="background:${isNext?c.accent:isActive?c.lume:c.lumeDim}"></span>${p.name} <span class="pt" style="color:${timeColor}">${f12(p.time)}</span></div>`;
-  }).join('');
+  const pEl=document.getElementById('prayers');
+  pEl.style.color=c.minNum||c.textDim;
+  pEl.innerHTML=ps.map((p,i)=>{
+    return`<span class="pp">${p.name} ${f12(p.time)}</span>`;
+  }).join(' · ');
 
   const fajr=pM(PD.Fajr),mag=pM(PD.Maghrib),el=document.getElementById('fastStatus');
   el.style.color=c.text;
