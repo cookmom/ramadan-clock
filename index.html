@@ -1343,6 +1343,11 @@ cv.addEventListener('touchend',e=>{
   swipeX0=null;
   if(Math.abs(dx)>50&&Math.abs(dx)>Math.abs(dy)*1.5){
     swipeDial(dx<0?1:-1);
+  }else if(Math.abs(dy)>50&&Math.abs(dy)>Math.abs(dx)*1.5){
+    // Swipe up = day, swipe down = night
+    S.mode=dy<0?'day':'night';
+    localStorage.setItem('rc6',JSON.stringify(S));
+    updateModeBlend();
   }
 });
 buildDialDots();
