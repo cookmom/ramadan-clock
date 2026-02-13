@@ -481,17 +481,17 @@ function qiblaTick(){
       g.gain.exponentialRampToValueAtTime(vol*0.5,start+0.03);
       g.gain.exponentialRampToValueAtTime(0.001,start+1.4);
       o.start(start);o.stop(start+1.5);
-      // Brassy odd harmonics (3rd, 5th — what makes brass ring)
-      [3.01, 5.02, 2.01].forEach((h,hi)=>{
+      // Warm harmonics — 2nd and 3rd only, fast decay
+      [2.01, 3.01].forEach((h,hi)=>{
         const oh=qiblaAudioCtx.createOscillator();
         const gh=qiblaAudioCtx.createGain();
         oh.connect(gh);gh.connect(qiblaAudioCtx.destination);
         oh.frequency.value=f*h;
         oh.type='sine';
-        const hv=vol*[0.18, 0.06, 0.12][hi];
+        const hv=vol*[0.12, 0.06][hi];
         gh.gain.setValueAtTime(hv,start);
-        gh.gain.exponentialRampToValueAtTime(0.001,start+[0.8, 0.4, 0.6][hi]);
-        oh.start(start);oh.stop(start+1.0);
+        gh.gain.exponentialRampToValueAtTime(0.001,start+[0.3, 0.15][hi]);
+        oh.start(start);oh.stop(start+0.4);
       });
     });
   }catch(e){}
