@@ -1376,8 +1376,13 @@ function updateModeToggle(){
   document.getElementById('modeMoon').classList.toggle('active',mode==='night');
 }
 window.scrollSwatches=function(dir){
-  const el=document.getElementById('dialSwatches');
-  el.scrollBy({left:dir*120,behavior:'smooth'});
+  const keys=Object.keys(DIALS);
+  const idx=keys.indexOf(S.dial);
+  const next=keys[(idx+dir+keys.length)%keys.length];
+  pickDial(next);
+  // Scroll swatch into view
+  const el=document.querySelector(`.dial-swatch[data-dial="${next}"]`);
+  if(el)el.scrollIntoView({behavior:'smooth',inline:'center',block:'nearest'});
 };
 buildDialSwatches();
 
