@@ -681,8 +681,9 @@ function drawQiblaWindow(c){
 }
 
 // ── Split-Flap Countdown ──
-let flapPrevText='',flapAnimStart=0,flapPrevDisplay='';
-const FLAP_DUR=400; // ms — mechanical flip duration
+let flapPrevChars=[],flapCharAnims=[];
+const FLAP_DUR=350; // ms per character flip
+const FLAP_STAGGER=60; // ms stagger between characters
 function drawSplitFlap(c){
   if(!PD)return;
   const isRam=devRamadan||(DD&&DD.hijri.month.number===9);
@@ -691,130 +692,135 @@ function drawSplitFlap(c){
   let label='',mins=0;
   if(now>=fajr&&now<mag){mins=mag-now;label='IFTAR';}
   else if(now<fajr){mins=fajr-now;label='FAJR';}
-  else{
-    drawSplitFlapRender(c,'MUBARAK','☪',0);
-    return;
-  }
+  else{drawSplitFlapChars(c,'MUBARAK'.split(''),label);return;}
   const h=Math.floor(mins/60),m=Math.floor(mins%60);
-  const timeStr=(h>0?h+'H '+String(m).padStart(2,'0')+'M':m+'M');
-  // Detect change → trigger flip
-  if(timeStr!==flapPrevText){
-    flapPrevDisplay=flapPrevText||timeStr;
-    flapPrevText=timeStr;
-    flapAnimStart=performance.now();
+  const chars=(h>0?h+'H '+String(m).padStart(2,'0')+'M':m+'M').split('');
+  // Detect per-char changes
+  const nowMs=performance.now();
+  // Pad arrays to same length
+  while(flapPrevChars.length<chars.length)flapPrevChars.push('');
+  while(flapCharAnims.length<chars.length)flapCharAnims.push({t:1,prev:''});
+  for(let i=0;i<chars.length;i++){
+    if(chars[i]!==flapPrevChars[i]){
+      flapCharAnims[i]={start:nowMs+i*FLAP_STAGGER,prev:flapPrevChars[i]||chars[i]};
+    }
   }
-  const elapsed=performance.now()-flapAnimStart;
-  const t=Math.min(elapsed/FLAP_DUR,1);
-  drawSplitFlapRender(c,timeStr,label,t,flapPrevDisplay);
+  flapPrevChars=chars.slice();
+  // Trim excess
+  flapCharAnims.length=chars.length;
+  drawSplitFlapChars(c,chars,label);
 }
-function drawSplitFlapRender(c,main,sub,t,prev){
-  const wx=cx, wy=cy+R*0.38;
-  const ww=R*0.36, wh=R*0.14, wr=R*0.018;
-  const gap=1*dpr;
-  const halfH=wh/2-gap/2;
+function drawSplitFlapChars(c,chars,sub){
+  const wy=cy+R*0.38;
+  const charW=R*0.055; // width per character cell
+  const cellGap=R*0.006; // gap between cells
+  const cellH=R*0.1;
+  const totalW=(charW+cellGap)*chars.length-cellGap;
+  const startX=cx-totalW/2;
+  const gap=0.8*dpr;
+  const halfH=cellH/2-gap/2;
+  const wr=R*0.012;
+  const nowMs=performance.now();
+  const fontSize=R*0.062;
 
   ctx.save();
 
-  // Shadow/depression
-  ctx.fillStyle=c.shadow;
-  roundRect(ctx,wx-ww/2+1*dpr,wy-wh/2+1.5*dpr,ww,wh,wr);ctx.fill();
-
-  // Window background
-  ctx.fillStyle='rgba(0,0,0,0.3)';
-  roundRect(ctx,wx-ww/2,wy-wh/2,ww,wh,wr);ctx.fill();
-
-  // Subtle inner border
-  ctx.strokeStyle='rgba(255,255,255,0.06)';
-  ctx.lineWidth=1*dpr;
-  roundRect(ctx,wx-ww/2,wy-wh/2,ww,wh,wr);ctx.stroke();
-
-  // ── BOTTOM HALF: shows NEW text (revealed as flap falls) ──
-  ctx.save();
-  roundRect(ctx,wx-ww/2,wy+gap/2,ww,halfH,0);ctx.clip();
-  // Slightly darker bottom
-  ctx.fillStyle='rgba(0,0,0,0.08)';
-  ctx.fillRect(wx-ww/2,wy+gap/2,ww,halfH);
-  // New text
+  // Sub-label below
   ctx.textAlign='center';ctx.textBaseline='middle';
-  ctx.font=`600 ${R*0.072}px 'Inter',system-ui,sans-serif`;
-  ctx.fillStyle=c.lume;ctx.globalAlpha=0.9;
-  ctx.fillText(main,wx,wy-R*0.008);
-  // Sub-label
-  ctx.font=`500 ${R*0.028}px 'Inter',system-ui,sans-serif`;
-  ctx.globalAlpha=0.35;ctx.fillStyle=c.lume;
-  ctx.fillText(sub,wx,wy+R*0.042);
+  ctx.font=`500 ${R*0.024}px 'Inter',system-ui,sans-serif`;
+  ctx.fillStyle=c.lume;ctx.globalAlpha=0.3;
+  ctx.fillText(sub,cx,wy+cellH/2+R*0.028);
   ctx.globalAlpha=1;
-  ctx.restore();
 
-  // ── TOP HALF: shows NEW text (destination) ──
-  ctx.save();
-  roundRect(ctx,wx-ww/2,wy-wh/2,ww,halfH,0);ctx.clip();
-  // Light catch on top flap
-  ctx.fillStyle='rgba(255,255,255,0.03)';
-  ctx.fillRect(wx-ww/2,wy-wh/2,ww,halfH);
-  // New text
-  ctx.textAlign='center';ctx.textBaseline='middle';
-  ctx.font=`600 ${R*0.072}px 'Inter',system-ui,sans-serif`;
-  ctx.fillStyle=c.lume;ctx.globalAlpha=0.9;
-  ctx.fillText(main,wx,wy-R*0.008);
-  ctx.font=`500 ${R*0.028}px 'Inter',system-ui,sans-serif`;
-  ctx.globalAlpha=0.35;ctx.fillStyle=c.lume;
-  ctx.fillText(sub,wx,wy+R*0.042);
-  ctx.globalAlpha=1;
-  ctx.restore();
+  for(let i=0;i<chars.length;i++){
+    const ch=chars[i];
+    const cellX=startX+i*(charW+cellGap);
+    const cellCx=cellX+charW/2;
+    const anim=flapCharAnims[i]||{start:0,prev:ch};
+    const elapsed=nowMs-(anim.start||0);
+    const t=Math.min(Math.max(elapsed/FLAP_DUR,0),1);
+    const isSpace=ch===' ';
 
-  // ── FLIPPING FLAP (top half falling down with old text) ──
-  if(t<1&&prev){
-    // Ease: fast start, decelerating (gravity + catch)
-    const ease=t<0.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
-    // Flap angle: 0 (flat, showing old top) → PI/2 (edge-on, gone)
-    const ang=ease*(Math.PI/2);
-    const scaleY=Math.cos(ang); // perspective compression
-    if(scaleY>0.01){
+    if(isSpace){continue;} // skip rendering spaces — just gap
+
+    // ── Cell shadow ──
+    ctx.fillStyle=c.shadow;
+    roundRect(ctx,cellX+0.5*dpr,wy-cellH/2+1*dpr,charW,cellH,wr);ctx.fill();
+
+    // ── Cell background ──
+    ctx.fillStyle='rgba(0,0,0,0.35)';
+    roundRect(ctx,cellX,wy-cellH/2,charW,cellH,wr);ctx.fill();
+
+    // ── BOTTOM HALF — new char ──
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(cellX,wy+gap/2,charW,halfH);ctx.clip();
+    ctx.fillStyle='rgba(0,0,0,0.06)';
+    ctx.fillRect(cellX,wy+gap/2,charW,halfH);
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.font=`600 ${fontSize}px 'Inter',system-ui,sans-serif`;
+    ctx.fillStyle=c.lume;ctx.globalAlpha=0.9;
+    ctx.fillText(ch,cellCx,wy);
+    ctx.globalAlpha=1;
+    ctx.restore();
+
+    // ── TOP HALF — new char (destination) ──
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(cellX,wy-cellH/2,charW,halfH);ctx.clip();
+    ctx.fillStyle='rgba(255,255,255,0.025)';
+    ctx.fillRect(cellX,wy-cellH/2,charW,halfH);
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.font=`600 ${fontSize}px 'Inter',system-ui,sans-serif`;
+    ctx.fillStyle=c.lume;ctx.globalAlpha=0.9;
+    ctx.fillText(ch,cellCx,wy);
+    ctx.globalAlpha=1;
+    ctx.restore();
+
+    // ── FLIPPING FLAP — old char falling ──
+    if(t<1&&anim.prev){
+      const ease=t<0.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
+      const scaleY=Math.cos(ease*(Math.PI/2));
+      if(scaleY>0.01){
+        ctx.save();
+        ctx.translate(cellCx,wy);
+        ctx.scale(1,scaleY);
+        ctx.translate(-cellCx,-wy);
+        ctx.beginPath();
+        ctx.rect(cellX,wy-halfH,charW,halfH);ctx.clip();
+        ctx.fillStyle=`rgba(0,0,0,${0.35+0.2*ease})`;
+        ctx.fillRect(cellX,wy-halfH,charW,halfH);
+        ctx.fillStyle=`rgba(255,255,255,${0.025*(1-ease)})`;
+        ctx.fillRect(cellX,wy-halfH,charW,halfH);
+        ctx.textAlign='center';ctx.textBaseline='middle';
+        ctx.font=`600 ${fontSize}px 'Inter',system-ui,sans-serif`;
+        ctx.fillStyle=c.lume;ctx.globalAlpha=0.85*(1-ease*0.3);
+        ctx.fillText(anim.prev,cellCx,wy);
+        ctx.globalAlpha=1;
+        ctx.restore();
+      }
+      // Shadow on bottom half from falling flap
       ctx.save();
-      // The flap hinges at the split line (wy)
-      ctx.translate(wx,wy);
-      ctx.scale(1,scaleY);
-      ctx.translate(-wx,-wy);
-      // Clip to top half region
-      roundRect(ctx,wx-ww/2,wy-halfH,ww,halfH,0);ctx.clip();
-      // Flap bg (gets darker as it rotates — shadow on falling flap)
-      ctx.fillStyle=`rgba(0,0,0,${0.3+0.2*ease})`;
-      ctx.fillRect(wx-ww/2,wy-halfH,ww,halfH);
-      // Light catch fading
-      ctx.fillStyle=`rgba(255,255,255,${0.03*(1-ease)})`;
-      ctx.fillRect(wx-ww/2,wy-halfH,ww,halfH);
-      // Old text on falling flap
-      ctx.textAlign='center';ctx.textBaseline='middle';
-      ctx.font=`600 ${R*0.072}px 'Inter',system-ui,sans-serif`;
-      ctx.fillStyle=c.lume;ctx.globalAlpha=0.9*(1-ease*0.3);
-      ctx.fillText(prev,wx,wy-R*0.008);
-      ctx.globalAlpha=1;
+      ctx.beginPath();ctx.rect(cellX,wy,charW,halfH);ctx.clip();
+      const sH=halfH*0.35*(1-ease);
+      const gr=ctx.createLinearGradient(cellCx,wy,cellCx,wy+sH);
+      gr.addColorStop(0,`rgba(0,0,0,${0.25*(1-ease)})`);
+      gr.addColorStop(1,'rgba(0,0,0,0)');
+      ctx.fillStyle=gr;ctx.fillRect(cellX,wy,charW,sH);
       ctx.restore();
     }
-    // Shadow cast by falling flap onto bottom half
-    ctx.save();
-    roundRect(ctx,wx-ww/2,wy,ww,halfH,0);ctx.clip();
-    const shadowH=halfH*0.4*(1-ease);
-    const grad=ctx.createLinearGradient(wx,wy,wx,wy+shadowH);
-    grad.addColorStop(0,`rgba(0,0,0,${0.3*(1-ease)})`);
-    grad.addColorStop(1,'rgba(0,0,0,0)');
-    ctx.fillStyle=grad;
-    ctx.fillRect(wx-ww/2,wy,ww,shadowH);
-    ctx.restore();
+
+    // ── Split line + hinge ──
+    ctx.fillStyle='rgba(0,0,0,0.5)';
+    ctx.fillRect(cellX,wy-gap/2,charW,gap);
+    ctx.fillStyle='rgba(255,255,255,0.04)';
+    ctx.fillRect(cellX,wy+gap/2,charW,0.5*dpr);
+
+    // ── Cell border ──
+    ctx.strokeStyle='rgba(255,255,255,0.05)';
+    ctx.lineWidth=0.5*dpr;
+    roundRect(ctx,cellX,wy-cellH/2,charW,cellH,wr);ctx.stroke();
   }
-
-  // Split line groove
-  ctx.fillStyle='rgba(0,0,0,0.5)';
-  ctx.fillRect(wx-ww/2,wy-gap/2,ww,gap);
-  // Highlight edge on split (metal hinge catch)
-  ctx.fillStyle='rgba(255,255,255,0.04)';
-  ctx.fillRect(wx-ww/2,wy+gap/2,ww,0.5*dpr);
-
-  // Outer border
-  ctx.strokeStyle=c.shadow;
-  ctx.lineWidth=1*dpr;
-  roundRect(ctx,wx-ww/2,wy-wh/2,ww,wh,wr);ctx.stroke();
 
   ctx.restore();
 }
