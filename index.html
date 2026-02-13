@@ -1301,6 +1301,9 @@ function draw(){
   }else if(tawafState==='hold'){
     celestialProgress=1;
     modeTarget=1;modeBlend+=(1-modeBlend)*0.08;
+  }else if(tawafState==='pre_mag'){
+    // Hold celestial at 0 during pre-mag countdown — prevent moon flash
+    celestialProgress=0;modeBlend=0;modeTarget=0;
   }else{
     // Outside tawaf: celestial follows night mode
     const nightTarget=resolveMode()==='night'?1:0;
