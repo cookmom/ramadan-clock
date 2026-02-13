@@ -1125,53 +1125,22 @@ function drawHands(c){
 let tawafActive=false,tawafStart=0,tawafDev=false;
 const TAWAF_LAPS=7,TAWAF_DURATION=15000; // 15s — Maghrib adhan is fast, urgent, direct
 let tawafLastLap=-1;
-// Maghrib adhan rhythmic phrasing — each gong hits at a musically-driven moment
-// Normalized times (0→1) when each revolution completes and gong strikes.
-// The GAPS between these define the speed of each revolution:
-//   Short gap = fast revolution (urgent phrase)
-//   Long gap  = slow revolution (breath, held note)
-// Modeled on Maghrib adhan: quick opener, brief breath, building urgency, rushing finish
-const GONG_RHYTHM=[
-  0.07,  // 1: "Allahu"     — immediate, sharp opener (1.05s)
-  0.17,  // 2: "Akbar"      — quick follow (1.50s gap)
-  0.32,  // 3: "Ashhadu"    — slight breath, testimony (2.25s gap)
-  0.50,  // 4: "La ilaha"   — building, longest phrase (2.70s gap)
-  0.65,  // 5: "Hayya salah"— urgent push (2.25s gap)
-  0.80,  // 6: "Hayya falah"— rushing (2.25s gap)
-  0.94,  // 7: "Allahu Akbar"— decisive snap home (2.10s gap)
-];
 function getTawafVirtualMin(){
   // Returns extra virtual minutes to subtract from current time (CCW)
-  // Revolution speed is driven by GONG_RHYTHM — piecewise linear interpolation
-  // so each revolution takes a different real-time duration = musical rhythm
   if(!tawafActive)return 0;
   const elapsed=performance.now()-tawafStart;
   if(elapsed>=TAWAF_DURATION+500){
+    // Extra 500ms for final gong to ring, then end
     tawafCurrentVM=5040;endTawafSpin();return 0;
   }
   const t=Math.min(elapsed/TAWAF_DURATION,1);
-  // Piecewise linear: map real time t → virtual minutes via GONG_RHYTHM breakpoints
-  // Each breakpoint: at time GONG_RHYTHM[i], vm = 720*(i+1)
-  let vm=0;
-  if(t<=GONG_RHYTHM[0]){
-    // Before first gong: 0 → 720
-    vm=720*(t/GONG_RHYTHM[0]);
-  }else if(t>=GONG_RHYTHM[6]){
-    // After 7th gong: coast to 5040 (already there)
-    vm=5040;
-  }else{
-    // Between gongs: find which segment we're in
-    for(let i=0;i<6;i++){
-      if(t<=GONG_RHYTHM[i+1]){
-        const segT=(t-GONG_RHYTHM[i])/(GONG_RHYTHM[i+1]-GONG_RHYTHM[i]);
-        vm=720*(i+1)+720*segT;
-        break;
-      }
-    }
-  }
-  vm=Math.min(5040,vm);
+  // Ease-out quadratic: fast start (first gong ~2s), gentle deceleration to 7th
+  const ease=t*(2-t);
+  // 7 laps of hour hand = 84 hours = 5040 virtual minutes in 30 real seconds
+  const vm=Math.min(5040,5040*ease);
   tawafCurrentVM=vm;
-  // Detect completed laps (gong when vm crosses 720*n)
+  // Gong AFTER each completed hour-hand revolution (720 virtual min = 12h)
+  // Use threshold slightly below 720 to catch the 7th lap at vm≈5040
   const completedLaps=Math.min(TAWAF_LAPS,Math.floor((vm+1)/720));
   if(completedLaps>tawafLastLap){
     tawafLastLap=completedLaps;
@@ -1244,8 +1213,8 @@ function playTawafGong(lap){
 const TAWAF_HOLD_MS=5000; // 5s hold — brief pause then back to live
 // Pre-compute: first gong hits when vm=720 (first hour-hand lap)
 // With ease-out quadratic t*(2-t)=1/7: t = 1 - sqrt(1 - 1/7)
-const TAWAF_PREGONG_T=GONG_RHYTHM[0]; // first gong at this fraction of duration
-const TAWAF_PREGONG_MS=TAWAF_PREGONG_T*TAWAF_DURATION; // ~1.05s before first gong
+const TAWAF_PREGONG_T=1-Math.sqrt(1-1/7);
+const TAWAF_PREGONG_MS=TAWAF_PREGONG_T*TAWAF_DURATION; // ~1.1s before first gong
 const TAWAF_PRESTART_MIN=TAWAF_PREGONG_MS/1000/60; // in minutes
 let tawafState='idle'; // idle | pre_mag | spinning | hold
 let tawafHoldStart=0;
