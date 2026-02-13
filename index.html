@@ -197,14 +197,10 @@ let W,H,cx,cy,R;
 const DIALS={
   tennis:  {bg:'#2e8b57',lume:'#c8e860',lumeDim:'#6aaa50',hand:'#f4f0e0',handStroke:'#ffffff',shadow:'rgba(0,40,20,.25)',minNum:'rgba(200,232,96,.35)',text:'rgba(255,255,240,.7)',textDim:'rgba(255,255,240,.35)',textMuted:'rgba(255,255,240,.25)',accent:'#f0e060',pillBg:'rgba(0,0,0,.08)',pillBorder:'rgba(255,255,240,.08)',cardBg:'rgba(20,60,35,.95)',cardBorder:'rgba(255,255,240,.1)'},
   white:   {bg:'#e8e4dc',lume:'#1a1a1a',lumeDim:'#888',hand:'#111',handStroke:'#222',shadow:'rgba(0,0,0,.12)',minNum:'rgba(0,0,0,.2)',text:'rgba(0,0,0,.6)',textDim:'rgba(0,0,0,.3)',textMuted:'rgba(0,0,0,.15)',accent:'#c8a040',pillBg:'rgba(0,0,0,.04)',pillBorder:'rgba(0,0,0,.08)',cardBg:'rgba(240,236,228,.95)',cardBorder:'rgba(0,0,0,.08)'},
-  ocean:   {bg:'#1a3a5c',lume:'#a0d4f0',lumeDim:'#4a7a9a',hand:'#e8e4dc',handStroke:'#fff',shadow:'rgba(0,10,30,.3)',minNum:'rgba(160,212,240,.3)',text:'rgba(200,220,240,.7)',textDim:'rgba(200,220,240,.35)',textMuted:'rgba(200,220,240,.2)',accent:'#60c0e0',pillBg:'rgba(0,0,0,.1)',pillBorder:'rgba(200,220,240,.1)',cardBg:'rgba(15,40,65,.95)',cardBorder:'rgba(200,220,240,.1)'},
   salmon:  {bg:'#c47a60',lume:'#fff0e0',lumeDim:'#d4a890',hand:'#f8f4ec',handStroke:'#fff',shadow:'rgba(60,20,10,.2)',minNum:'rgba(255,240,224,.3)',text:'rgba(255,240,224,.7)',textDim:'rgba(255,240,224,.35)',textMuted:'rgba(255,240,224,.2)',accent:'#f0d060',pillBg:'rgba(0,0,0,.06)',pillBorder:'rgba(255,240,224,.1)',cardBg:'rgba(140,80,55,.95)',cardBorder:'rgba(255,240,224,.1)'},
   slate:   {bg:'#3a3a44',lume:'#c0c0ca',lumeDim:'#6a6a74',hand:'#e0e0e4',handStroke:'#f0f0f4',shadow:'rgba(0,0,0,.25)',minNum:'rgba(192,192,202,.3)',text:'rgba(224,224,228,.6)',textDim:'rgba(224,224,228,.3)',textMuted:'rgba(224,224,228,.15)',accent:'#a0a0b0',pillBg:'rgba(0,0,0,.1)',pillBorder:'rgba(224,224,228,.08)',cardBg:'rgba(45,45,55,.95)',cardBorder:'rgba(224,224,228,.08)'},
   sky:     {bg:'#5a9ac0',lume:'#f0f8ff',lumeDim:'#8abcda',hand:'#f4f0e8',handStroke:'#fff',shadow:'rgba(0,20,40,.2)',minNum:'rgba(240,248,255,.3)',text:'rgba(240,248,255,.7)',textDim:'rgba(240,248,255,.35)',textMuted:'rgba(240,248,255,.2)',accent:'#f0e060',pillBg:'rgba(0,0,0,.06)',pillBorder:'rgba(240,248,255,.1)',cardBg:'rgba(60,110,150,.95)',cardBorder:'rgba(240,248,255,.1)'},
   cream:   {bg:'#d8ccb4',lume:'#3a3530',lumeDim:'#8a8478',hand:'#2a2520',handStroke:'#3a3530',shadow:'rgba(0,0,0,.1)',minNum:'rgba(58,53,48,.25)',text:'rgba(58,53,48,.6)',textDim:'rgba(58,53,48,.3)',textMuted:'rgba(58,53,48,.15)',accent:'#b08840',pillBg:'rgba(0,0,0,.04)',pillBorder:'rgba(58,53,48,.1)',cardBg:'rgba(200,188,168,.95)',cardBorder:'rgba(58,53,48,.1)'},
-  noir:    {bg:'#0a0a0c',lume:'#e0e0e4',lumeDim:'#4a4a54',hand:'#e0e0e4',handStroke:'#f0f0f4',shadow:'rgba(0,0,0,.4)',minNum:'rgba(224,224,228,.25)',text:'rgba(224,224,228,.5)',textDim:'rgba(224,224,228,.25)',textMuted:'rgba(224,224,228,.12)',accent:'#f0e060',pillBg:'rgba(255,255,255,.03)',pillBorder:'rgba(224,224,228,.06)',cardBg:'rgba(18,18,22,.95)',cardBorder:'rgba(224,224,228,.06)'},
-  emerald: {bg:'#0c1a14',lume:'#d4a017',lumeDim:'#5a7a3a',hand:'#e0d8c8',handStroke:'#f0eade',shadow:'rgba(0,10,5,.35)',minNum:'rgba(212,160,23,.25)',text:'rgba(224,232,228,.5)',textDim:'rgba(224,232,228,.25)',textMuted:'rgba(224,232,228,.12)',accent:'#d4a017',pillBg:'rgba(255,255,255,.03)',pillBorder:'rgba(224,232,228,.06)',cardBg:'rgba(12,26,20,.95)',cardBorder:'rgba(224,232,228,.08)'},
-  midnight:{bg:'#0e0e1a',lume:'#6366f1',lumeDim:'#3a3a5a',hand:'#c8c8d8',handStroke:'#d8d8e8',shadow:'rgba(0,0,10,.35)',minNum:'rgba(99,102,241,.25)',text:'rgba(200,200,216,.5)',textDim:'rgba(200,200,216,.25)',textMuted:'rgba(200,200,216,.12)',accent:'#818cf8',pillBg:'rgba(255,255,255,.03)',pillBorder:'rgba(200,200,216,.06)',cardBg:'rgba(14,14,26,.95)',cardBorder:'rgba(200,200,216,.08)'},
 };
 
 // Lume colors for night mode
@@ -1327,7 +1323,7 @@ function draw(){
 
 // ── Tap to show/hide info ──
 // ── Dial Picker Bar ──
-const DIAL_NAMES={tennis:'Tennis',white:'White',ocean:'Ocean',salmon:'Salmon',slate:'Slate',sky:'Signal Blue',cream:'Cream',noir:'Noir',emerald:'Emerald',midnight:'Midnight'};
+const DIAL_NAMES={tennis:'Tennis',white:'White',salmon:'Salmon',slate:'Slate',sky:'Signal Blue',cream:'Cream'};
 function buildDialSwatches(){
   const container=document.getElementById('dialSwatches');
   container.innerHTML=Object.keys(DIALS).map(key=>{
