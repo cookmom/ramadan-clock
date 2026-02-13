@@ -751,7 +751,7 @@ function drawFastingArc(c){
   const sweepAng=(fastDur/720)*Math.PI*2;
   const endAng=startAng+sweepAng;
   const arcR=R+R*0.14;
-  ctx.strokeStyle=c.accent+'1a';ctx.lineWidth=4*dpr;ctx.lineCap='round';
+  ctx.strokeStyle=c.accent+'1a';ctx.lineWidth=2*dpr;ctx.lineCap='round';
   ctx.beginPath();ctx.arc(cx,cy,arcR,startAng,endAng);ctx.stroke();
   if(now>=fajr&&now<=mag){
     const elapsed=now-fajr;
