@@ -654,18 +654,30 @@ function drawIndices(c){
       ctx.save();
       ctx.translate(cx+Math.cos(ang)*midR,cy+Math.sin(ang)*midR);
       ctx.rotate(ang+Math.PI/2);
-      // Brushed metal body
-      ctx.fillStyle='rgba(220,220,215,.9)';
+      // Brushed aluminum body — gradient along length for directional grain
+      const metalGrad=ctx.createLinearGradient(-capW,0,capW,0);
+      metalGrad.addColorStop(0,'rgba(145,148,145,.85)');
+      metalGrad.addColorStop(0.3,'rgba(175,178,175,.9)');
+      metalGrad.addColorStop(0.5,'rgba(190,193,190,.92)');
+      metalGrad.addColorStop(0.7,'rgba(170,173,170,.88)');
+      metalGrad.addColorStop(1,'rgba(140,143,140,.82)');
+      ctx.fillStyle=metalGrad;
       roundRect(ctx,-capW,capH/-2,capW*2,capH,capW);ctx.fill();
-      // Metal bottom bevel (darker)
-      ctx.fillStyle='rgba(160,160,155,.7)';
-      roundRect(ctx,-capW,capH/-2+1*dpr,capW*2,capH,capW);ctx.fill();
-      // Metal top face (lighter)
-      ctx.fillStyle='rgba(230,230,225,.95)';
-      roundRect(ctx,-capW,capH/-2,capW*2,capH-1.5*dpr,capW);ctx.fill();
-      // Metal specular highlight
-      ctx.fillStyle='rgba(255,255,250,.4)';
-      roundRect(ctx,-capW*0.6,capH/-2+1*dpr,capW*1.2,capH*0.3,capW*0.3);ctx.fill();
+      // Bottom edge (shadow from depth)
+      ctx.fillStyle='rgba(100,103,100,.5)';
+      roundRect(ctx,-capW,capH/-2+capH*0.8,capW*2,capH*0.2,capW*0.3);ctx.fill();
+      // Top edge catch (subtle, not glossy)
+      ctx.fillStyle='rgba(210,213,210,.3)';
+      roundRect(ctx,-capW*0.7,capH/-2+1*dpr,capW*1.4,capH*0.15,capW*0.3);ctx.fill();
+      // Micro grain texture (brushed lines)
+      ctx.globalAlpha=0.06;
+      for(let g=0;g<6;g++){
+        const gy=capH/-2+capH*(g/6)+Math.random()*2;
+        ctx.strokeStyle=Math.random()>0.5?'rgba(255,255,255,1)':'rgba(0,0,0,1)';
+        ctx.lineWidth=0.5*dpr;
+        ctx.beginPath();ctx.moveTo(-capW*0.8,gy);ctx.lineTo(capW*0.8,gy);ctx.stroke();
+      }
+      ctx.globalAlpha=1;
       // Lume insert (inset strip)
       const insetW=capW*0.55,insetH=capH*0.75;
       ctx.shadowColor=c.lume+'80';ctx.shadowBlur=10*dpr;
@@ -865,16 +877,24 @@ function drawHand(c,angle,length,width,taperTip,tail){
   ctx.moveTo(tailX-perpX*width,tailY-perpY*width);ctx.lineTo(tipX-perpX*taperTip,tipY-perpY*taperTip);
   ctx.lineTo(tipX+perpX*taperTip,tipY+perpY*taperTip);ctx.lineTo(tailX+perpX*width,tailY+perpY*width);
   ctx.closePath();ctx.fill();ctx.restore();
-  // Metal body
-  ctx.fillStyle='rgba(225,225,220,.92)';ctx.strokeStyle='rgba(200,200,195,.6)';ctx.lineWidth=0.5*dpr;
+  // Brushed aluminum hand body
+  const handGrad=ctx.createLinearGradient(
+    tailX-perpX*width,tailY-perpY*width,
+    tailX+perpX*width,tailY+perpY*width);
+  handGrad.addColorStop(0,'rgba(140,143,140,.85)');
+  handGrad.addColorStop(0.3,'rgba(180,183,180,.92)');
+  handGrad.addColorStop(0.5,'rgba(195,198,195,.95)');
+  handGrad.addColorStop(0.7,'rgba(175,178,175,.9)');
+  handGrad.addColorStop(1,'rgba(135,138,135,.82)');
+  ctx.fillStyle=handGrad;ctx.strokeStyle='rgba(120,123,120,.4)';ctx.lineWidth=0.5*dpr;
   ctx.beginPath();ctx.moveTo(tailX-perpX*width,tailY-perpY*width);
   ctx.lineTo(tipX-perpX*taperTip,tipY-perpY*taperTip);
   ctx.lineTo(tipX+perpX*taperTip,tipY+perpY*taperTip);
   ctx.lineTo(tailX+perpX*width,tailY+perpY*width);ctx.closePath();ctx.fill();ctx.stroke();
-  // Metal edge highlight (polished edge catch)
-  ctx.strokeStyle='rgba(255,255,250,.35)';ctx.lineWidth=0.7*dpr;
-  ctx.beginPath();ctx.moveTo(tailX-perpX*width*0.8,tailY-perpY*width*0.8);
-  ctx.lineTo(tipX-perpX*taperTip*0.8,tipY-perpY*taperTip*0.8);ctx.stroke();
+  // Subtle edge catch (not glossy)
+  ctx.strokeStyle='rgba(220,223,220,.2)';ctx.lineWidth=0.5*dpr;
+  ctx.beginPath();ctx.moveTo(tailX-perpX*width*0.7,tailY-perpY*width*0.7);
+  ctx.lineTo(tipX-perpX*taperTip*0.7,tipY-perpY*taperTip*0.7);ctx.stroke();
   // Lume insert strip (inset into metal)
   ctx.strokeStyle=c.lume;ctx.lineWidth=width*0.5;ctx.lineCap='round';
   ctx.shadowColor=c.lume+'60';ctx.shadowBlur=10*dpr;
