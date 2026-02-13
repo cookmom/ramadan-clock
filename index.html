@@ -1136,7 +1136,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     mb.classList.toggle('active',!tawafMuted);
   });
 });
-const TAWAF_LAPS=7,TAWAF_DURATION=14000; // 14s — two seconds per revolution
+const TAWAF_LAPS=7,TAWAF_DURATION=21000; // 21s — three seconds per revolution (takbir needs ~2.5s)
 let tawafLastLap=-1;
 function getTawafVirtualMin(){
   // Returns extra virtual minutes to subtract from current time (CCW)
