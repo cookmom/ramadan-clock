@@ -868,6 +868,7 @@ cv.addEventListener('click',e=>{
 // ── Init ──
 D=getColors();
 applyThemeToUI();
+calcQibla(); // try city fallback immediately
 fetchPrayer();
 setInterval(fetchPrayer,30*60*1000);
 setInterval(updateInfo,1000);
