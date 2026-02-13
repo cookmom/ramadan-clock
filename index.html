@@ -713,8 +713,12 @@ function playFlapClick(intensity){
 }
 function drawSplitFlap(c){
   if(!PD)return;
-  const isRam=devRamadan||(DD&&DD.hijri.month.number===9);
-  if(!isRam)return;
+    const isRam=devRamadan||(DD&&DD.hijri.month.number===9);
+  // Show flap: always during Ramadan, Mon/Thu (Sunnah fasting), or dev mode
+  const dayOfWeek=new Date().getDay(); // 0=Sun,1=Mon,...4=Thu
+  const isSunnahDay=dayOfWeek===1||dayOfWeek===4;
+  const showFlap=isRam||isSunnahDay||devRamadan;
+  if(!showFlap)return;
 
   // During tawaf: flap follows the spinning hands
   if(tawafState==='spinning'||tawafState==='hold'){
@@ -754,10 +758,12 @@ function drawSplitFlap(c){
 
   const fajr=pM(PD.Fajr),mag=pM(PD.Maghrib),now=nM();
   let label='',mins=0;
-  if(now>=fajr&&now<mag){mins=mag-now;label='IFTAR';}
-  else if(now<fajr){mins=fajr-now;label='FAJR';}
+  const sunnahTag=!isRam&&isSunnahDay?' · SUNNAH':'';
+  if(now>=fajr&&now<mag){mins=mag-now;label='IFTAR'+sunnahTag;}
+  else if(now<fajr){mins=fajr-now;label='FAJR'+sunnahTag;}
   else{
-    drawSplitFlapChars(c,['0','0',':','0','0'],'IFTAR MUBARAK');
+    const endLabel=isRam?'IFTAR MUBARAK':'MAGHRIB';
+    drawSplitFlapChars(c,['0','0',':','0','0'],endLabel);
     return;
   }
   const h=Math.floor(mins/60),m=Math.floor(mins%60);
