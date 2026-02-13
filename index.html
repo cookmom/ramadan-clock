@@ -688,25 +688,22 @@ const FLAP_STAGGER=60; // ms stagger between characters
 let flapTawafActive=false,flapTawafStart=0,flapTawafLanded=false;
 let flapLastClickCycle=0;
 const FLAP_RACE_DIGITS='0123456789';
-// Split-flap click — reuses the tick sound engine
+// Split-flap click — uses quartz tick sound (loud=true path)
 function playFlapClick(intensity){
   try{
     if(!qiblaAudioCtx)return;
     if(qiblaAudioCtx.state==='suspended')qiblaAudioCtx.resume();
     const t=qiblaAudioCtx.currentTime;
     const sr=qiblaAudioCtx.sampleRate;
-    const dur=0.006;
+    const dur=0.018;
     const bufLen=Math.floor(sr*dur);
     const buf=qiblaAudioCtx.createBuffer(1,bufLen,sr);
     const data=buf.getChannelData(0);
-    const vol=0.5*intensity*(S.tickVol/100);
+    const vol=intensity*(S.tickVol/100);
     for(let i=0;i<bufLen;i++){
       const t2=i/sr;
-      const env=Math.exp(-t2*400);
-      const s1=Math.sin(2*Math.PI*2200*t2)*0.7;
-      const s2=Math.sin(2*Math.PI*5800*t2)*0.3;
-      const click=t2<0.0003?(Math.random()*2-1)*0.3:0;
-      data[i]=(s1+s2+click)*env;
+      const env=Math.exp(-t2*600);
+      data[i]=((i<3?1:0)*0.4+(Math.random()*2-1)*0.6)*env;
     }
     const src=qiblaAudioCtx.createBufferSource();src.buffer=buf;
     const g=qiblaAudioCtx.createGain();g.gain.value=vol;
