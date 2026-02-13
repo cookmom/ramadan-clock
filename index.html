@@ -30,7 +30,7 @@ canvas{position:fixed;top:0;left:0;width:100vw;height:100vh;display:block;}
 .greg{font-size:12px;font-weight:300;letter-spacing:.02em;transition:all .5s;}
 .fast-status{font-size:16px;font-weight:600;margin-top:4px;letter-spacing:.01em;transition:all .5s;}
 .fast-status .tl{font-variant-numeric:tabular-nums;font-weight:700;transition:all .5s;}
-.prayers{display:flex;gap:6px;flex-wrap:nowrap;justify-content:center;margin-top:6px;font-size:11px;letter-spacing:.04em;font-weight:500;opacity:.35;transition:all .5s;}
+.prayers{display:flex;gap:6px;flex-wrap:nowrap;justify-content:center;margin-top:6px;font-family:Inter,system-ui,sans-serif;letter-spacing:.04em;font-weight:500;transition:all .5s;}
 .pp{display:inline;font-size:11px;font-weight:400;letter-spacing:.03em;padding:0;border:none!important;background:none!important;backdrop-filter:none;transition:all .5s;}
 .pp .dot{display:none;}
 .pp .pt{font-weight:500;font-variant-numeric:tabular-nums;font-size:11px;}
@@ -63,7 +63,7 @@ input.sv{width:120px;}
 .movement-opt.active{font-weight:600;}
 
 /* Dial Picker Bar */
-.dial-bar{position:fixed;bottom:0;left:0;right:0;z-index:20;padding:12px 16px max(16px,env(safe-area-inset-bottom,0px));display:flex;align-items:center;gap:10px;opacity:0;transform:translateY(20px);transition:opacity .4s ease,transform .4s ease;pointer-events:none;justify-content:center;}
+.dial-bar{position:fixed;bottom:0;left:0;right:0;z-index:20;padding:12px 16px max(16px,env(safe-area-inset-bottom,0px));display:flex;align-items:center;gap:10px;opacity:0;transform:translateY(20px);transition:opacity .4s ease,transform .4s ease;pointer-events:none;justify-content:center;width:80%;margin:0 auto;}
 .dial-bar.visible{opacity:1;transform:translateY(0);pointer-events:auto;}
 .dial-mode-toggle{display:flex;align-items:center;background:rgba(255,255,255,.12);backdrop-filter:blur(12px);border-radius:20px;padding:3px;flex-shrink:0;cursor:pointer;border:1px solid rgba(255,255,255,.08);}
 .dial-mode-btn{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all .3s;color:rgba(255,255,255,.5);}
@@ -450,6 +450,7 @@ function updateInfo(){
   let ci=ni-1;if(ci<0)ci=ps.length-1;
   const pEl=document.getElementById('prayers');
   pEl.style.color=c.minNum||c.textDim;
+  pEl.style.fontSize=Math.round(R*0.045/dpr)+'px';
   pEl.innerHTML=ps.map((p,i)=>{
     return`<span class="pp">${p.name} ${f12(p.time)}</span>`;
   }).join(' · ');
