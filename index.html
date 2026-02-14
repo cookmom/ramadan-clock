@@ -1726,7 +1726,7 @@ function draw(){
   drawFastingArc(c);
   drawQiblaWindow(c);
   drawSplitFlap(c);
-  drawPrayerMarkers(c);
+  if(!hideMarkers)drawPrayerMarkers(c);
   drawIndices(c);
   drawNumerals(c);
   drawHands(c);
@@ -1838,6 +1838,7 @@ if(urlP.has('time')){devTimeMin=parseFloat(urlP.get('time'));}
 if(urlP.get('ramadan')==='true'){devRamadan=true;}
 if(urlP.get('tawaf')==='true'){devRamadan=true;setTimeout(()=>{celestialProgress=0;modeBlend=0;modeTarget=0;startTawaf(true);},1000);}
 const embedFeature=urlP.get('feature'); // prayers, countdown, qibla, etc.
+const hideMarkers=urlP.has('nomarkers');
 if(embedMode){
   // Hide overlays and chrome for clean embed
   const ov=document.getElementById('tapOverlay');if(ov)ov.style.display='none';
