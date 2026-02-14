@@ -755,8 +755,8 @@ function drawSplitFlap(c){
   const fajr=pM(PD.Fajr),mag=pM(PD.Maghrib),now=nM();
   let label='',mins=0;
   const sunnahTag=!isRam&&isSunnahDay?' · SUNNAH':'';
-  if(now>=fajr&&now<mag){mins=mag-now;label='IFTAR COUNTDOWN'+sunnahTag;}
-  else if(now<fajr){mins=fajr-now;label='FAJR'+sunnahTag;}
+  if(now>=fajr&&now<mag){mins=mag-now;label='UNTIL IFTAR'+sunnahTag;}
+  else if(now<fajr){mins=fajr-now;label='UNTIL FAJR'+sunnahTag;}
   else{
     const endLabel=isRam?'IFTAR':'MAGHRIB';
     drawSplitFlapChars(c,['0','0',':','0','0'],endLabel);
