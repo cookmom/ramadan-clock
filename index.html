@@ -1404,7 +1404,7 @@ function releaseWakeLock(){
 }
 
 // ── Adhan Debug Log ──
-const _ADHAN_VER='v33-realunlock';
+const _ADHAN_VER='v34-hrtfpanner';
 const _adhanLog=[];
 function adhanDbg(msg){
   const t=new Date().toTimeString().slice(0,8);
@@ -1449,11 +1449,16 @@ function updateAdhanPannerPosition(){
   if(!adhanPanner||qiblaAngle===null||!adhanCtx||adhanCtx.state!=='running')return;
   const h=deviceHeading||0;
   const ra=qiblaAngle-h;
-  // StereoPanner: pan -1 (left) to +1 (right) based on sin of relative angle
-  const pan=Math.max(-1,Math.min(1,Math.sin(ra)));
-  adhanPanner.pan.setValueAtTime(pan,adhanCtx.currentTime);
+  // HRTF PannerNode: place sound on a circle around the listener at distance 2
+  const d=2;
+  const x=Math.sin(ra)*d;
+  const z=-Math.cos(ra)*d;
+  const t=adhanCtx.currentTime;
+  adhanPanner.positionX.setValueAtTime(x,t);
+  adhanPanner.positionY.setValueAtTime(0,t);
+  adhanPanner.positionZ.setValueAtTime(z,t);
   const now=Date.now();
-  if(now-_lastPannerLog>2000){_lastPannerLog=now;adhanDbg('pan h='+(h*180/Math.PI).toFixed(0)+'° q='+(qiblaAngle*180/Math.PI).toFixed(0)+'° ra='+(ra*180/Math.PI).toFixed(0)+'° pan='+pan.toFixed(2)+' evt='+compassEventCount);}
+  if(now-_lastPannerLog>2000){_lastPannerLog=now;adhanDbg('pan h='+(h*180/Math.PI).toFixed(0)+'° q='+(qiblaAngle*180/Math.PI).toFixed(0)+'° ra='+(ra*180/Math.PI).toFixed(0)+'° x='+x.toFixed(2)+' z='+z.toFixed(2)+' evt='+compassEventCount);}
 }
 
 function startHrtfBuffer(pos){
@@ -1465,14 +1470,23 @@ function startHrtfBuffer(pos){
     bufSrc.buffer=adhanDecodedBuf;
     adhanBufSrc=bufSrc;
     
-    adhanPanner=adhanCtx.createStereoPanner();
+    // Full HRTF PannerNode for true 3D spatial audio (much more dramatic than StereoPanner)
+    adhanPanner=adhanCtx.createPanner();
+    adhanPanner.panningModel='HRTF';
+    adhanPanner.distanceModel='inverse';
+    adhanPanner.refDistance=1;
+    adhanPanner.maxDistance=100;
+    adhanPanner.rolloffFactor=1;
+    adhanPanner.coneInnerAngle=360;
+    adhanPanner.coneOuterAngle=360;
+    adhanPanner.coneOuterGain=1;
     updateAdhanPannerPosition();
     
     adhanGain=adhanCtx.createGain();
     // GainNode IS settable on iOS (Web Audio volume control works)
     adhanGain.gain.value=Math.min(1.0,(S.tickVol||100)/100);
     
-    bufSrc.connect(adhanPanner).connect(adhanGain).connect(adhanCtx.destination);
+    bufSrc.connect(adhanGain).connect(adhanPanner).connect(adhanCtx.destination);
     
     // Track position
     adhanHrtfStartOffset=pos;
