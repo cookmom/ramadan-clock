@@ -140,8 +140,8 @@ input.sv{width:120px;}
   <div class="loc" id="loc" onclick="openSettings()">Loading…</div>
 </div>
 <div class="info info-bottom">
-  <div class="fast-status" id="fastStatus" style="display:none"></div>
   <div class="prayers" id="prayers"></div>
+  <div class="fast-status" id="fastStatus" style="display:none"></div>
 </div>
 
 <div class="dial-dots" id="dialDots"></div>
@@ -989,10 +989,10 @@ function getMoonPhase(){
 function drawMoon(c){
   if(celestialProgress<0.01)return;
   const moonR=R*0.13;
-  // Moon rises from behind clock (bottom-right) to above (top-right)
-  // Progress 0→1: y goes from cy+R*0.3 (behind clock) to cy-R*1.45 (above)
+  // Moon rises from behind clock (bottom-right) to center-top
+  // settling into the prostration arc of the 11 stars (Surah Yusuf 12:4)
   const startY=cy+R*0.3, endY=cy-R*1.45;
-  const startX=cx+R*0.6, endX=cx+R*0.55;
+  const startX=cx+R*0.6, endX=cx;
   // Ease the rise: fast out of clock, gentle settle at top
   const riseEase=1-Math.pow(1-celestialProgress,3);
   const moonX=startX+(endX-startX)*riseEase;
