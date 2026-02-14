@@ -652,7 +652,8 @@ function drawQiblaWindow(c){
   ctx.save();
   ctx.translate(qx,qy);
   ctx.rotate(arrowAng);
-  ctx.fillStyle=aligned?'#4ade80':'#c0392b';
+  const qiblaColor=S.dial==='tennis'?'#c0392b':D.bg;
+  ctx.fillStyle=aligned?'#4ade80':qiblaColor;
   ctx.beginPath();
   ctx.moveTo(0,-tipDist);           // tip (points toward qibla)
   ctx.lineTo(halfBase,tailDist);    // base right
