@@ -567,11 +567,9 @@ function activateAll(){
   // Show info panels + dial bar briefly
   const infos=document.querySelectorAll('.info');
   const bar=document.getElementById('dialBar');
-  infoVisible=true;
-  infos.forEach(el=>el.classList.add('visible'));
+  showInfo();
   bar.classList.add('visible');
-  clearTimeout(infoTimer);
-  infoTimer=setTimeout(()=>{infoVisible=false;infos.forEach(el=>el.classList.remove('visible'));bar.classList.remove('visible');},6000);
+  setTimeout(()=>bar.classList.remove('visible'),4000);
 }
 // iOS requires click (not touchstart) for DeviceOrientation permission
 tapOverlay.addEventListener('click',activateAll,{once:true});
@@ -1740,15 +1738,21 @@ cv.addEventListener('mouseup',e=>{
 buildDialDots();
 
 let infoVisible=false, infoTimer=null;
-function toggleInfo(){
+function showInfo(){
   const els=document.querySelectorAll('.info');
-  infoVisible=!infoVisible;
-  els.forEach(el=>el.classList.toggle('visible',infoVisible));
+  infoVisible=true;
+  els.forEach(el=>el.classList.add('visible'));
   clearTimeout(infoTimer);
-  if(infoVisible) infoTimer=setTimeout(()=>{
-    infoVisible=false;
-    els.forEach(el=>el.classList.remove('visible'));
-  },6000);
+  infoTimer=setTimeout(hideInfo,4000);
+}
+function hideInfo(){
+  const els=document.querySelectorAll('.info');
+  infoVisible=false;
+  els.forEach(el=>el.classList.remove('visible'));
+  clearTimeout(infoTimer);
+}
+function toggleInfo(){
+  if(infoVisible) hideInfo(); else showInfo();
 }
 cv.addEventListener('click',e=>{
   if(e.target.closest('.sov'))return;
