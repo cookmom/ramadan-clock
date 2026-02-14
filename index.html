@@ -2140,9 +2140,9 @@ let swipeX0=null,swipeY0=null;
 const ADHAN_KEYS=['mishari','makkah','madinah','off'];
 const ADHAN_LABELS={'mishari':'Mishary al-Afasy','makkah':'Makkah','madinah':'Madinah','off':'Off'};
 function cycleMoonAdhan(tx,ty){
-  if(lastMoonR<1||celestialProgress<0.1)return false;
+  if(lastMoonR<1||celestialProgress<0.3)return false;
   const dist=Math.sqrt((tx-lastMoonX)**2+(ty-lastMoonY)**2);
-  if(dist>lastMoonR*4)return false;
+  if(dist>lastMoonR*2.5)return false;
   // Toggle play/pause Mishary adhan
   if(adhanAudio&&!adhanAudio.paused){
     adhanAudio.pause();adhanAudio.currentTime=0;adhanAudio=null;
