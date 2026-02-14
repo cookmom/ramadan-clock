@@ -1298,7 +1298,7 @@ function drawPrayerMarkers(c){
 }
 
 // ── Watch tick audio (shares qiblaAudioCtx) ──
-let lastTickStep=-1,tickEnabled=false;
+let lastTickStep=-1,tickEnabled=false,adhanPlaying=false;
 function ensureTickCtx(){
   if(!qiblaAudioCtx)qiblaAudioCtx=new(window.AudioContext||window.webkitAudioContext)();
   if(qiblaAudioCtx.state==='suspended')qiblaAudioCtx.resume();
@@ -1366,7 +1366,7 @@ function playTick(loud){
 }
 
 function tickAudio(s,ms){
-  if(S.movement==='digital'||modeBlend>0.5)return;
+  if(S.movement==='digital'||modeBlend>0.5||adhanPlaying)return;
   if(!qiblaAudioCtx)return;
   let step,rate;
   if(S.movement==='quartz'){
@@ -1407,8 +1407,9 @@ function playAdhan(){
     if(adhanAudio){adhanAudio.pause();adhanAudio.currentTime=0;}
     adhanAudio=new Audio(src);
     adhanAudio.crossOrigin='anonymous';
-    adhanAudio.addEventListener('ended',()=>{releaseWakeLock();});
-    adhanAudio.addEventListener('pause',()=>{releaseWakeLock();});
+    adhanAudio.addEventListener('ended',()=>{adhanPlaying=false;releaseWakeLock();});
+    adhanAudio.addEventListener('pause',()=>{adhanPlaying=false;releaseWakeLock();});
+    adhanPlaying=true;
     requestWakeLock();
     
     // MediaSession for background/lock screen playback
