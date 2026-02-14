@@ -1401,7 +1401,7 @@ function releaseWakeLock(){
 }
 
 // ── Adhan Debug Log ──
-const _ADHAN_VER='v26-unlock';
+const _ADHAN_VER='v27-swapguard';
 const _adhanLog=[];
 function adhanDbg(msg){
   const t=new Date().toTimeString().slice(0,8);
@@ -1522,13 +1522,14 @@ function playAdhan(){
       // iOS requires first play() to be from user gesture — subsequent play() calls work.
       adhanAudio=new Audio(src);
       setupAdhanAudioEvents(adhanAudio);
+      adhanAudio._swapping=true; // prevent pause handler from killing adhanPlaying
       adhanAudio.play().then(()=>{
-        // Immediately pause — this element is "unlocked" for later background use
         adhanAudio.pause();
+        adhanAudio._swapping=false;
         adhanAudio.currentTime=0;
         adhanAudio._unlocked=true;
         adhanDbg('plain Audio unlocked for background use');
-      }).catch(e=>adhanDbg('plain unlock failed: '+e));
+      }).catch(e=>{adhanAudio._swapping=false;adhanDbg('plain unlock failed: '+e);});
       
       // Create AudioContext and decode buffer for HRTF
       adhanCtx=new(window.AudioContext||window.webkitAudioContext)();
