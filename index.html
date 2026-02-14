@@ -1400,11 +1400,25 @@ function releaseWakeLock(){
   if(wakeLock){wakeLock.release().catch(()=>{});wakeLock=null;}
 }
 
+// ── Adhan Debug Log ──
+const _adhanLog=[];
+function adhanDbg(msg){
+  const t=new Date().toTimeString().slice(0,8);
+  _adhanLog.push(t+' '+msg);
+  let el=document.getElementById('adhan-dbg');
+  if(!el){el=document.createElement('pre');el.id='adhan-dbg';
+    el.style.cssText='position:fixed;bottom:0;left:0;right:0;max-height:40vh;overflow:auto;background:rgba(0,0,0,.85);color:#0f0;font:11px/1.4 monospace;padding:8px;z-index:99999;pointer-events:auto;';
+    document.body.appendChild(el);}
+  el.textContent=_adhanLog.join('\n');
+  el.scrollTop=el.scrollHeight;
+}
+
 function playAdhan(){
   const src=ADHAN_SOURCES[S.adhan||'mishari'];
   if(!src)return false;
+  adhanDbg('playAdhan() src='+src+' qibla='+(qiblaAngle!==null));
   try{
-    if(adhanAudio){adhanAudio.pause();adhanAudio.currentTime=0;}
+    if(adhanAudio){adhanDbg('stopping prev adhanAudio');adhanAudio.pause();adhanAudio.currentTime=0;}
     adhanAudio=new Audio(src);
     adhanAudio.addEventListener('ended',()=>{adhanPlaying=false;releaseWakeLock();if(adhanHrtfBufSrc)try{adhanHrtfBufSrc.stop();}catch(e){}adhanHrtfBufSrc=null;if(adhanPannerInterval)clearInterval(adhanPannerInterval);});
     adhanAudio.addEventListener('pause',()=>{adhanPlaying=false;releaseWakeLock();if(adhanHrtfBufSrc)try{adhanHrtfBufSrc.stop();}catch(e){}adhanHrtfBufSrc=null;if(adhanPannerInterval)clearInterval(adhanPannerInterval);});
@@ -1429,7 +1443,9 @@ function playAdhan(){
     // HRTF spatial adhan — fetch as buffer for same-origin files
     if(qiblaAngle!==null){
       adhanAudio._useHrtf=true;
-      startHrtfFromPosition(0).catch(()=>{
+      adhanDbg('starting HRTF from pos 0');
+      startHrtfFromPosition(0).catch(e=>{
+        adhanDbg('HRTF init FAILED: '+e);
         adhanAudio._useHrtf=false;
         adhanAudio.volume=vol;
         adhanAudio.play().catch(()=>{});
@@ -1445,13 +1461,15 @@ function playAdhan(){
 // ── HRTF↔Plain adhan swap on visibility ──
 let adhanHrtfCtx=null,adhanHrtfBufSrc=null,adhanHrtfGain=null,adhanPannerInterval=null;
 function startHrtfFromPosition(pos){
+  adhanDbg('startHrtf pos='+pos.toFixed(2));
   const src=ADHAN_SOURCES[S.adhan||'mishari'];
-  if(!src||qiblaAngle===null)return Promise.reject();
+  if(!src||qiblaAngle===null){adhanDbg('no src or qibla, reject');return Promise.reject();}
   if(adhanHrtfBufSrc)try{adhanHrtfBufSrc.stop();}catch(e){}
   if(adhanPannerInterval)clearInterval(adhanPannerInterval);
   if(!adhanHrtfCtx||adhanHrtfCtx.state==='closed')
     adhanHrtfCtx=new(window.AudioContext||window.webkitAudioContext)();
-  return fetch(src).then(r=>r.arrayBuffer())
+  adhanDbg('fetching '+src);
+  return fetch(src).then(r=>{adhanDbg('fetched, status='+r.status);return r;}).then(r=>r.arrayBuffer())
     .then(buf=>adhanHrtfCtx.decodeAudioData(buf))
     .then(decoded=>{
       if(!adhanPlaying)return;
@@ -1479,6 +1497,7 @@ function startHrtfFromPosition(pos){
       bufSrc.connect(panner).connect(gain).connect(adhanHrtfCtx.destination);
       bufSrc.start(0,pos);
       adhanAudio._hrtfActive=true;
+      adhanDbg('HRTF started at pos='+pos.toFixed(2)+' plainVol='+adhanAudio.volume+' plainPaused='+adhanAudio.paused);
       bufSrc.onended=()=>{adhanAudio._hrtfActive=false;adhanHrtfBufSrc=null;};
     });
 }
@@ -1486,8 +1505,9 @@ function startHrtfFromPosition(pos){
 document.addEventListener('visibilitychange',()=>{
   if(!adhanPlaying||!adhanAudio||!adhanAudio._useHrtf)return;
   const vol=Math.min(1.0,(S.tickVol||100)/100);
+  adhanDbg('visibility: hidden='+document.hidden+' hrtfActive='+adhanAudio._hrtfActive+' useHrtf='+adhanAudio._useHrtf+' plainVol='+adhanAudio.volume+' plainPaused='+adhanAudio.paused);
   if(document.hidden&&adhanAudio._hrtfActive){
-    // Page hidden: kill HRTF, start plain
+    adhanDbg('HIDE: killing HRTF, starting plain');
     adhanAudio._hrtfActive=false;
     if(adhanHrtfGain)adhanHrtfGain.gain.value=0;
     if(adhanHrtfBufSrc)try{adhanHrtfBufSrc.stop();}catch(e){}
@@ -1496,11 +1516,12 @@ document.addEventListener('visibilitychange',()=>{
     adhanAudio.volume=vol;
     adhanAudio.play().catch(()=>{});
   }else if(!document.hidden&&!adhanAudio._hrtfActive){
-    // Page visible: restart HRTF from plain's position, then mute plain
     const pos=adhanAudio.currentTime;
+    adhanDbg('SHOW: restarting HRTF from plain pos='+pos.toFixed(2));
     startHrtfFromPosition(pos).then(()=>{
+      adhanDbg('SHOW: HRTF restarted, muting plain');
       adhanAudio.volume=0.001;
-    }).catch(()=>{/* HRTF failed, plain keeps going */});
+    }).catch(e=>{adhanDbg('SHOW: HRTF restart FAILED: '+e);});
   }
 });
 
