@@ -407,6 +407,7 @@ window.setLume=i=>{S.lumeColor=i;buildLumeGrid();};
 function applyThemeToUI(){
   const c=getColors();
   document.body.style.background=c.bg;
+  document.querySelector('meta[name="theme-color"]').content=c.bg;
   const root=document.documentElement;
   root.style.setProperty('--theme-text',c.text);
   root.style.setProperty('--theme-dim',c.textDim);
