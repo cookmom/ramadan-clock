@@ -1918,21 +1918,10 @@ function cycleMoonAdhan(tx,ty){
   if(lastMoonR<1||celestialProgress<0.1)return false;
   const dist=Math.sqrt((tx-lastMoonX)**2+(ty-lastMoonY)**2);
   if(dist>lastMoonR*4)return false;
-  // Cycle adhan
-  const cur=S.adhan||'mishari';
-  const idx=(ADHAN_KEYS.indexOf(cur)+1)%ADHAN_KEYS.length;
-  S.adhan=ADHAN_KEYS[idx];
-  localStorage.setItem('rc6',JSON.stringify(S));
-  // Stop current adhan if playing
-  if(adhanAudio){adhanAudio.pause();adhanAudio.currentTime=0;adhanAudio=null;}
-  // Show label briefly
-  const label=ADHAN_LABELS[S.adhan];
-  const loc=document.getElementById('loc');
-  const oldText=loc.textContent;
-  loc.textContent='Adhan: '+label;
-  setTimeout(()=>{updateInfo();},2000);
-  // Play full adhan
-  if(S.adhan!=='off'){
+  // Toggle play/pause Mishary adhan
+  if(adhanAudio&&!adhanAudio.paused){
+    adhanAudio.pause();adhanAudio.currentTime=0;adhanAudio=null;
+  }else{
     playAdhan();
   }
   return true;
