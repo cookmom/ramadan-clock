@@ -1878,9 +1878,9 @@ let swipeX0=null,swipeY0=null;
 const ADHAN_KEYS=['mishari','makkah','madinah','off'];
 const ADHAN_LABELS={'mishari':'Mishary al-Afasy','makkah':'Makkah','madinah':'Madinah','off':'Off'};
 function cycleMoonAdhan(tx,ty){
-  if(lastMoonR<1||celestialProgress<0.3)return false;
+  if(lastMoonR<1||celestialProgress<0.1)return false;
   const dist=Math.sqrt((tx-lastMoonX)**2+(ty-lastMoonY)**2);
-  if(dist>lastMoonR*2.5)return false;
+  if(dist>lastMoonR*4)return false;
   // Cycle adhan
   const cur=S.adhan||'mishari';
   const idx=(ADHAN_KEYS.indexOf(cur)+1)%ADHAN_KEYS.length;
@@ -1918,7 +1918,9 @@ cv.addEventListener('touchend',e=>{
   const tx=e.changedTouches[0].clientX,ty=e.changedTouches[0].clientY;
   const dx=tx-swipeX0,dy=ty-swipeY0;
   swipeX0=null;
-  if(Math.abs(dx)<15&&Math.abs(dy)<15&&cycleMoonAdhan(tx,ty))return;
+  if(Math.abs(dx)<15&&Math.abs(dy)<15){
+    if(cycleMoonAdhan(tx,ty))return;
+  }
   handleSwipe(dx,dy,true);
 });
 // Mouse (PC click-drag)
