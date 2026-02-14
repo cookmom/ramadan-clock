@@ -621,7 +621,7 @@ function qiblaTick(){
 }
 function drawQiblaWindow(c){
   if(qiblaAngle===null)return;
-  const qr=R*0.091;
+  const qr=R*0.118;
   const midR=(R-R*0.18+R-R*0.03)/2;
   const qx=cx, qy=cy-midR;
   let arrowAng=deviceHeading!==null?qiblaAngle-deviceHeading:0; // no gyro: point up (12 o'clock)
