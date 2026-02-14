@@ -1401,7 +1401,7 @@ function releaseWakeLock(){
 }
 
 // ── Adhan Debug Log ──
-const _ADHAN_VER='v16';
+const _ADHAN_VER='v17';
 const _adhanLog=[];
 function adhanDbg(msg){
   const t=new Date().toTimeString().slice(0,8);
@@ -1417,8 +1417,12 @@ function adhanDbg(msg){
 function playAdhan(){
   const src=ADHAN_SOURCES[S.adhan||'mishari'];
   if(!src)return false;
-  adhanDbg('playAdhan() src='+src+' qibla='+(qiblaAngle!==null));
+  adhanDbg('playAdhan() src='+src+' qibla='+(qiblaAngle!==null)+' prevBuf='+(!!adhanHrtfBufSrc)+' prevCtx='+(adhanHrtfCtx?adhanHrtfCtx.state:'null'));
   try{
+    // Kill everything from previous play
+    if(adhanHrtfBufSrc){try{adhanHrtfBufSrc.stop();}catch(e){}adhanHrtfBufSrc=null;adhanDbg('killed prev bufSrc');}
+    if(adhanHrtfCtx){try{adhanHrtfCtx.close();}catch(e){}adhanHrtfCtx=null;adhanDbg('closed prev ctx');}
+    if(adhanPannerInterval){clearInterval(adhanPannerInterval);adhanPannerInterval=null;}
     if(adhanAudio){adhanDbg('stopping prev adhanAudio');adhanAudio.pause();adhanAudio.currentTime=0;}
     adhanAudio=new Audio(src);
     adhanAudio.addEventListener('ended',()=>{adhanPlaying=false;releaseWakeLock();if(adhanHrtfBufSrc)try{adhanHrtfBufSrc.stop();}catch(e){}adhanHrtfBufSrc=null;if(adhanPannerInterval)clearInterval(adhanPannerInterval);});
@@ -1504,7 +1508,7 @@ function startHrtfFromPosition(pos){
       bufSrc.start(0,pos);
       adhanAudio._hrtfActive=true;
       adhanAudio.volume=0;
-      adhanDbg('HRTF started at pos='+pos.toFixed(2)+' plainVol='+adhanAudio.volume+' plainPaused='+adhanAudio.paused);
+      adhanDbg('HRTF started at pos='+pos.toFixed(2)+' plainVol='+adhanAudio.volume+' plainPaused='+adhanAudio.paused+' ctxState='+adhanHrtfCtx.state+' ctxTime='+adhanHrtfCtx.currentTime.toFixed(2));
       bufSrc.onended=()=>{adhanAudio._hrtfActive=false;adhanHrtfBufSrc=null;};
     });
 }
