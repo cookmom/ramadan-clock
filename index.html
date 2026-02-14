@@ -1401,7 +1401,7 @@ function releaseWakeLock(){
 }
 
 // ── Adhan Debug Log ──
-const _ADHAN_VER='v25-lazyplain';
+const _ADHAN_VER='v26-unlock';
 const _adhanLog=[];
 function adhanDbg(msg){
   const t=new Date().toTimeString().slice(0,8);
@@ -1517,7 +1517,20 @@ function playAdhan(){
     }
     
     if(useHrtf){
-      // Create AudioContext and decode buffer — NO plain Audio element in foreground
+      // "Unlock" a plain Audio element NOW (user gesture context) so we can
+      // resume it later from visibilitychange without a new gesture.
+      // iOS requires first play() to be from user gesture — subsequent play() calls work.
+      adhanAudio=new Audio(src);
+      setupAdhanAudioEvents(adhanAudio);
+      adhanAudio.play().then(()=>{
+        // Immediately pause — this element is "unlocked" for later background use
+        adhanAudio.pause();
+        adhanAudio.currentTime=0;
+        adhanAudio._unlocked=true;
+        adhanDbg('plain Audio unlocked for background use');
+      }).catch(e=>adhanDbg('plain unlock failed: '+e));
+      
+      // Create AudioContext and decode buffer for HRTF
       adhanCtx=new(window.AudioContext||window.webkitAudioContext)();
       adhanPannerInterval=setInterval(updateAdhanPannerPosition,200);
       
@@ -1531,10 +1544,8 @@ function playAdhan(){
         })
         .catch(e=>{
           adhanDbg('HRTF setup failed, falling back to plain: '+e);
-          // Fallback: plain Audio only
-          adhanAudio=new Audio(src);
-          setupAdhanAudioEvents(adhanAudio);
-          adhanAudio.play().catch(()=>{});
+          // Fallback: resume the unlocked plain Audio
+          if(adhanAudio){adhanAudio.currentTime=0;adhanAudio.play().catch(()=>{});}
         });
     }else{
       adhanAudio=new Audio(src);
@@ -1570,37 +1581,40 @@ document.addEventListener('visibilitychange',()=>{
   if(!adhanPlaying||!adhanDecodedBuf)return; // only swap if HRTF mode
   
   if(document.hidden){
-    // BACKGROUND: get position, kill HRTF, create+play fresh plain Audio
+    // BACKGROUND: get position, kill HRTF, resume the pre-unlocked plain Audio
     const pos=adhanPosition();
-    adhanDbg('HIDE: pos='+pos.toFixed(2)+' creating plain Audio');
+    adhanDbg('HIDE: pos='+pos.toFixed(2)+' unlocked='+!!(adhanAudio&&adhanAudio._unlocked));
     if(adhanBufSrc){try{adhanBufSrc.stop();}catch(e){}adhanBufSrc=null;}
     
-    adhanAudio=new Audio(adhanSrc);
-    setupAdhanAudioEvents(adhanAudio);
-    adhanAudio.currentTime=pos;
-    adhanAudio.play().then(()=>{
-      adhanDbg('HIDE: plain playing from pos='+pos.toFixed(2));
-    }).catch(e=>{
-      adhanDbg('HIDE: plain play failed: '+e);
-    });
+    if(adhanAudio&&adhanAudio._unlocked){
+      // Reuse the element that was play()'d during user gesture
+      adhanAudio._swapping=true;
+      adhanAudio.currentTime=pos;
+      adhanAudio.play().then(()=>{
+        adhanAudio._swapping=false;
+        adhanDbg('HIDE: plain resumed from pos='+pos.toFixed(2));
+      }).catch(e=>{
+        adhanAudio._swapping=false;
+        adhanDbg('HIDE: plain resume failed: '+e);
+      });
+    }else{
+      adhanDbg('HIDE: no unlocked Audio, silence in background');
+    }
   }else{
-    // FOREGROUND: get position from plain Audio, destroy it, restart HRTF
-    const pos=adhanAudio?adhanAudio.currentTime:adhanPosition();
+    // FOREGROUND: get position from plain Audio, pause it, restart HRTF
+    const pos=(adhanAudio&&!adhanAudio.paused)?adhanAudio.currentTime:adhanPosition();
     adhanDbg('SHOW: pos='+pos.toFixed(2)+' switching to HRTF');
-    if(adhanAudio){
+    if(adhanAudio&&!adhanAudio.paused){
       adhanAudio._swapping=true;
       adhanAudio.pause();
-      adhanAudio=null;
+      adhanAudio._swapping=false;
     }
     if(adhanDecodedBuf&&adhanCtx){
       startHrtfBuffer(pos).then(()=>{
         adhanDbg('SHOW: HRTF restored at pos='+pos.toFixed(2));
       }).catch(e=>{
-        adhanDbg('SHOW: HRTF failed, restarting plain: '+e);
-        adhanAudio=new Audio(adhanSrc);
-        setupAdhanAudioEvents(adhanAudio);
-        adhanAudio.currentTime=pos;
-        adhanAudio.play().catch(()=>{});
+        adhanDbg('SHOW: HRTF failed, resuming plain: '+e);
+        if(adhanAudio){adhanAudio.currentTime=pos;adhanAudio.play().catch(()=>{});}
       });
     }
   }
