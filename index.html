@@ -2175,7 +2175,8 @@ const embedMode=urlP.has('embed');
 const embedSwipeV=urlP.has('swipev');
 if(urlP.has('dial'))pickDial(urlP.get('dial'));
 if(urlP.get('mode')==='night'){S.mode='night';modeTarget=1;modeBlend=1;celestialProgress=1;}
-if(urlP.get('mode')==='day'){S.mode='day';modeTarget=0;modeBlend=0;}
+else if(urlP.get('mode')==='day'){S.mode='day';modeTarget=0;modeBlend=0;}
+else if(urlP.get('mode')==='auto'){S.mode='auto';}
 if(urlP.has('time')){devTimeMin=parseFloat(urlP.get('time'));}
 if(urlP.get('ramadan')==='true'){devRamadan=true;}
 if(urlP.get('tawaf')==='true'){devRamadan=true;setTimeout(()=>{celestialProgress=0;modeBlend=0;modeTarget=0;startTawaf(true);},1000);}
