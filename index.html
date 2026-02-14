@@ -1401,7 +1401,7 @@ function releaseWakeLock(){
 }
 
 // ── Adhan Debug Log ──
-const _ADHAN_VER='v30-pannerdbg';
+const _ADHAN_VER='v31-stereopan';
 const _adhanLog=[];
 function adhanDbg(msg){
   const t=new Date().toTimeString().slice(0,8);
@@ -1446,11 +1446,11 @@ function updateAdhanPannerPosition(){
   if(!adhanPanner||qiblaAngle===null||!adhanCtx||adhanCtx.state!=='running')return;
   const h=deviceHeading||0;
   const ra=qiblaAngle-h;
-  adhanPanner.positionX.setValueAtTime(Math.sin(ra),adhanCtx.currentTime);
-  adhanPanner.positionY.setValueAtTime(0,adhanCtx.currentTime);
-  adhanPanner.positionZ.setValueAtTime(-Math.cos(ra),adhanCtx.currentTime);
+  // StereoPanner: pan -1 (left) to +1 (right) based on sin of relative angle
+  const pan=Math.max(-1,Math.min(1,Math.sin(ra)));
+  adhanPanner.pan.setValueAtTime(pan,adhanCtx.currentTime);
   const now=Date.now();
-  if(now-_lastPannerLog>3000){_lastPannerLog=now;adhanDbg('panner h='+(h*180/Math.PI).toFixed(0)+'° qibla='+(qiblaAngle*180/Math.PI).toFixed(0)+'° ra='+(ra*180/Math.PI).toFixed(0)+'° x='+Math.sin(ra).toFixed(2)+' z='+(-Math.cos(ra)).toFixed(2));}
+  if(now-_lastPannerLog>3000){_lastPannerLog=now;adhanDbg('pan h='+(h*180/Math.PI).toFixed(0)+'° qibla='+(qiblaAngle*180/Math.PI).toFixed(0)+'° ra='+(ra*180/Math.PI).toFixed(0)+'° pan='+pan.toFixed(2));}
 }
 
 function startHrtfBuffer(pos){
@@ -1462,11 +1462,7 @@ function startHrtfBuffer(pos){
     bufSrc.buffer=adhanDecodedBuf;
     adhanBufSrc=bufSrc;
     
-    adhanPanner=adhanCtx.createPanner();
-    adhanPanner.panningModel='HRTF';
-    adhanPanner.distanceModel='inverse';
-    adhanPanner.refDistance=1;adhanPanner.maxDistance=100;adhanPanner.rolloffFactor=1;
-    adhanPanner.coneInnerAngle=360;adhanPanner.coneOuterAngle=360;
+    adhanPanner=adhanCtx.createStereoPanner();
     updateAdhanPannerPosition();
     
     adhanGain=adhanCtx.createGain();
@@ -1540,25 +1536,26 @@ function playAdhan(){
     }
     
     if(useHrtf){
-      // STEP 1: "Unlock" plain Audio (user gesture) for later background use.
+      // STEP 1: "Unlock" plain Audio with silence (user gesture context).
       // iOS requires first play() from gesture — subsequent play() calls work.
-      // The brief play is audible (can't mute on iOS) but it's the adhan, that's OK.
-      adhanAudio=new Audio(src);
+      // Use tiny silent WAV data URI so unlock is inaudible.
+      adhanAudio=new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=');
       adhanAudio._isBackup=true;
       adhanAudio._unlocked=false;
-      // Don't use setupAdhanAudioEvents yet — we don't want pause handler during unlock
       adhanAudio.play().then(()=>{
         adhanAudio.pause();
-        adhanAudio.currentTime=0;
+        // Switch to real adhan src for background use
+        adhanAudio.src=src;
+        adhanAudio.load();
         adhanAudio._unlocked=true;
-        // NOW attach events (after unlock pause is done)
         setupAdhanAudioEvents(adhanAudio);
-        adhanDbg('plain Audio unlocked for background use');
+        adhanDbg('plain Audio unlocked (silent) for background use');
         
         // STEP 2: decode + start HRTF (sequenced AFTER unlock)
         startHrtfSequence(src);
       }).catch(e=>{
         adhanDbg('plain unlock failed: '+e+', playing plain only');
+        adhanAudio=new Audio(src);
         setupAdhanAudioEvents(adhanAudio);
         adhanAudio.play().catch(()=>{});
       });
