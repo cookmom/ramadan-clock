@@ -621,7 +621,7 @@ function qiblaTick(){
 }
 function drawQiblaWindow(c){
   if(qiblaAngle===null)return;
-  const qr=R*0.081;
+  const qr=R*0.07;
   const midR=(R-R*0.18+R-R*0.03)/2;
   const qx=cx, qy=cy-midR;
   let arrowAng=qiblaAngle;
@@ -635,57 +635,38 @@ function drawQiblaWindow(c){
   if(aligned&&!qiblaWasAligned){qiblaTick();if(navigator.vibrate)navigator.vibrate(50);}
   qiblaWasAligned=aligned;
   ctx.save();
+  // Shadow (same as hour marker shadow)
+  ctx.fillStyle=c.shadow;
+  ctx.shadowColor=c.shadow;ctx.shadowBlur=6*dpr;
+  ctx.beginPath();ctx.arc(qx+3*dpr,qy+4*dpr,qr,0,Math.PI*2);ctx.fill();
+  ctx.shadowBlur=0;
+  // Metal casing (matches hour marker outer shell)
+  ctx.fillStyle=c.hand;
+  ctx.beginPath();ctx.arc(qx,qy,qr,0,Math.PI*2);ctx.fill();
+  // Thin dark edge for depth (matches hour markers)
+  ctx.strokeStyle=c.shadow;ctx.lineWidth=0.5*dpr;
+  ctx.beginPath();ctx.arc(qx,qy,qr,0,Math.PI*2);ctx.stroke();
+  // Lume fill (matches hour marker lume insert)
+  const lumeR=qr*0.7;
+  ctx.shadowColor=c.lume+'80';ctx.shadowBlur=10*dpr;
+  ctx.fillStyle=aligned?'#4ade80':c.lume;
+  ctx.beginPath();ctx.arc(qx,qy,lumeR,0,Math.PI*2);ctx.fill();
+  ctx.shadowBlur=0;
   // Aligned glow
   if(aligned){
-    ctx.shadowColor='#4ade80';ctx.shadowBlur=(20+pulse*10)*dpr;
+    ctx.shadowColor='#4ade80';ctx.shadowBlur=(16+pulse*8)*dpr;
     ctx.fillStyle='rgba(74,222,128,0.15)';
-    ctx.beginPath();ctx.arc(qx,qy,qr+6*dpr,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc(qx,qy,qr+4*dpr,0,Math.PI*2);ctx.fill();
     ctx.shadowBlur=0;
   }
-  // 3D bezel — radial gradient for dome/recess illusion
-  const grad1=ctx.createRadialGradient(qx-qr*0.3,qy-qr*0.3,qr*0.2,qx,qy,qr*1.15);
-  grad1.addColorStop(0,'rgba(255,255,255,0.12)');
-  grad1.addColorStop(0.5,'rgba(255,255,255,0.04)');
-  grad1.addColorStop(1,'rgba(0,0,0,0.15)');
-  ctx.fillStyle=grad1;
-  ctx.beginPath();ctx.arc(qx,qy,qr*1.12,0,Math.PI*2);ctx.fill();
-  // Bezel ring
-  ctx.strokeStyle='rgba(255,255,255,0.1)';ctx.lineWidth=2.5*dpr;
-  ctx.beginPath();ctx.arc(qx,qy,qr*1.06,0,Math.PI*2);ctx.stroke();
-  // Recessed face shadow
-  ctx.fillStyle='rgba(0,0,0,0.35)';
-  ctx.beginPath();ctx.arc(qx+0.5*dpr,qy+1.5*dpr,qr,0,Math.PI*2);ctx.fill();
-  // Face gradient (top lighter = depth)
-  const fg=ctx.createLinearGradient(qx,qy-qr,qx,qy+qr);
-  fg.addColorStop(0,aligned?'rgba(74,222,128,0.12)':'rgba(30,30,30,0.9)');
-  fg.addColorStop(1,aligned?'rgba(74,222,128,0.06)':'rgba(15,15,15,0.9)');
-  ctx.fillStyle=fg;
-  ctx.beginPath();ctx.arc(qx,qy,qr,0,Math.PI*2);ctx.fill();
-  // Inner lip highlight
-  ctx.strokeStyle='rgba(255,255,255,0.05)';ctx.lineWidth=0.8*dpr;
-  ctx.beginPath();ctx.arc(qx,qy,qr-1*dpr,0,Math.PI*2);ctx.stroke();
-  // Top-left light catch
-  const cg=ctx.createRadialGradient(qx-qr*0.35,qy-qr*0.35,0,qx,qy,qr);
-  cg.addColorStop(0,'rgba(255,255,255,0.06)');cg.addColorStop(0.5,'rgba(255,255,255,0)');
-  ctx.fillStyle=cg;
-  ctx.beginPath();ctx.arc(qx,qy,qr,0,Math.PI*2);ctx.fill();
-  // Cardinal ticks
-  ctx.strokeStyle='rgba(255,255,255,0.12)';ctx.lineWidth=0.8*dpr;
-  for(let d=0;d<4;d++){
-    const a=d*Math.PI/2;
-    ctx.beginPath();
-    ctx.moveTo(qx+Math.sin(a)*qr*0.75,qy-Math.cos(a)*qr*0.75);
-    ctx.lineTo(qx+Math.sin(a)*qr*0.9,qy-Math.cos(a)*qr*0.9);
-    ctx.stroke();
-  }
   // Needle shadow
-  const nL=qr*0.7;
+  const nL=lumeR*0.8;
   const tipX=qx+Math.sin(arrowAng)*nL,tipY=qy-Math.cos(arrowAng)*nL;
   const tailX=qx-Math.sin(arrowAng)*nL*0.35,tailY=qy+Math.cos(arrowAng)*nL*0.35;
   const pX=Math.cos(arrowAng)*nL*0.22,pY=Math.sin(arrowAng)*nL*0.22;
   ctx.fillStyle='rgba(0,0,0,0.3)';ctx.beginPath();
-  ctx.moveTo(tipX+1*dpr,tipY+2*dpr);ctx.lineTo(tailX+pX+1*dpr,tailY+pY+2*dpr);
-  ctx.lineTo(tailX-pX+1*dpr,tailY-pY+2*dpr);ctx.closePath();ctx.fill();
+  ctx.moveTo(tipX+0.5*dpr,tipY+1*dpr);ctx.lineTo(tailX+pX+0.5*dpr,tailY+pY+1*dpr);
+  ctx.lineTo(tailX-pX+0.5*dpr,tailY-pY+1*dpr);ctx.closePath();ctx.fill();
   // Needle
   ctx.fillStyle=aligned?'#4ade80':c.accent;
   ctx.globalAlpha=aligned?(0.95+pulse*0.05):0.9;
@@ -695,17 +676,6 @@ function drawQiblaWindow(c){
   // Needle edge highlight
   ctx.strokeStyle='rgba(255,255,255,0.15)';ctx.lineWidth=0.5*dpr;
   ctx.beginPath();ctx.moveTo(tipX,tipY);ctx.lineTo(tailX+pX,tailY+pY);ctx.stroke();
-  // Center pivot — 3D dome
-  const pivR=qr*0.15;
-  ctx.globalAlpha=1;
-  ctx.fillStyle='rgba(0,0,0,0.4)';
-  ctx.beginPath();ctx.arc(qx+0.5*dpr,qy+0.5*dpr,pivR,0,Math.PI*2);ctx.fill();
-  const pivGrad=ctx.createRadialGradient(qx-pivR*0.4,qy-pivR*0.4,0,qx,qy,pivR);
-  pivGrad.addColorStop(0,'rgba(255,255,255,0.25)');
-  pivGrad.addColorStop(0.6,aligned?'#4ade80':c.accent);
-  pivGrad.addColorStop(1,'rgba(0,0,0,0.2)');
-  ctx.fillStyle=pivGrad;
-  ctx.beginPath();ctx.arc(qx,qy,pivR,0,Math.PI*2);ctx.fill();
   ctx.globalAlpha=1;
   ctx.restore();
 }
