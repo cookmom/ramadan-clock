@@ -651,24 +651,13 @@ function drawQiblaWindow(c){
   ctx.fillStyle=c.lume;
   ctx.beginPath();ctx.arc(qx,qy,lumeR,0,Math.PI*2);ctx.fill();
   ctx.shadowBlur=0;
-  // Aligned glow
-  if(aligned){
-    ctx.shadowColor='#4ade80';ctx.shadowBlur=(16+pulse*8)*dpr;
-    ctx.fillStyle='rgba(74,222,128,0.15)';
-    ctx.beginPath();ctx.arc(qx,qy,qr+4*dpr,0,Math.PI*2);ctx.fill();
-    ctx.shadowBlur=0;
-  }
   // Needle
   const nL=lumeR*0.85;
   const tipX=qx+Math.sin(arrowAng)*nL,tipY=qy-Math.cos(arrowAng)*nL;
   const tailX=qx-Math.sin(arrowAng)*nL*0.35,tailY=qy+Math.cos(arrowAng)*nL*0.35;
   const pX=Math.cos(arrowAng)*nL*0.24,pY=Math.sin(arrowAng)*nL*0.24;
-  // Shadow
-  ctx.fillStyle='rgba(0,0,0,0.45)';ctx.beginPath();
-  ctx.moveTo(tipX+0.8*dpr,tipY+1.5*dpr);ctx.lineTo(tailX+pX+0.8*dpr,tailY+pY+1.5*dpr);
-  ctx.lineTo(tailX-pX+0.8*dpr,tailY-pY+1.5*dpr);ctx.closePath();ctx.fill();
-  // Body — red north needle for contrast against lume
-  ctx.fillStyle='#c0392b';
+  // Body — red, green when aligned to qibla
+  ctx.fillStyle=aligned?'#4ade80':'#c0392b';
   ctx.globalAlpha=1;
   ctx.beginPath();ctx.moveTo(tipX,tipY);
   ctx.lineTo(tailX+pX,tailY+pY);ctx.lineTo(tailX-pX,tailY-pY);
