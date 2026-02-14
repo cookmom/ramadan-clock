@@ -1586,16 +1586,12 @@ function draw(){
   // Celestial: tied to tawaf gong timing
   // First gong at vm=720, last at vm=5040. Celestial maps across that range.
   if(tawafState==='spinning'&&tawafActive){
-    // Use shared vm from getTawafVirtualMin — exact sync with gong timing
-    const vm=tawafCurrentVM;
-    // Celestial only starts AFTER first gong (vm>=720)
-    celestialProgress=vm>=720?Math.min(1,(vm-720)/3600):0;
-    // Night fade directly tracks celestial — no lerp lag
-    modeTarget=celestialProgress;
-    modeBlend=celestialProgress;
+    // Keep day mode during tawaf — night transition comes after
+    celestialProgress=0;modeBlend=0;modeTarget=0;
   }else if(tawafState==='hold'){
-    celestialProgress=1;
-    modeTarget=1;modeBlend+=(1-modeBlend)*0.08;
+    // Tawaf done — now transition to night
+    modeTarget=1;modeBlend+=(1-modeBlend)*0.04;
+    celestialProgress=modeBlend;
   }else if(tawafState==='pre_mag'){
     // Hold celestial at 0 during pre-mag countdown — prevent moon flash
     celestialProgress=0;modeBlend=0;modeTarget=0;
