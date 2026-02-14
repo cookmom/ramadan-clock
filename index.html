@@ -1454,7 +1454,9 @@ const TAWAF_HOLD_MS=10000; // 10s hold with normal ticking after tawaf
 const TAWAF_PREGONG_T=1/7; // linear: first gong at exactly 1/7 of duration (2s)
 const TAWAF_PREGONG_MS=TAWAF_PREGONG_T*TAWAF_DURATION; // 2s before first gong
 const TAWAF_PRESTART_MIN=TAWAF_PREGONG_MS/1000/60; // in minutes
-let tawafState='idle'; // idle | pre_mag | spinning | hold
+let tawafState='idle'; // idle | pre_mag | spinning | hold | easeBack
+let tawafEaseStart=0,tawafEaseFrom=0;
+const TAWAF_EASE_MS=2000; // 2s ease-out return // idle | pre_mag | spinning | hold
 let tawafHoldStart=0;
 let tawafPreMagStart=0;
 let tawafMaghribMin=null;
@@ -1493,14 +1495,9 @@ function checkTawafHold(){
     updateModeBlend(); // may transition to night at Maghrib
   }
   if(performance.now()-tawafHoldStart>=TAWAF_HOLD_MS){
-    // Restore live time
-    tawafState='idle';tawafDev=false;
-    devTimeMin=null;tawafMaghribMin=null;celestialProgress=0;modeBlend=0;modeTarget=0;
-    const sl=document.getElementById('devSlider');
-    const lb=document.getElementById('devTimeLabel');
-    const tg=document.getElementById('devTawafToggle');
-    if(sl)sl.value=720;if(lb)lb.textContent='LIVE';if(tg)tg.checked=false;
-    updateInfo();
+    // Ease out: smoothly return to real time
+    tawafState='easeBack';tawafEaseStart=performance.now();
+    tawafEaseFrom=devTimeMin!==null?devTimeMin:tawafMaghribMin;
   }
 }
 // Auto-trigger: start ~10s BEFORE Maghrib so first gong = Maghrib
@@ -1517,6 +1514,23 @@ function checkTawaf(){
     if(devTimeMin>=preStart){
       tawafActive=true;tawafStart=performance.now();
       tawafState='spinning';
+    }
+    return;
+  }
+  if(tawafState==='easeBack'){
+    const t=Math.min((performance.now()-tawafEaseStart)/TAWAF_EASE_MS,1);
+    const ease=1-(1-t)*(1-t); // ease-out quadratic
+    const realNow=nM();
+    devTimeMin=tawafEaseFrom+(realNow-tawafEaseFrom)*ease;
+    updateInfo();
+    if(t>=1){
+      tawafState='idle';tawafDev=false;
+      devTimeMin=null;tawafMaghribMin=null;celestialProgress=0;modeBlend=0;modeTarget=0;
+      const sl=document.getElementById('devSlider');
+      const lb=document.getElementById('devTimeLabel');
+      const tg=document.getElementById('devTawafToggle');
+      if(sl)sl.value=720;if(lb)lb.textContent='LIVE';if(tg)tg.checked=false;
+      updateInfo();
     }
     return;
   }
