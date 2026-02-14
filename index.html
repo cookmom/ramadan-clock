@@ -930,21 +930,32 @@ function roundRect(c,x,y,w,h,r){
 
 // ── Celestial: Stars + Moon ──
 // Star field (generated once)
-// 11 stars — Surah Yusuf (12:4): Prophet Yusuf dreamed of eleven stars,
-// the sun, and the moon prostrating. The moon is rendered separately.
-const STARS=[
-  {x:0.08,y:0.06,r:1.4,speed:0.0012,offset:0.0,bright:0.95},    // 1 — top left, bright
-  {x:0.25,y:0.04,r:1.1,speed:0.0015,offset:1.2,bright:0.85},    // 2
-  {x:0.42,y:0.08,r:0.9,speed:0.0010,offset:2.4,bright:0.75},    // 3
-  {x:0.72,y:0.05,r:1.3,speed:0.0014,offset:0.8,bright:0.90},    // 4
-  {x:0.91,y:0.09,r:1.0,speed:0.0011,offset:3.6,bright:0.80},    // 5
-  {x:0.05,y:0.22,r:0.8,speed:0.0018,offset:4.8,bright:0.70},    // 6
-  {x:0.95,y:0.20,r:1.2,speed:0.0013,offset:5.2,bright:0.88},    // 7
-  {x:0.15,y:0.40,r:0.7,speed:0.0016,offset:1.6,bright:0.65},    // 8
-  {x:0.88,y:0.42,r:1.0,speed:0.0009,offset:2.8,bright:0.78},    // 9
-  {x:0.04,y:0.60,r:0.9,speed:0.0017,offset:4.0,bright:0.72},    // 10
-  {x:0.93,y:0.58,r:1.1,speed:0.0012,offset:5.6,bright:0.82},    // 11
-];
+// 11 stars — Surah Yusuf (12:4): "I saw eleven stars and the sun and the moon —
+// I saw them prostrating to me." The stars arc in sujud (prostration) above the
+// clock face, bowing toward the moon (top-right). Each star = one of Yusuf's brothers.
+// The moon (rendered separately) completes the scene.
+const STARS=(()=>{
+  const stars=[];
+  // Prostration arc: sweeping curve from left to right across the top,
+  // dipping lower in the center like figures in sujud (bowing)
+  const n=11;
+  for(let i=0;i<n;i++){
+    const t=i/(n-1); // 0→1 across the arc
+    // x: spread across top half, slight curve inward
+    const x=0.08+t*0.84;
+    // y: parabolic dip — lowest at center, higher at edges (prostration curve)
+    const dip=4*t*(1-t); // peaks at 0.5
+    const y=0.03+dip*0.12; // ranges from 0.03 (edges) to 0.15 (center of bow)
+    stars.push({
+      x, y,
+      r:0.8+Math.sin(i*1.7)*0.5+0.3,   // varied sizes (0.6–1.6)
+      speed:0.0009+i*0.00008,            // gentle varied twinkle
+      offset:i*0.57,                      // phase offset
+      bright:0.7+Math.sin(i*2.3)*0.2     // varied brightness (0.5–0.9)
+    });
+  }
+  return stars;
+})();
 let celestialProgress=0; // 0=hidden, 1=full. Smooth-animated.
 let celestialTarget=0;
 
