@@ -1421,7 +1421,7 @@ function releaseWakeLock(){
 }
 
 // ── Adhan Debug Log ──
-const _ADHAN_VER='v47-callerdbg';
+const _ADHAN_VER='v48-devadhan';
 const _adhanLog=[];
 function adhanDbg(msg){
   const t=new Date().toTimeString().slice(0,8);
@@ -2278,6 +2278,7 @@ draw();
   <div style="display:flex;gap:12px;align-items:center;width:100%;margin-top:4px;">
     <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" id="devRamToggle" onchange="devRamadan=this.checked;updateInfo();" style="accent-color:#f0e060;"> <span style="font-size:11px;">Ramadan</span></label>
     <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" id="devTawafToggle" onchange="if(this.checked){celestialProgress=0;modeBlend=0;modeTarget=0;startTawaf(true);}else{tawafActive=false;tawafDev=false;tawafState='idle';celestialProgress=0;modeBlend=0;modeTarget=0;devTimeMin=null;tawafMaghribMin=null;document.getElementById('devSlider').value=720;document.getElementById('devTimeLabel').textContent='LIVE';updateInfo();}" style="accent-color:#f0e060;"> <span style="font-size:11px;">Tawaf</span></label>
+    <button id="devAdhanBtn" onclick="(function(){const s=30;let c=s;const btn=document.getElementById('devAdhanBtn');btn.textContent='Adhan in '+c+'s — BACKGROUND NOW';btn.style.background='rgba(96,240,96,.2)';const iv=setInterval(()=>{c--;if(c>0){btn.textContent='Adhan in '+c+'s';}else{clearInterval(iv);btn.textContent='Test Adhan (30s)';btn.style.background='';if(!playAdhan())playPrayerAlarm();adhanDbg('DEV: test adhan fired');}},1000);})()" style="font-size:10px;padding:4px 10px;background:rgba(96,240,96,.15);border:1px solid rgba(96,240,96,.3);border-radius:6px;color:#60f060;cursor:pointer;">Test Adhan (30s)</button>
     <span style="flex:1"></span>
     <button onclick="devTimeMin=null;devLocation=null;devRamadan=false;tawafActive=false;tawafDev=false;tawafState='idle';tawafMaghribMin=null;celestialProgress=0;modeBlend=0;modeTarget=0;document.getElementById('devSlider').value=720;document.getElementById('devTimeLabel').textContent='LIVE';document.getElementById('devRamToggle').checked=false;document.getElementById('devTawafToggle').checked=false;document.getElementById('devLocSelect').value='la';fetchPrayer();" style="font-size:10px;padding:4px 10px;background:rgba(240,224,96,.15);border:1px solid rgba(240,224,96,.3);border-radius:6px;color:#f0e060;cursor:pointer;">Reset All</button>
   </div>
