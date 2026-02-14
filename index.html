@@ -1527,6 +1527,7 @@ function startHrtfSequence(src,startOffset){
 }
 
 function playAdhan(){
+  if(adhanPlaying){adhanDbg('playAdhan() skipped — already playing');return true;}
   const src=ADHAN_SOURCES[S.adhan||'mishari'];
   if(!src)return false;
   const useHrtf=qiblaAngle!==null;
