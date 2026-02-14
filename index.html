@@ -170,6 +170,14 @@ input.sv{width:120px;}
         <option value="8">Gulf</option><option value="15">Moonsighting</option>
       </select>
     </div>
+    <div class="sr"><span class="sl">Adhan</span>
+      <select class="sv" id="sAdhan">
+        <option value="makkah">Makkah</option>
+        <option value="madinah">Madinah</option>
+        <option value="mishari">Mishary al-Afasy</option>
+        <option value="off">Off (oud only)</option>
+      </select>
+    </div>
     <div class="sr"><span class="sl">Numerals</span>
       <select class="sv" id="sNum">
         <option value="arabic" selected>Arabic-Indic</option>
@@ -263,13 +271,13 @@ function loadS(){
   try{
     const s=JSON.parse(localStorage.getItem('rc6')||'{}');
     return{
-      city:s.city||'',country:s.country||'',method:s.method||'2',
+      city:s.city||'',country:s.country||'',method:s.method||'2',adhan:s.adhan||'makkah',
       lat:s.lat||null,lng:s.lng||null,geoCity:s.geoCity||'',
       numerals:s.numerals||'arabic',movement:s.movement||'quartz',tickVol:s.tickVol!=null?s.tickVol:100,
       mode:s.mode||'day',dial:s.dial||'slate',lumeColor:s.lumeColor||0,
     };
   }catch(e){
-    return{city:'',country:'',method:'2',lat:null,lng:null,geoCity:'',numerals:'arabic',movement:'quartz',tickVol:100,mode:'auto',dial:'slate',lumeColor:0};
+    return{city:'',country:'',method:'2',adhan:'makkah',lat:null,lng:null,geoCity:'',numerals:'arabic',movement:'quartz',tickVol:100,mode:'auto',dial:'slate',lumeColor:0};
   }
 }
 let S=loadS();
@@ -352,6 +360,7 @@ window.openSettings=()=>{
   document.getElementById('sCity').value=S.city||S.geoCity||'';
   document.getElementById('sCountry').value=S.country;
   document.getElementById('sMethod').value=S.method;
+  document.getElementById('sAdhan').value=S.adhan||'makkah';
   document.getElementById('sNum').value=S.numerals;
   document.getElementById('sDial').value=S.dial;
   updateSettingsUI();
@@ -364,6 +373,7 @@ window.saveSettings=()=>{
   // Manual city entry overrides geolocation coords
   if(S.city){S.lat=null;S.lng=null;S.geoCity='';};
   S.method=document.getElementById('sMethod').value;
+  S.adhan=document.getElementById('sAdhan').value;
   S.numerals=document.getElementById('sNum').value;
   S.dial=document.getElementById('sDial').value;
   localStorage.setItem('rc6',JSON.stringify(S));
@@ -1359,6 +1369,25 @@ function tickAudio(s,ms){
 // ── Prayer Alarm ──
 let lastAlarmPrayer='';
 const ALARM_NOTES=[293.66, 349.23, 392.00, 349.23, 293.66]; // D4 F4 G4 F4 D4 — warm oud phrase
+const ADHAN_SOURCES={
+  'makkah':'https://archive.org/download/adhans_sunnah/Adhan%20Makkah.mp3',
+  'madinah':'https://archive.org/download/adhans_sunnah/adhan_madina_1952.mp3',
+  'mishari':'https://archive.org/download/adhans_sunnah/adhan_mishari.mp3',
+  'off':null
+};
+let adhanAudio=null;
+
+function playAdhan(){
+  const src=ADHAN_SOURCES[S.adhan||'makkah'];
+  if(!src)return false;
+  try{
+    if(adhanAudio){adhanAudio.pause();adhanAudio.currentTime=0;}
+    adhanAudio=new Audio(src);
+    adhanAudio.volume=Math.min(1.0,(S.tickVol||100)/100);
+    adhanAudio.play().catch(()=>{});
+    return true;
+  }catch(e){return false;}
+}
 
 function playPrayerAlarm(){
   if(!qiblaAudioCtx)return;
@@ -1399,7 +1428,7 @@ function checkPrayerAlarm(){
     const pt=pM(PD[name]);
     if(now===pt&&lastAlarmPrayer!==name){
       lastAlarmPrayer=name;
-      playPrayerAlarm();
+      if(!playAdhan())playPrayerAlarm(); // adhan first, oud fallback
       // Browser notification — prefer SW for PWA background support
       if('Notification' in window&&Notification.permission==='granted'){
         if(swReg){
