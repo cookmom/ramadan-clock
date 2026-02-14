@@ -1488,15 +1488,18 @@ let adhanPlainFallback=null,adhanAudioCtx=null;
 document.addEventListener('visibilitychange',()=>{
   if(!adhanPlaying||!adhanAudio||!adhanPlainFallback)return;
   const vol=Math.min(1.0,(S.tickVol||100)/100);
-  if(document.hidden&&adhanAudio._hrtfActive){
-    // Page hidden: HRTF AudioContext will suspend. Unmute plain, mute HRTF.
+  if(document.hidden){
+    // Page hidden: suspend HRTF context, unmute plain
+    try{if(adhanAudioCtx)adhanAudioCtx.suspend();}catch(e){}
     adhanPlainFallback.volume=vol;
-    // Sync position in case of drift
     try{adhanPlainFallback.currentTime=adhanAudio.currentTime;}catch(e){}
-  }else if(!document.hidden&&adhanAudio._hrtfActive){
-    // Page visible: kill HRTF, let plain continue (avoids sync issues)
-    try{adhanAudio.pause();}catch(e){}
-    adhanAudio._hrtfActive=false;
+  }else{
+    // Page visible: resume HRTF context, mute plain
+    adhanPlainFallback.volume=0;
+    try{
+      if(adhanAudioCtx)adhanAudioCtx.resume();
+      adhanAudio.currentTime=adhanPlainFallback.currentTime;
+    }catch(e){}
   }
 });
 
