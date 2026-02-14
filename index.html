@@ -1401,7 +1401,7 @@ function releaseWakeLock(){
 }
 
 // ── Adhan Debug Log ──
-const _ADHAN_VER='v17';
+const _ADHAN_VER='v18';
 const _adhanLog=[];
 function adhanDbg(msg){
   const t=new Date().toTimeString().slice(0,8);
@@ -1451,6 +1451,19 @@ function playAdhan(){
       // Start plain Audio immediately at near-zero volume — keeps iOS audio session alive
       adhanAudio.volume=0;
       adhanAudio.play().then(()=>{adhanDbg('plain pre-started vol=0');}).catch(e=>{adhanDbg('plain pre-start FAIL: '+e);});
+      // Poll audio state every 2s
+      if(adhanPollInterval)clearInterval(adhanPollInterval);
+      adhanPollInterval=setInterval(()=>{
+        if(!adhanPlaying){clearInterval(adhanPollInterval);return;}
+        const pV=adhanAudio?adhanAudio.volume:'?';
+        const pP=adhanAudio?adhanAudio.paused:'?';
+        const pT=adhanAudio?adhanAudio.currentTime.toFixed(1):'?';
+        const hA=adhanAudio?adhanAudio._hrtfActive:'?';
+        const cS=adhanHrtfCtx?adhanHrtfCtx.state:'null';
+        const cT=adhanHrtfCtx?adhanHrtfCtx.currentTime.toFixed(1):'null';
+        const bS=adhanHrtfBufSrc?'alive':'null';
+        adhanDbg('POLL pVol='+pV+' pPaused='+pP+' pTime='+pT+' hrtf='+hA+' ctx='+cS+' ctxT='+cT+' buf='+bS);
+      },2000);
       adhanDbg('starting HRTF from pos 0');
       startHrtfFromPosition(0).catch(e=>{
         adhanDbg('HRTF init FAILED: '+e);
@@ -1467,7 +1480,7 @@ function playAdhan(){
 }
 
 // ── HRTF↔Plain adhan swap on visibility ──
-let adhanHrtfCtx=null,adhanHrtfBufSrc=null,adhanHrtfGain=null,adhanPannerInterval=null;
+let adhanHrtfCtx=null,adhanHrtfBufSrc=null,adhanHrtfGain=null,adhanPannerInterval=null,adhanPollInterval=null;
 let hrtfGeneration=0;
 function startHrtfFromPosition(pos){
   const gen=++hrtfGeneration;
