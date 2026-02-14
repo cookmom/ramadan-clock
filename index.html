@@ -290,10 +290,7 @@ function colAlpha(col,a){const p=parseCol(col);if(!p)return col;return`rgba(${p[
 
 function getColors(){
   // Animate blend toward target
-  // Gentle sunrise at Fajr: slow 30s fade; normal speed otherwise
-  const isSunrise=modeTarget===0&&modeBlend>0.01&&PD&&Math.abs(nM()-pM(PD.Fajr))<5;
-  const blendRate=isSunrise?0.003:0.04;
-  modeBlend+=(modeTarget-modeBlend)*blendRate;
+  modeBlend+=(modeTarget-modeBlend)*0.04; // smooth ease
   if(Math.abs(modeBlend-modeTarget)<0.001)modeBlend=modeTarget;
   
   const day=DIALS[S.dial];
