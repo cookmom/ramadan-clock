@@ -1457,6 +1457,7 @@ function playAdhan(){
         
         const gain=adhanHrtfCtx.createGain();
         gain.gain.value=Math.min(1.0,(S.tickVol||100)/100);
+        adhanHrtfGain=gain;
         bufSrc.connect(panner).connect(gain).connect(adhanHrtfCtx.destination);
         
         // Start HRTF synced, mute plain
@@ -1473,17 +1474,17 @@ function playAdhan(){
 }
 
 // ── HRTF↔Plain adhan swap on visibility ──
-let adhanHrtfCtx=null,adhanHrtfBufSrc=null,adhanPannerInterval=null;
+let adhanHrtfCtx=null,adhanHrtfBufSrc=null,adhanHrtfGain=null,adhanPannerInterval=null;
 document.addEventListener('visibilitychange',()=>{
-  if(!adhanPlaying||!adhanAudio)return;
+  if(!adhanPlaying||!adhanAudio||!adhanAudio._hrtfActive||!adhanHrtfGain)return;
   const vol=Math.min(1.0,(S.tickVol||100)/100);
-  if(document.hidden&&adhanAudio._hrtfActive){
-    // Page hidden: suspend HRTF, unmute plain from current position
-    try{if(adhanHrtfCtx)adhanHrtfCtx.suspend();}catch(e){}
+  if(document.hidden){
+    // Page hidden: mute HRTF gain, unmute plain
+    adhanHrtfGain.gain.value=0;
     adhanAudio.volume=vol;
-  }else if(!document.hidden&&adhanHrtfCtx&&adhanAudio._hrtfActive){
-    // Page visible: resume HRTF, mute plain
-    try{adhanHrtfCtx.resume();}catch(e){}
+  }else{
+    // Page visible: unmute HRTF gain, mute plain
+    adhanHrtfGain.gain.value=vol;
     adhanAudio.volume=0;
   }
 });
