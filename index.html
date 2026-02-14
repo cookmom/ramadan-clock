@@ -1126,7 +1126,9 @@ function drawFace(c){
     ctx.fillRect(x,y,dpr,dpr);
   }
   ctx.globalAlpha=1;
-  if(embedMode)ctx.restore();
+  if(embedMode){ctx.restore();
+    if(window.parent!==window)window.parent.postMessage({type:'rc-bg',bg:c.bg},'*');
+  }
 }
 
 function drawIndices(c){
