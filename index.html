@@ -1429,8 +1429,8 @@ function playAdhan(){
     // HRTF spatial adhan — fetch as buffer for same-origin files
     if(qiblaAngle!==null){
       adhanAudio._useHrtf=true;
-      document.title='HRTF:fetching';
-      fetch(src).then(r=>{document.title='HRTF:decoding';return r.arrayBuffer();}).then(buf=>{
+      
+      fetch(src).then(r=>{return r.arrayBuffer();}).then(buf=>{
         if(!adhanPlaying)return;
         if(!adhanHrtfCtx||adhanHrtfCtx.state==='closed')
           adhanHrtfCtx=new(window.AudioContext||window.webkitAudioContext)();
@@ -1465,9 +1465,9 @@ function playAdhan(){
         // Start HRTF synced, mute plain
         bufSrc.start(0,adhanAudio.currentTime);
         adhanAudio._hrtfActive=true;
-        document.title='HRTF:active';
+        
         bufSrc.onended=()=>{adhanAudio._hrtfActive=false;adhanHrtfBufSrc=null;};
-      }).catch(e=>{document.title='HRTF:FAIL '+e;adhanAudio._useHrtf=false;adhanAudio.volume=vol;adhanAudio.play().catch(()=>{});});
+      }).catch(e=>{adhanAudio._useHrtf=false;adhanAudio.volume=vol;adhanAudio.play().catch(()=>{});});
     }else{
       adhanAudio.volume=vol;
       adhanAudio.play().catch(()=>{});
