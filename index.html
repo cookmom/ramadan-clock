@@ -1398,6 +1398,18 @@ function playAdhan(){
     adhanAudio.addEventListener('pause',()=>{releaseWakeLock();});
     requestWakeLock();
     
+    // MediaSession for background/lock screen playback
+    if('mediaSession' in navigator){
+      navigator.mediaSession.metadata=new MediaMetadata({
+        title:'Adhan',
+        artist:ADHAN_LABELS[S.adhan||'mishari']||'Adhan',
+        album:'Ramadan Clock'
+      });
+      navigator.mediaSession.setActionHandler('play',()=>{if(adhanAudio)adhanAudio.play();});
+      navigator.mediaSession.setActionHandler('pause',()=>{if(adhanAudio)adhanAudio.pause();});
+      navigator.mediaSession.setActionHandler('stop',()=>{if(adhanAudio){adhanAudio.pause();adhanAudio.currentTime=0;}});
+    }
+    
     // HRTF spatial audio — position sound toward Qibla
     if(qiblaAudioCtx&&qiblaAngle!==null){
       if(qiblaAudioCtx.state==='suspended')qiblaAudioCtx.resume();
