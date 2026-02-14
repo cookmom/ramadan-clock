@@ -1401,7 +1401,7 @@ function releaseWakeLock(){
 }
 
 // ── Adhan Debug Log ──
-const _ADHAN_VER='v29-reassert';
+const _ADHAN_VER='v30-pannerdbg';
 const _adhanLog=[];
 function adhanDbg(msg){
   const t=new Date().toTimeString().slice(0,8);
@@ -1441,6 +1441,7 @@ function adhanPosition(){
   return adhanHrtfStartOffset; // best guess
 }
 
+let _lastPannerLog=0;
 function updateAdhanPannerPosition(){
   if(!adhanPanner||qiblaAngle===null||!adhanCtx||adhanCtx.state!=='running')return;
   const h=deviceHeading||0;
@@ -1448,6 +1449,8 @@ function updateAdhanPannerPosition(){
   adhanPanner.positionX.setValueAtTime(Math.sin(ra),adhanCtx.currentTime);
   adhanPanner.positionY.setValueAtTime(0,adhanCtx.currentTime);
   adhanPanner.positionZ.setValueAtTime(-Math.cos(ra),adhanCtx.currentTime);
+  const now=Date.now();
+  if(now-_lastPannerLog>3000){_lastPannerLog=now;adhanDbg('panner h='+(h*180/Math.PI).toFixed(0)+'° qibla='+(qiblaAngle*180/Math.PI).toFixed(0)+'° ra='+(ra*180/Math.PI).toFixed(0)+'° x='+Math.sin(ra).toFixed(2)+' z='+(-Math.cos(ra)).toFixed(2));}
 }
 
 function startHrtfBuffer(pos){
