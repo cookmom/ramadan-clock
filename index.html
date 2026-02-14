@@ -1463,14 +1463,19 @@ function setAdhanMode(mode,vol){
   // mode: 'hrtf' | 'plain'
   if(!adhanGainHrtf||!adhanGainPlain)return;
   const t=(adhanCtx&&adhanCtx.state==='running')?adhanCtx.currentTime:0;
+  const ramp=0.05; // 50ms crossfade to avoid click/crack
   if(mode==='hrtf'){
-    adhanGainHrtf.gain.setValueAtTime(vol,t);
-    adhanGainPlain.gain.setValueAtTime(0,t);
+    adhanGainHrtf.gain.setValueAtTime(adhanGainHrtf.gain.value,t);
+    adhanGainPlain.gain.setValueAtTime(adhanGainPlain.gain.value,t);
+    adhanGainHrtf.gain.linearRampToValueAtTime(vol,t+ramp);
+    adhanGainPlain.gain.linearRampToValueAtTime(0,t+ramp);
   }else{
-    adhanGainHrtf.gain.setValueAtTime(0,t);
-    adhanGainPlain.gain.setValueAtTime(vol,t);
+    adhanGainHrtf.gain.setValueAtTime(adhanGainHrtf.gain.value,t);
+    adhanGainPlain.gain.setValueAtTime(adhanGainPlain.gain.value,t);
+    adhanGainPlain.gain.linearRampToValueAtTime(vol,t+ramp);
+    adhanGainHrtf.gain.linearRampToValueAtTime(0,t+ramp);
   }
-  adhanDbg('mode='+mode+' vol='+vol.toFixed(2)+' ctxState='+(adhanCtx?adhanCtx.state:'null'));
+  adhanDbg('mode='+mode+' vol='+vol.toFixed(2)+' ramp='+ramp+'s ctxState='+(adhanCtx?adhanCtx.state:'null'));
 }
 
 function updateAdhanPannerPosition(){
