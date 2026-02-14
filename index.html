@@ -645,7 +645,7 @@ function drawQiblaWindow(c){
   ctx.strokeStyle=c.shadow;ctx.lineWidth=0.5*dpr;
   ctx.beginPath();ctx.arc(qx,qy,qr,0,Math.PI*2);ctx.stroke();
   // Needle — centered in circle, pivots from centroid
-  const nL=qr*0.7*1.326*1.15;
+  const nL=qr*0.7*1.326*1.15*1.3;
   const tipDist=nL*0.67;
   const tailDist=nL*0.33;
   const halfBase=nL*0.361;
