@@ -1401,7 +1401,7 @@ function releaseWakeLock(){
 }
 
 // ── Adhan Debug Log ──
-const _ADHAN_VER='v19';
+const _ADHAN_VER='v20';
 const _adhanLog=[];
 function adhanDbg(msg){
   const t=new Date().toTimeString().slice(0,8);
@@ -1449,7 +1449,7 @@ function playAdhan(){
     if(qiblaAngle!==null){
       adhanAudio._useHrtf=true;
       // Start plain Audio immediately at near-zero volume — keeps iOS audio session alive
-      adhanAudio.volume=0;
+      adhanAudio.volume=0;adhanAudio.muted=true;
       adhanAudio.play().then(()=>{adhanDbg('plain pre-started vol=0');}).catch(e=>{adhanDbg('plain pre-start FAIL: '+e);});
       // Poll audio state every 2s
       if(adhanPollInterval)clearInterval(adhanPollInterval);
@@ -1534,7 +1534,7 @@ function startHrtfFromPosition(pos){
       bufSrc.connect(panner).connect(gain).connect(adhanHrtfCtx.destination);
       bufSrc.start(0,pos);
       adhanAudio._hrtfActive=true;
-      adhanAudio.volume=0;
+      adhanAudio.volume=0;adhanAudio.muted=true;
       adhanDbg('HRTF started at pos='+pos.toFixed(2)+' plainVol='+adhanAudio.volume+' plainPaused='+adhanAudio.paused+' ctxState='+adhanHrtfCtx.state+' ctxTime='+adhanHrtfCtx.currentTime.toFixed(2));
       bufSrc.onended=()=>{adhanAudio._hrtfActive=false;adhanHrtfBufSrc=null;};
     });
@@ -1551,6 +1551,7 @@ document.addEventListener('visibilitychange',()=>{
     if(adhanHrtfBufSrc)try{adhanHrtfBufSrc.stop();}catch(e){}
     adhanHrtfBufSrc=null;
     if(adhanPannerInterval)clearInterval(adhanPannerInterval);
+    adhanAudio.muted=false;
     adhanAudio.volume=vol;
   }else if(!document.hidden&&!adhanAudio._hrtfActive){
     const pos=adhanAudio.currentTime;
