@@ -1703,13 +1703,20 @@ draw();
     if(devHideTimer)clearTimeout(devHideTimer);
     devHideTimer=setTimeout(hideDev,7000);
   }
-  // Long-press to toggle dev mode (700ms hold)
+  // Double-tap to toggle dev mode
+  let lastTap=0;
+  function toggleDev(){if(devMode)hideDev();else showDev();}
+  document.addEventListener('dblclick',toggleDev);
+  document.addEventListener('touchend',function(e){const now=Date.now();if(now-lastTap<350){e.preventDefault();toggleDev();}lastTap=now;});
+  // Long-press (700ms) to trigger tawaf
   let holdTimer=null;
-  document.addEventListener('mousedown',function(){holdTimer=setTimeout(()=>{if(devMode)hideDev();else showDev();},700);});
-  document.addEventListener('mouseup',function(){if(holdTimer){clearTimeout(holdTimer);holdTimer=null;}});
-  document.addEventListener('touchstart',function(e){holdTimer=setTimeout(()=>{e.preventDefault();if(devMode)hideDev();else showDev();},700);},{passive:false});
-  document.addEventListener('touchend',function(){if(holdTimer){clearTimeout(holdTimer);holdTimer=null;}});
-  document.addEventListener('touchmove',function(){if(holdTimer){clearTimeout(holdTimer);holdTimer=null;}});
+  function clearHold(){if(holdTimer){clearTimeout(holdTimer);holdTimer=null;}}
+  function startHold(){clearHold();holdTimer=setTimeout(()=>{if(tawafState==='idle'){celestialProgress=0;modeBlend=0;modeTarget=0;startTawaf(true);}},700);}
+  document.addEventListener('mousedown',startHold);
+  document.addEventListener('mouseup',clearHold);
+  document.addEventListener('touchstart',startHold,{passive:true});
+  document.addEventListener('touchend',clearHold);
+  document.addEventListener('touchmove',clearHold);
   // Reset hide timer on any dev panel interaction
   document.getElementById('devPanel').addEventListener('pointerdown',resetDevHideTimer);
   document.getElementById('devPanel').addEventListener('input',resetDevHideTimer);
