@@ -1383,8 +1383,49 @@ function playAdhan(){
   try{
     if(adhanAudio){adhanAudio.pause();adhanAudio.currentTime=0;}
     adhanAudio=new Audio(src);
-    adhanAudio.volume=Math.min(1.0,(S.tickVol||100)/100);
-    adhanAudio.play().catch(()=>{});
+    adhanAudio.crossOrigin='anonymous';
+    
+    // HRTF spatial audio — position sound toward Qibla
+    if(qiblaAudioCtx&&qiblaAngle!==null){
+      if(qiblaAudioCtx.state==='suspended')qiblaAudioCtx.resume();
+      const source=qiblaAudioCtx.createMediaElementSource(adhanAudio);
+      const panner=qiblaAudioCtx.createPanner();
+      panner.panningModel='HRTF';
+      panner.distanceModel='inverse';
+      panner.refDistance=1;
+      panner.maxDistance=100;
+      panner.rolloffFactor=1;
+      panner.coneInnerAngle=360;
+      panner.coneOuterAngle=360;
+      
+      // Calculate Qibla direction relative to device heading
+      const heading=deviceHeading||0;
+      const relAngle=qiblaAngle-heading;
+      // Position sound source on unit sphere in Qibla direction
+      const x=Math.sin(relAngle);
+      const z=-Math.cos(relAngle);
+      panner.positionX.setValueAtTime(x,qiblaAudioCtx.currentTime);
+      panner.positionY.setValueAtTime(0,qiblaAudioCtx.currentTime);
+      panner.positionZ.setValueAtTime(z,qiblaAudioCtx.currentTime);
+      
+      // Update panner position as device rotates
+      adhanAudio._pannerInterval=setInterval(()=>{
+        if(adhanAudio.paused||adhanAudio.ended){clearInterval(adhanAudio._pannerInterval);return;}
+        const h=deviceHeading||0;
+        const ra=qiblaAngle-h;
+        panner.positionX.setValueAtTime(Math.sin(ra),qiblaAudioCtx.currentTime);
+        panner.positionZ.setValueAtTime(-Math.cos(ra),qiblaAudioCtx.currentTime);
+      },200);
+      
+      const gain=qiblaAudioCtx.createGain();
+      gain.gain.value=Math.min(1.0,(S.tickVol||100)/100);
+      source.connect(panner).connect(gain).connect(qiblaAudioCtx.destination);
+      adhanAudio.play().catch(()=>{});
+    }else{
+      // Fallback: no spatial, plain audio
+      adhanAudio.volume=Math.min(1.0,(S.tickVol||100)/100);
+      adhanAudio.play().catch(()=>{});
+    }
     return true;
   }catch(e){return false;}
 }
