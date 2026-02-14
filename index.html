@@ -667,8 +667,8 @@ function drawQiblaWindow(c){
   ctx.fillStyle='rgba(0,0,0,0.45)';ctx.beginPath();
   ctx.moveTo(tipX+0.8*dpr,tipY+1.5*dpr);ctx.lineTo(tailX+pX+0.8*dpr,tailY+pY+1.5*dpr);
   ctx.lineTo(tailX-pX+0.8*dpr,tailY-pY+1.5*dpr);ctx.closePath();ctx.fill();
-  // Body — high contrast
-  ctx.fillStyle=aligned?'#4ade80':c.hand;
+  // Body — red north needle for contrast against lume
+  ctx.fillStyle=aligned?'#4ade80':'#c0392b';
   ctx.globalAlpha=1;
   ctx.beginPath();ctx.moveTo(tipX,tipY);
   ctx.lineTo(tailX+pX,tailY+pY);ctx.lineTo(tailX-pX,tailY-pY);
