@@ -1407,8 +1407,8 @@ function playAdhan(){
     if(adhanAudio){adhanAudio.pause();adhanAudio.currentTime=0;}
     adhanAudio=new Audio(src);
     adhanAudio.crossOrigin='anonymous';
-    adhanAudio.addEventListener('ended',()=>{adhanPlaying=false;releaseWakeLock();});
-    adhanAudio.addEventListener('pause',()=>{adhanPlaying=false;releaseWakeLock();});
+    adhanAudio.addEventListener('ended',()=>{adhanPlaying=false;releaseWakeLock();if(adhanPlainFallback){adhanPlainFallback.pause();adhanPlainFallback=null;}});
+    adhanAudio.addEventListener('pause',()=>{if(!document.hidden){adhanPlaying=false;releaseWakeLock();if(adhanPlainFallback){adhanPlainFallback.pause();adhanPlainFallback=null;}}});
     adhanPlaying=true;
     requestWakeLock();
     
@@ -1460,7 +1460,17 @@ function playAdhan(){
       gain.gain.value=Math.min(1.0,(S.tickVol||100)/100);
       source.connect(panner).connect(gain).connect(qiblaAudioCtx.destination);
       adhanAudio._hrtfActive=true;
-      adhanAudio.play().catch(()=>{});
+      // Start silent plain fallback in parallel for background survival
+      adhanPlainFallback=new Audio(src);
+      adhanPlainFallback.volume=0;
+      adhanPlainFallback.addEventListener('ended',()=>{
+        if(!adhanPlainFallback||adhanPlainFallback.volume===0)return;
+        adhanPlaying=false;releaseWakeLock();adhanPlainFallback=null;
+      });
+      adhanAudio.play().then(()=>{
+        // Start plain in sync right after HRTF starts
+        adhanPlainFallback&&adhanPlainFallback.play().catch(()=>{});
+      }).catch(()=>{});
     }else{
       // Fallback: no spatial, plain audio
       adhanAudio.volume=Math.min(1.0,(S.tickVol||100)/100);
@@ -1470,37 +1480,23 @@ function playAdhan(){
   }catch(e){return false;}
 }
 
-// ── HRTF→Plain fallback on visibility change ──
+// ── HRTF↔Plain volume swap on visibility change ──
 let adhanPlainFallback=null;
 document.addEventListener('visibilitychange',()=>{
-  if(!adhanAudio||adhanAudio.paused||adhanAudio.ended||!adhanPlaying)return;
+  if(!adhanPlaying||!adhanAudio||!adhanPlainFallback)return;
+  const vol=Math.min(1.0,(S.tickVol||100)/100);
   if(document.hidden&&adhanAudio._hrtfActive){
-    // Page hidden: HRTF will die. Spin up plain Audio from current position.
-    const pos=adhanAudio.currentTime;
-    const src=adhanAudio.src;
-    // Pause HRTF audio so it doesn't double-play on return
-    try{adhanAudio.pause();}catch(e){}
-    adhanPlainFallback=new Audio(src);
-    adhanPlainFallback.volume=Math.min(1.0,(S.tickVol||100)/100);
-    adhanPlainFallback.currentTime=pos;
-    adhanPlainFallback.play().catch(()=>{});
-    adhanPlainFallback.addEventListener('ended',()=>{adhanPlaying=false;releaseWakeLock();adhanPlainFallback=null;});
-    // MediaSession stays active from original registration
-  }else if(!document.hidden&&adhanPlainFallback){
-    // Page visible again: always kill plain fallback, resync HRTF from plain's position
-    const pos=adhanPlainFallback.currentTime;
-    const wasEnded=adhanPlainFallback.ended;
-    adhanPlainFallback.pause();
-    adhanPlainFallback=null;
-    if(wasEnded){adhanPlaying=false;releaseWakeLock();return;}
-    // If HRTF audio is still usable, seek it to where plain left off
-    if(adhanAudio&&!adhanAudio.ended){
-      try{
-        if(qiblaAudioCtx&&qiblaAudioCtx.state==='suspended')qiblaAudioCtx.resume();
-        adhanAudio.currentTime=pos;
-        adhanAudio.play().catch(()=>{});
-      }catch(e){}
-    }
+    // Page hidden: HRTF AudioContext will suspend. Unmute plain, mute HRTF.
+    adhanPlainFallback.volume=vol;
+    // Sync position in case of drift
+    try{adhanPlainFallback.currentTime=adhanAudio.currentTime;}catch(e){}
+  }else if(!document.hidden&&adhanAudio._hrtfActive){
+    // Page visible: resume HRTF, mute plain
+    try{
+      if(qiblaAudioCtx&&qiblaAudioCtx.state==='suspended')qiblaAudioCtx.resume();
+      adhanAudio.currentTime=adhanPlainFallback.currentTime;
+    }catch(e){}
+    adhanPlainFallback.volume=0;
   }
 });
 
