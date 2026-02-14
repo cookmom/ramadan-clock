@@ -1073,12 +1073,15 @@ function drawMoon(c){
   lastMoonX=moonX/dpr;lastMoonY=moonY/dpr;lastMoonR=moonR/dpr;
 
   ctx.save();
+  // Clip moon to ONLY render outside the dial circle — it rises from behind the clock
+  ctx.beginPath();
+  ctx.rect(0,0,W,H);
+  ctx.arc(cx,cy,R*0.98,0,Math.PI*2,true);
+  ctx.clip('evenodd');
+
   // Moon starts dim, brightens to full by animation end
   const moonBrightness=0.15+0.85*celestialProgress;
   ctx.globalAlpha=celestialProgress*moonBrightness;
-
-  // Moon renders between background and clock face (no clip needed)
-  // The clock ring/indices draw on top, naturally occluding the moon's lower edge
 
   // Moon glow
   const glowGrad=ctx.createRadialGradient(moonX,moonY,moonR*0.5,moonX,moonY,moonR*3);
