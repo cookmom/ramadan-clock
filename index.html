@@ -1285,6 +1285,74 @@ function tickAudio(s,ms){
   }
 }
 
+// ── Prayer Alarm ──
+let lastAlarmPrayer='';
+const ALARM_NOTES=[293.66, 349.23, 392.00, 349.23, 293.66]; // D4 F4 G4 F4 D4 — warm oud phrase
+
+function playPrayerAlarm(){
+  if(!qiblaAudioCtx)return;
+  if(qiblaAudioCtx.state==='suspended')qiblaAudioCtx.resume();
+  const t=qiblaAudioCtx.currentTime;
+  const vol=0.30*(S.tickVol/100);
+  const bodyFilter=qiblaAudioCtx.createBiquadFilter();
+  bodyFilter.type='peaking';bodyFilter.frequency.value=440;
+  bodyFilter.Q.value=2;bodyFilter.gain.value=4;
+  bodyFilter.connect(qiblaAudioCtx.destination);
+  ALARM_NOTES.forEach((freq,i)=>{
+    const noteT=t+i*0.35;
+    const partials=[
+      {ratio:1,amp:1.0,decay:1.2},{ratio:2,amp:0.45,decay:0.8},{ratio:3,amp:0.25,decay:0.5},
+    ];
+    partials.forEach(p=>{
+      const o=qiblaAudioCtx.createOscillator();
+      const g=qiblaAudioCtx.createGain();
+      o.connect(g);g.connect(bodyFilter);
+      o.frequency.setValueAtTime(freq*p.ratio*1.005,noteT);
+      o.frequency.exponentialRampToValueAtTime(freq*p.ratio,noteT+0.02);
+      o.type='triangle';
+      const v=vol*p.amp;
+      g.gain.setValueAtTime(0,noteT);
+      g.gain.linearRampToValueAtTime(v,noteT+0.002);
+      g.gain.exponentialRampToValueAtTime(v*0.3,noteT+0.08);
+      g.gain.exponentialRampToValueAtTime(0.001,noteT+p.decay);
+      o.start(noteT);o.stop(noteT+p.decay+0.1);
+    });
+  });
+}
+
+function checkPrayerAlarm(){
+  if(!PD||!tickEnabled)return;
+  if(devTimeMin!==null)return; // skip in dev mode
+  const now=nM();
+  for(const name of PN){
+    const pt=pM(PD[name]);
+    if(now===pt&&lastAlarmPrayer!==name){
+      lastAlarmPrayer=name;
+      playPrayerAlarm();
+      // Browser notification
+      if('Notification' in window&&Notification.permission==='granted'){
+        new Notification('🕌 '+name,{body:'It\'s time for '+name+' prayer',tag:'prayer-'+name});
+      }
+      return;
+    }
+  }
+  // Reset once we're past all alarms by 2+ min
+  const currentPrayer=PN.find(n=>pM(PD[n])===nM());
+  if(!currentPrayer&&lastAlarmPrayer){
+    const lpt=pM(PD[lastAlarmPrayer]);
+    if(now>lpt+1)lastAlarmPrayer='';
+  }
+}
+
+// Request notification permission on first interaction
+function requestNotifPermission(){
+  if('Notification' in window&&Notification.permission==='default'){
+    Notification.requestPermission();
+  }
+}
+document.addEventListener('touchstart',requestNotifPermission,{once:true});
+document.addEventListener('click',requestNotifPermission,{once:true});
+
 function drawHand(c,angle,length,width,taperTip,tail){
   const tipX=cx+Math.cos(angle)*length,tipY=cy+Math.sin(angle)*length;
   const tailX=tail?cx-Math.cos(angle)*tail:cx,tailY=tail?cy-Math.sin(angle)*tail:cy;
@@ -1570,6 +1638,7 @@ function checkTawaf(){
 
 function draw(){
   checkTawaf();
+  checkPrayerAlarm();
 
   // Celestial + mode blend — must run BEFORE getColors()
   if(tawafState==='spinning'&&tawafActive){
