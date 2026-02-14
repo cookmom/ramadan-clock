@@ -1404,7 +1404,7 @@ function releaseWakeLock(){
 }
 
 // ── Adhan Debug Log ──
-const _ADHAN_VER='v35-directval';
+const _ADHAN_VER='v36-pandbg';
 const _adhanLog=[];
 function adhanDbg(msg){
   const t=new Date().toTimeString().slice(0,8);
@@ -1446,7 +1446,11 @@ function adhanPosition(){
 
 let _lastPannerLog=0;
 function updateAdhanPannerPosition(){
-  if(!adhanPanner||qiblaAngle===null||!adhanCtx||adhanCtx.state!=='running')return;
+  if(!adhanPanner||qiblaAngle===null||!adhanCtx||adhanCtx.state!=='running'){
+    const now=Date.now();
+    if(now-_lastPannerLog>3000){_lastPannerLog=now;adhanDbg('pan SKIP p='+!!adhanPanner+' q='+(qiblaAngle!==null)+' ctx='+!!(adhanCtx)+' st='+(adhanCtx?adhanCtx.state:'null'));}
+    return;
+  }
   const h=deviceHeading||0;
   const ra=qiblaAngle-h;
   // HRTF PannerNode: place sound on a circle around the listener at distance 2
@@ -1638,6 +1642,8 @@ document.addEventListener('visibilitychange',()=>{
       adhanAudio._swapping=false;
     }
     if(adhanDecodedBuf&&adhanCtx){
+      // Restart panner interval if it was cleared
+      if(!adhanPannerInterval)adhanPannerInterval=setInterval(updateAdhanPannerPosition,200);
       startHrtfBuffer(pos).then(()=>{
         adhanDbg('SHOW: HRTF restored at pos='+pos.toFixed(2));
       }).catch(e=>{
