@@ -1417,7 +1417,7 @@ function releaseWakeLock(){
 }
 
 // ── Adhan Debug Log ──
-const _ADHAN_VER='v44-mediaguard';
+const _ADHAN_VER='v45-gainboost';
 const _adhanLog=[];
 function adhanDbg(msg){
   const t=new Date().toTimeString().slice(0,8);
@@ -1485,7 +1485,8 @@ function startHrtfBuffer(pos){
     updateAdhanPannerPosition();
     
     adhanGain=adhanCtx.createGain();
-    adhanGain.gain.value=Math.min(1.0,(S.tickVol||100)/100);
+    // Boost HRTF gain to match plain Audio loudness (AudioContext is inherently quieter on iOS)
+    adhanGain.gain.value=Math.min(1.5,(S.tickVol||100)/100*1.5);
     
     bufSrc.connect(adhanGain).connect(adhanPanner).connect(adhanCtx.destination);
     
