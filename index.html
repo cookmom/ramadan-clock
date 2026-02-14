@@ -1366,11 +1366,11 @@ function drawHands(c){
   const secAng=(sec/60)*Math.PI*2-Math.PI/2;
   currentSecAngle=secAng;
 
-  drawHand(c,hourAng,R*0.52,R*0.028,R*0.008,R*0.06);
-  drawHand(c,minAng,R*0.72,R*0.022,R*0.005,R*0.08);
+  drawHand(c,hourAng,R*0.676,R*0.028,R*0.008,R*0.06);
+  drawHand(c,minAng,R*0.936,R*0.022,R*0.005,R*0.08);
 
   // Second hand
-  const secLen=R*0.78,secTailLen=R*0.18;
+  const secLen=R*1.014,secTailLen=R*0.18;
   ctx.save();ctx.translate(2*dpr,3*dpr);
   ctx.strokeStyle=c.shadow;ctx.lineWidth=2.5*dpr;ctx.lineCap='round';
   ctx.beginPath();ctx.moveTo(cx-Math.cos(secAng)*secTailLen,cy-Math.sin(secAng)*secTailLen);
