@@ -1437,7 +1437,7 @@ function releaseWakeLock(){
 }
 
 // ── Adhan Debug Log ──
-const _ADHAN_VER='v52b-autodbg';
+const _ADHAN_VER='v53-devgate';
 const _adhanLog=[];
 // Auto-show debug panel on load
 requestAnimationFrame(()=>{adhanDbg('ready');});
@@ -1677,8 +1677,8 @@ function setupAdhanAudioEvents(audio){
 
 // ── Visibility swap: HRTF ↔ Plain ──
 document.addEventListener('visibilitychange',()=>{
-  // Dev test: fire adhan if timer expired while backgrounded
-  if(!document.hidden&&window._devAdhanFireAt&&Date.now()>=window._devAdhanFireAt){
+  // Dev test: fire adhan if timer expired while backgrounded (DEV MODE ONLY)
+  if(devMode&&!document.hidden&&window._devAdhanFireAt&&Date.now()>=window._devAdhanFireAt){
     window._devAdhanFireAt=null;
     const btn=document.getElementById('devAdhanBtn');
     if(btn){btn.textContent='Test Adhan (30s)';btn.style.background='';}
