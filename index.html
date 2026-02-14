@@ -1421,7 +1421,7 @@ function releaseWakeLock(){
 }
 
 // ── Adhan Debug Log ──
-const _ADHAN_VER='v49-bgfire';
+const _ADHAN_VER='v50-wallclk';
 const _adhanLog=[];
 function adhanDbg(msg){
   const t=new Date().toTimeString().slice(0,8);
@@ -1451,14 +1451,21 @@ function adhanDbg(msg){
 let adhanCtx=null,adhanBufSrc=null,adhanPanner=null;
 let adhanGain=null,adhanPannerInterval=null,adhanDecodedBuf=null;
 let adhanHrtfStartCtxTime=0,adhanHrtfStartOffset=0; // position tracking
+let adhanHrtfStartWall=0; // wall-clock fallback (Date.now()) for when iOS suspends ctx
 let adhanSrc=''; // current adhan source URL
 
 function adhanPosition(){
   // Current playback position in seconds
   if(adhanAudio&&!adhanAudio.paused) return adhanAudio.currentTime;
-  if(adhanCtx&&adhanBufSrc&&adhanCtx.state==='running')
-    return adhanHrtfStartOffset+(adhanCtx.currentTime-adhanHrtfStartCtxTime);
-  return adhanHrtfStartOffset; // best guess
+  if(adhanCtx&&adhanBufSrc){
+    // Prefer AudioContext time if running, else wall-clock fallback
+    if(adhanCtx.state==='running')
+      return adhanHrtfStartOffset+(adhanCtx.currentTime-adhanHrtfStartCtxTime);
+    // iOS suspends ctx on background — use wall clock
+    if(adhanHrtfStartWall>0)
+      return adhanHrtfStartOffset+(Date.now()-adhanHrtfStartWall)/1000;
+  }
+  return adhanHrtfStartOffset;
 }
 
 let _lastPannerLog=0,_currentPan=0;
@@ -1497,6 +1504,7 @@ function startHrtfBuffer(pos){
     // Track position
     adhanHrtfStartOffset=pos;
     adhanHrtfStartCtxTime=adhanCtx.currentTime;
+    adhanHrtfStartWall=Date.now();
     // Ensure plain Audio is silent before HRTF starts
     if(adhanAudio&&!adhanAudio.paused){adhanAudio._swapping=true;adhanAudio.pause();setTimeout(()=>{if(adhanAudio)adhanAudio._swapping=false;},50);}
     bufSrc.start(0,pos);
