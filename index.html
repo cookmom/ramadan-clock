@@ -1443,6 +1443,9 @@ function playAdhan(){
     // HRTF spatial adhan — fetch as buffer for same-origin files
     if(qiblaAngle!==null){
       adhanAudio._useHrtf=true;
+      // Start plain Audio immediately at near-zero volume — keeps iOS audio session alive
+      adhanAudio.volume=0.001;
+      adhanAudio.play().then(()=>{adhanDbg('plain pre-started vol=0.001');}).catch(e=>{adhanDbg('plain pre-start FAIL: '+e);});
       adhanDbg('starting HRTF from pos 0');
       startHrtfFromPosition(0).catch(e=>{
         adhanDbg('HRTF init FAILED: '+e);
@@ -1507,14 +1510,13 @@ document.addEventListener('visibilitychange',()=>{
   const vol=Math.min(1.0,(S.tickVol||100)/100);
   adhanDbg('visibility: hidden='+document.hidden+' hrtfActive='+adhanAudio._hrtfActive+' useHrtf='+adhanAudio._useHrtf+' plainVol='+adhanAudio.volume+' plainPaused='+adhanAudio.paused);
   if(document.hidden&&adhanAudio._hrtfActive){
-    adhanDbg('HIDE: killing HRTF, starting plain');
+    adhanDbg('HIDE: killing HRTF, unmuting plain (already playing)');
     adhanAudio._hrtfActive=false;
     if(adhanHrtfGain)adhanHrtfGain.gain.value=0;
     if(adhanHrtfBufSrc)try{adhanHrtfBufSrc.stop();}catch(e){}
     adhanHrtfBufSrc=null;
     if(adhanPannerInterval)clearInterval(adhanPannerInterval);
     adhanAudio.volume=vol;
-    adhanAudio.play().catch(()=>{});
   }else if(!document.hidden&&!adhanAudio._hrtfActive){
     const pos=adhanAudio.currentTime;
     adhanDbg('SHOW: restarting HRTF from plain pos='+pos.toFixed(2));
