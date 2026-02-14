@@ -1428,7 +1428,7 @@ function playAdhan(){
     
     // HRTF spatial adhan — fetch as buffer for same-origin files
     if(qiblaAngle!==null){
-      adhanAudio.volume=0; // start muted, HRTF takes over
+      adhanAudio.volume=0.001; // near-silent but keeps audio session alive for iOS
       fetch(src).then(r=>r.arrayBuffer()).then(buf=>{
         if(!adhanPlaying)return;
         if(!adhanHrtfCtx||adhanHrtfCtx.state==='closed')
@@ -1463,14 +1463,13 @@ function playAdhan(){
         
         // Start HRTF synced, mute plain
         bufSrc.start(0,adhanAudio.currentTime);
-        adhanAudio.volume=0;
+        adhanAudio.volume=0.001;
         adhanAudio._hrtfActive=true;
         bufSrc.onended=()=>{adhanAudio._hrtfActive=false;adhanHrtfBufSrc=null;};
-      }).catch(()=>{adhanAudio.volume=vol;});
+      }).catch(()=>{adhanAudio.volume=vol;adhanAudio.play().catch(()=>{});});
     }else{
       adhanAudio.volume=vol;
     }
-    
     adhanAudio.play().catch(()=>{});
     return true;
   }catch(e){return false;}
