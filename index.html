@@ -1401,7 +1401,7 @@ function releaseWakeLock(){
 }
 
 // ── Adhan Debug Log ──
-const _ADHAN_VER='v23-dualswap';
+const _ADHAN_VER='v24-mutedfix';
 const _adhanLog=[];
 function adhanDbg(msg){
   const t=new Date().toTimeString().slice(0,8);
@@ -1517,7 +1517,7 @@ function playAdhan(){
     
     if(useHrtf){
       // Start plain Audio immediately (it's always playing as position clock)
-      adhanAudio.volume=0; // muted while HRTF is active
+      adhanAudio.muted=true; // hard mute while HRTF is active
       adhanAudio.play().catch(e=>adhanDbg('plain play failed: '+e));
       
       // Create AudioContext and decode buffer for HRTF
@@ -1540,6 +1540,7 @@ function playAdhan(){
         .catch(e=>{
           adhanDbg('HRTF setup failed, falling back to plain: '+e);
           adhanAudio._useHrtf=false;
+          adhanAudio.muted=false;
           adhanAudio.volume=vol;
         });
     }else{
@@ -1558,23 +1559,26 @@ document.addEventListener('visibilitychange',()=>{
     // BACKGROUND: stop HRTF buffer, unmute plain Audio (it's been playing silently)
     if(adhanBufSrc){try{adhanBufSrc.stop();}catch(e){}adhanBufSrc=null;}
     adhanAudio._hrtfActive=false;
+    adhanAudio.muted=false;
     adhanAudio.volume=vol;
     adhanDbg('HIDE: killed HRTF, unmuted plain at pos='+adhanAudio.currentTime.toFixed(2));
   }else{
     // FOREGROUND: mute plain Audio, start HRTF buffer from plain's currentTime
     const pos=adhanAudio.currentTime;
     adhanDbg('SHOW: restarting HRTF from pos='+pos.toFixed(2));
-    adhanAudio.volume=0;
+    adhanAudio.muted=true;
     if(adhanDecodedBuf&&adhanCtx){
       startHrtfBuffer(pos).then(()=>{
         adhanAudio._hrtfActive=true;
         adhanDbg('SHOW: HRTF restored at pos='+pos.toFixed(2));
       }).catch(e=>{
         adhanDbg('SHOW: HRTF failed, staying plain: '+e);
+        adhanAudio.muted=false;
         adhanAudio.volume=vol;
         adhanAudio._useHrtf=false;
       });
     }else{
+      adhanAudio.muted=false;
       adhanAudio.volume=vol;
     }
   }
