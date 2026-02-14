@@ -1403,7 +1403,7 @@ function releaseWakeLock(){
 }
 
 // ── Adhan Debug Log ──
-const _ADHAN_VER='v32-compassdbg';
+const _ADHAN_VER='v33-realunlock';
 const _adhanLog=[];
 function adhanDbg(msg){
   const t=new Date().toTimeString().slice(0,8);
@@ -1538,20 +1538,19 @@ function playAdhan(){
     }
     
     if(useHrtf){
-      // STEP 1: "Unlock" plain Audio with silence (user gesture context).
-      // iOS requires first play() from gesture — subsequent play() calls work.
-      // Use tiny silent WAV data URI so unlock is inaudible.
-      adhanAudio=new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=');
+      // STEP 1: "Unlock" plain Audio with the REAL adhan file (user gesture context).
+      // iOS requires first play() from gesture — data URI silent WAVs get AbortError.
+      // We play the real file briefly then pause — the brief blip is acceptable
+      // because HRTF takes over almost immediately.
+      adhanAudio=new Audio(src);
       adhanAudio._isBackup=true;
       adhanAudio._unlocked=false;
       adhanAudio.play().then(()=>{
         adhanAudio.pause();
-        // Switch to real adhan src for background use
-        adhanAudio.src=src;
-        adhanAudio.load();
+        adhanAudio.currentTime=0;
         adhanAudio._unlocked=true;
         setupAdhanAudioEvents(adhanAudio);
-        adhanDbg('plain Audio unlocked (silent) for background use');
+        adhanDbg('plain Audio unlocked for background use');
         
         // STEP 2: decode + start HRTF (sequenced AFTER unlock)
         startHrtfSequence(src);
