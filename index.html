@@ -1421,7 +1421,7 @@ function releaseWakeLock(){
 }
 
 // ── Adhan Debug Log ──
-const _ADHAN_VER='v51-wallfix';
+const _ADHAN_VER='v52-hidediag';
 const _adhanLog=[];
 function adhanDbg(msg){
   const t=new Date().toTimeString().slice(0,8);
@@ -1671,10 +1671,14 @@ document.addEventListener('visibilitychange',()=>{
   // Also check real prayer alarms on return (timers paused in background)
   if(!document.hidden&&PD&&!adhanPlaying){checkPrayerAlarm();}
   
-  if(!adhanPlaying||!adhanDecodedBuf)return; // only swap if HRTF mode
+  if(!adhanPlaying||!adhanDecodedBuf){
+    adhanDbg('VIS: skip swap — playing='+adhanPlaying+' buf='+(!!adhanDecodedBuf)+' wall='+adhanHrtfStartWall+' hidden='+document.hidden);
+    return;
+  }
   
   if(document.hidden){
     // BACKGROUND: get position, kill HRTF, resume the pre-unlocked plain Audio
+    adhanDbg('HIDE-pre: wall='+adhanHrtfStartWall+' offset='+adhanHrtfStartOffset+' playing='+adhanPlaying+' bufSrc='+(!!adhanBufSrc)+' ctx='+(adhanCtx?adhanCtx.state:'null')+' elapsed='+((adhanHrtfStartWall>0)?(Date.now()-adhanHrtfStartWall)/1000:'N/A'));
     const pos=adhanPosition();
     adhanDbg('HIDE: pos='+pos.toFixed(2)+' unlocked='+!!(adhanAudio&&adhanAudio._unlocked));
     if(adhanBufSrc){try{adhanBufSrc.stop();}catch(e){}adhanBufSrc=null;}
