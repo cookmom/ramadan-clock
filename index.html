@@ -1404,7 +1404,7 @@ function releaseWakeLock(){
 }
 
 // ── Adhan Debug Log ──
-const _ADHAN_VER='v37-intervalfix';
+const _ADHAN_VER='v38-stereopan';
 const _adhanLog=[];
 function adhanDbg(msg){
   const t=new Date().toTimeString().slice(0,8);
@@ -1449,16 +1449,11 @@ function updateAdhanPannerPosition(){
   if(!adhanPanner||qiblaAngle===null||!adhanCtx||adhanCtx.state!=='running')return;
   const h=deviceHeading||0;
   const ra=qiblaAngle-h;
-  // HRTF PannerNode: place sound on a circle around the listener at distance 2
-  // Use .value directly — setValueAtTime can stack/freeze on iOS
-  const d=2;
-  const x=Math.sin(ra)*d;
-  const z=-Math.cos(ra)*d;
-  adhanPanner.positionX.value=x;
-  adhanPanner.positionY.value=0;
-  adhanPanner.positionZ.value=z;
+  // StereoPanner: -1 (left) to +1 (right) based on relative angle to Qibla
+  const pan=Math.max(-1,Math.min(1,Math.sin(ra)));
+  adhanPanner.pan.value=pan;
   const now=Date.now();
-  if(now-_lastPannerLog>2000){_lastPannerLog=now;adhanDbg('pan h='+(h*180/Math.PI).toFixed(0)+'° q='+(qiblaAngle*180/Math.PI).toFixed(0)+'° ra='+(ra*180/Math.PI).toFixed(0)+'° x='+x.toFixed(2)+' z='+z.toFixed(2)+' evt='+compassEventCount);}
+  if(now-_lastPannerLog>2000){_lastPannerLog=now;adhanDbg('pan h='+(h*180/Math.PI).toFixed(0)+'° q='+(qiblaAngle*180/Math.PI).toFixed(0)+'° ra='+(ra*180/Math.PI).toFixed(0)+'° pan='+pan.toFixed(2)+' evt='+compassEventCount);}
 }
 
 function startHrtfBuffer(pos){
@@ -1470,20 +1465,11 @@ function startHrtfBuffer(pos){
     bufSrc.buffer=adhanDecodedBuf;
     adhanBufSrc=bufSrc;
     
-    // Full HRTF PannerNode for true 3D spatial audio (much more dramatic than StereoPanner)
-    adhanPanner=adhanCtx.createPanner();
-    adhanPanner.panningModel='HRTF';
-    adhanPanner.distanceModel='inverse';
-    adhanPanner.refDistance=1;
-    adhanPanner.maxDistance=100;
-    adhanPanner.rolloffFactor=1;
-    adhanPanner.coneInnerAngle=360;
-    adhanPanner.coneOuterAngle=360;
-    adhanPanner.coneOuterGain=1;
+    // StereoPanner for left-right spatial tracking (HRTF PannerNode ignores position updates on iOS)
+    adhanPanner=adhanCtx.createStereoPanner();
     updateAdhanPannerPosition();
     
     adhanGain=adhanCtx.createGain();
-    // GainNode IS settable on iOS (Web Audio volume control works)
     adhanGain.gain.value=Math.min(1.0,(S.tickVol||100)/100);
     
     bufSrc.connect(adhanGain).connect(adhanPanner).connect(adhanCtx.destination);
