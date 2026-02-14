@@ -662,9 +662,13 @@ function _preUnlockAudio(){
   if(_preUnlockedAudio)return;
   const src=ADHAN_SOURCES[S.adhan||'mishari'];
   if(!src)return;
+  // Create Audio with real src but DON'T play it yet — just load
+  // Unlock happens silently via AudioContext (already resumed above)
   const a=new Audio(src);
-  a._swapping=true;
-  a.play().then(()=>{a.pause();a.currentTime=0;a._swapping=false;a._unlocked=true;a._isBackup=true;_preUnlockedAudio=a;}).catch(()=>{a._swapping=false;});
+  a.preload='auto';
+  a.load();
+  a._unlocked=false;a._isBackup=true;a._swapping=false;
+  _preUnlockedAudio=a;
 }
 document.addEventListener('touchstart',function unlockAudio(){
   if(!qiblaAudioCtx)qiblaAudioCtx=new(window.AudioContext||window.webkitAudioContext)();
@@ -1417,7 +1421,7 @@ function releaseWakeLock(){
 }
 
 // ── Adhan Debug Log ──
-const _ADHAN_VER='v45b-doubleguard';
+const _ADHAN_VER='v46-nopreplay';
 const _adhanLog=[];
 function adhanDbg(msg){
   const t=new Date().toTimeString().slice(0,8);
@@ -1561,17 +1565,36 @@ function playAdhan(){
     if(useHrtf){
       // Use pre-unlocked Audio element if available (no audible blip)
       // Otherwise fall back to unlock-on-play (brief blip)
-      if(_preUnlockedAudio&&_preUnlockedAudio._unlocked){
+      if(_preUnlockedAudio){
         adhanAudio=_preUnlockedAudio;
         _preUnlockedAudio=null;
-        // Force paused state — guard against race where it's still playing
         adhanAudio._swapping=true;
-        if(!adhanAudio.paused)adhanAudio.pause();
-        adhanAudio.currentTime=0;
-        setTimeout(()=>{adhanAudio._swapping=false;},50);
-        setupAdhanAudioEvents(adhanAudio);
-        adhanDbg('using pre-unlocked Audio (silent)');
-        startHrtfSequence(src,0);
+        // Unlock with play+pause — file is pre-loaded so pause fires almost instantly
+        adhanAudio.play().then(()=>{
+          adhanAudio.pause();
+          adhanAudio.currentTime=0;
+          adhanAudio._unlocked=true;
+          setupAdhanAudioEvents(adhanAudio);
+          setTimeout(()=>{adhanAudio._swapping=false;},50);
+          adhanDbg('pre-loaded Audio unlocked');
+          startHrtfSequence(src,0);
+        }).catch(e=>{
+          adhanDbg('pre-loaded unlock failed: '+e+', trying fresh');
+          adhanAudio._swapping=false;
+          _preUnlockedAudio=null;
+          // Fall through to fresh unlock below
+          adhanAudio=new Audio(src);
+          adhanAudio._isBackup=true;adhanAudio._unlocked=false;
+          adhanAudio.play().then(()=>{
+            adhanAudio._swapping=true;adhanAudio.pause();adhanAudio.currentTime=0;
+            adhanAudio._unlocked=true;setupAdhanAudioEvents(adhanAudio);
+            setTimeout(()=>{adhanAudio._swapping=false;},50);
+            startHrtfSequence(src,0);
+          }).catch(e2=>{
+            adhanDbg('all unlock failed: '+e2);
+            adhanAudio=new Audio(src);setupAdhanAudioEvents(adhanAudio);adhanAudio.play().catch(()=>{});
+          });
+        });
       }else{
         adhanAudio=new Audio(src);
         adhanAudio._isBackup=true;
