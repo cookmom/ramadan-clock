@@ -1379,6 +1379,14 @@ const ADHAN_SOURCES={
 };
 let adhanAudio=null;
 
+let wakeLock=null;
+async function requestWakeLock(){
+  try{if('wakeLock' in navigator){wakeLock=await navigator.wakeLock.request('screen');}}catch(e){}
+}
+function releaseWakeLock(){
+  if(wakeLock){wakeLock.release().catch(()=>{});wakeLock=null;}
+}
+
 function playAdhan(){
   const src=ADHAN_SOURCES[S.adhan||'mishari'];
   if(!src)return false;
@@ -1386,6 +1394,9 @@ function playAdhan(){
     if(adhanAudio){adhanAudio.pause();adhanAudio.currentTime=0;}
     adhanAudio=new Audio(src);
     adhanAudio.crossOrigin='anonymous';
+    adhanAudio.addEventListener('ended',()=>{releaseWakeLock();});
+    adhanAudio.addEventListener('pause',()=>{releaseWakeLock();});
+    requestWakeLock();
     
     // HRTF spatial audio — position sound toward Qibla
     if(qiblaAudioCtx&&qiblaAngle!==null){
