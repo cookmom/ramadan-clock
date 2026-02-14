@@ -1429,45 +1429,11 @@ function playAdhan(){
     // HRTF spatial adhan — fetch as buffer for same-origin files
     if(qiblaAngle!==null){
       adhanAudio._useHrtf=true;
-      
-      fetch(src).then(r=>{return r.arrayBuffer();}).then(buf=>{
-        if(!adhanPlaying)return;
-        if(!adhanHrtfCtx||adhanHrtfCtx.state==='closed')
-          adhanHrtfCtx=new(window.AudioContext||window.webkitAudioContext)();
-        return adhanHrtfCtx.decodeAudioData(buf);
-      }).then(decoded=>{
-        if(!adhanPlaying||!adhanHrtfCtx)return;
-        const bufSrc=adhanHrtfCtx.createBufferSource();
-        bufSrc.buffer=decoded;
-        adhanHrtfBufSrc=bufSrc;
-        
-        const panner=adhanHrtfCtx.createPanner();
-        panner.panningModel='HRTF';
-        panner.distanceModel='inverse';
-        panner.refDistance=1;panner.maxDistance=100;panner.rolloffFactor=1;
-        panner.coneInnerAngle=360;panner.coneOuterAngle=360;
-        const heading=deviceHeading||0;const relAngle=qiblaAngle-heading;
-        panner.positionX.setValueAtTime(Math.sin(relAngle),adhanHrtfCtx.currentTime);
-        panner.positionY.setValueAtTime(0,adhanHrtfCtx.currentTime);
-        panner.positionZ.setValueAtTime(-Math.cos(relAngle),adhanHrtfCtx.currentTime);
-        adhanPannerInterval=setInterval(()=>{
-          if(!adhanPlaying){clearInterval(adhanPannerInterval);return;}
-          const h=deviceHeading||0;const ra=qiblaAngle-h;
-          panner.positionX.setValueAtTime(Math.sin(ra),adhanHrtfCtx.currentTime);
-          panner.positionZ.setValueAtTime(-Math.cos(ra),adhanHrtfCtx.currentTime);
-        },200);
-        
-        const gain=adhanHrtfCtx.createGain();
-        gain.gain.value=Math.min(1.0,(S.tickVol||100)/100);
-        adhanHrtfGain=gain;
-        bufSrc.connect(panner).connect(gain).connect(adhanHrtfCtx.destination);
-        
-        // Start HRTF synced, mute plain
-        bufSrc.start(0,adhanAudio.currentTime);
-        adhanAudio._hrtfActive=true;
-        
-        bufSrc.onended=()=>{adhanAudio._hrtfActive=false;adhanHrtfBufSrc=null;};
-      }).catch(e=>{adhanAudio._useHrtf=false;adhanAudio.volume=vol;adhanAudio.play().catch(()=>{});});
+      startHrtfFromPosition(0).catch(()=>{
+        adhanAudio._useHrtf=false;
+        adhanAudio.volume=vol;
+        adhanAudio.play().catch(()=>{});
+      });
     }else{
       adhanAudio.volume=vol;
       adhanAudio.play().catch(()=>{});
@@ -1478,11 +1444,50 @@ function playAdhan(){
 
 // ── HRTF↔Plain adhan swap on visibility ──
 let adhanHrtfCtx=null,adhanHrtfBufSrc=null,adhanHrtfGain=null,adhanPannerInterval=null;
+function startHrtfFromPosition(pos){
+  const src=ADHAN_SOURCES[S.adhan||'mishari'];
+  if(!src||qiblaAngle===null)return Promise.reject();
+  if(adhanHrtfBufSrc)try{adhanHrtfBufSrc.stop();}catch(e){}
+  if(adhanPannerInterval)clearInterval(adhanPannerInterval);
+  if(!adhanHrtfCtx||adhanHrtfCtx.state==='closed')
+    adhanHrtfCtx=new(window.AudioContext||window.webkitAudioContext)();
+  return fetch(src).then(r=>r.arrayBuffer())
+    .then(buf=>adhanHrtfCtx.decodeAudioData(buf))
+    .then(decoded=>{
+      if(!adhanPlaying)return;
+      const bufSrc=adhanHrtfCtx.createBufferSource();
+      bufSrc.buffer=decoded;
+      adhanHrtfBufSrc=bufSrc;
+      const panner=adhanHrtfCtx.createPanner();
+      panner.panningModel='HRTF';panner.distanceModel='inverse';
+      panner.refDistance=1;panner.maxDistance=100;panner.rolloffFactor=1;
+      panner.coneInnerAngle=360;panner.coneOuterAngle=360;
+      const h=deviceHeading||0;const ra=qiblaAngle-h;
+      panner.positionX.setValueAtTime(Math.sin(ra),adhanHrtfCtx.currentTime);
+      panner.positionY.setValueAtTime(0,adhanHrtfCtx.currentTime);
+      panner.positionZ.setValueAtTime(-Math.cos(ra),adhanHrtfCtx.currentTime);
+      adhanPannerInterval=setInterval(()=>{
+        if(!adhanPlaying){clearInterval(adhanPannerInterval);return;}
+        const h2=deviceHeading||0;const ra2=qiblaAngle-h2;
+        panner.positionX.setValueAtTime(Math.sin(ra2),adhanHrtfCtx.currentTime);
+        panner.positionZ.setValueAtTime(-Math.cos(ra2),adhanHrtfCtx.currentTime);
+      },200);
+      const gain=adhanHrtfCtx.createGain();
+      const vol=Math.min(1.0,(S.tickVol||100)/100);
+      gain.gain.value=vol;
+      adhanHrtfGain=gain;
+      bufSrc.connect(panner).connect(gain).connect(adhanHrtfCtx.destination);
+      bufSrc.start(0,pos);
+      adhanAudio._hrtfActive=true;
+      bufSrc.onended=()=>{adhanAudio._hrtfActive=false;adhanHrtfBufSrc=null;};
+    });
+}
+
 document.addEventListener('visibilitychange',()=>{
-  if(!adhanPlaying||!adhanAudio||!adhanAudio._hrtfActive)return;
+  if(!adhanPlaying||!adhanAudio||!adhanAudio._useHrtf)return;
   const vol=Math.min(1.0,(S.tickVol||100)/100);
-  if(document.hidden){
-    // Page hidden: kill HRTF entirely, unmute plain
+  if(document.hidden&&adhanAudio._hrtfActive){
+    // Page hidden: kill HRTF, start plain
     adhanAudio._hrtfActive=false;
     if(adhanHrtfGain)adhanHrtfGain.gain.value=0;
     if(adhanHrtfBufSrc)try{adhanHrtfBufSrc.stop();}catch(e){}
@@ -1490,6 +1495,12 @@ document.addEventListener('visibilitychange',()=>{
     if(adhanPannerInterval)clearInterval(adhanPannerInterval);
     adhanAudio.volume=vol;
     adhanAudio.play().catch(()=>{});
+  }else if(!document.hidden&&!adhanAudio._hrtfActive){
+    // Page visible: restart HRTF from plain's position, then mute plain
+    const pos=adhanAudio.currentTime;
+    startHrtfFromPosition(pos).then(()=>{
+      adhanAudio.volume=0.001;
+    }).catch(()=>{/* HRTF failed, plain keeps going */});
   }
 });
 
