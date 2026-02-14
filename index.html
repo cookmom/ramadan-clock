@@ -1401,7 +1401,7 @@ function releaseWakeLock(){
 }
 
 // ── Adhan Debug Log ──
-const _ADHAN_VER='v18';
+const _ADHAN_VER='v19';
 const _adhanLog=[];
 function adhanDbg(msg){
   const t=new Date().toTimeString().slice(0,8);
@@ -1455,15 +1455,29 @@ function playAdhan(){
       if(adhanPollInterval)clearInterval(adhanPollInterval);
       adhanPollInterval=setInterval(()=>{
         if(!adhanPlaying){clearInterval(adhanPollInterval);return;}
+        // Plain Audio state
         const pV=adhanAudio?adhanAudio.volume:'?';
         const pP=adhanAudio?adhanAudio.paused:'?';
+        const pM=adhanAudio?adhanAudio.muted:'?';
         const pT=adhanAudio?adhanAudio.currentTime.toFixed(1):'?';
+        // HRTF state
         const hA=adhanAudio?adhanAudio._hrtfActive:'?';
         const cS=adhanHrtfCtx?adhanHrtfCtx.state:'null';
         const cT=adhanHrtfCtx?adhanHrtfCtx.currentTime.toFixed(1):'null';
-        const bS=adhanHrtfBufSrc?'alive':'null';
-        adhanDbg('POLL pVol='+pV+' pPaused='+pP+' pTime='+pT+' hrtf='+hA+' ctx='+cS+' ctxT='+cT+' buf='+bS);
-      },2000);
+        const bS=adhanHrtfBufSrc?'alive':'dead';
+        const hG=adhanHrtfGain?adhanHrtfGain.gain.value.toFixed(3):'null';
+        // Other audio contexts
+        const qS=typeof qiblaAudioCtx!=='undefined'&&qiblaAudioCtx?qiblaAudioCtx.state:'null';
+        // Count ALL audio elements on page
+        const allAudio=document.querySelectorAll('audio');
+        const playingAudio=Array.from(allAudio).filter(a=>!a.paused);
+        // Check all Audio objects we know about
+        adhanDbg('POLL plain:v='+pV+' p='+pP+' m='+pM+' t='+pT);
+        adhanDbg('POLL hrtf:'+hA+' ctx='+cS+' ct='+cT+' buf='+bS+' gain='+hG);
+        adhanDbg('POLL qiblaCtx='+qS+' audioEls='+allAudio.length+' playing='+playingAudio.length);
+        // Log MediaSession state
+        if(navigator.mediaSession)adhanDbg('POLL mediaSession='+navigator.mediaSession.playbackState);
+      },3000);
       adhanDbg('starting HRTF from pos 0');
       startHrtfFromPosition(0).catch(e=>{
         adhanDbg('HRTF init FAILED: '+e);
