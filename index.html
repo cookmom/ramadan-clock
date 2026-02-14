@@ -474,8 +474,22 @@ async function fetchPrayer(){
     }else if(S.city){
       url=`https://api.aladhan.com/v1/timingsByCity?city=${encodeURIComponent(S.city)}&country=${encodeURIComponent(S.country||'US')}&method=${S.method}`;
     }else{
-      document.getElementById('loc').textContent='Tap to set location';
-      document.getElementById('loc').style.cursor='pointer';
+      // No coords and no city — use IP geolocation via Aladhan
+      try{
+        const ipR=await fetch('https://api.aladhan.com/v1/timings/'+Math.floor(Date.now()/1000));
+        const ipJ=await ipR.json();
+        if(ipJ.code===200){
+          PD=ipJ.data.timings;DD=ipJ.data.date;
+          if(ipJ.data.meta&&ipJ.data.meta.timezone){
+            S.geoCity=ipJ.data.meta.timezone.split('/').pop().replace(/_/g,' ');
+          }
+          if(ipJ.data.meta&&ipJ.data.meta.latitude){
+            S.lat=ipJ.data.meta.latitude;S.lng=ipJ.data.meta.longitude;
+            localStorage.setItem('rc6',JSON.stringify(S));
+          }
+          updateInfo();if(qiblaAngle===null)calcQibla();
+        }
+      }catch(e){document.getElementById('loc').textContent='Location unavailable';}
       return;
     }
     const r=await fetch(url);const j=await r.json();
@@ -577,10 +591,9 @@ function requestGeo(){
         fetchPrayer();
       }
     },()=>{
-      // Geolocation denied — if no city set, prompt user
+      // Geolocation denied — fall back to IP-based location
       if(!S.city&&!S.lat){
-        document.getElementById('loc').textContent='Tap to set location';
-        document.getElementById('loc').style.cursor='pointer';
+        fetchPrayer();
       }
     },{enableHighAccuracy:false,timeout:10000});
   }
