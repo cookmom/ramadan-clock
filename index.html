@@ -1478,6 +1478,8 @@ document.addEventListener('visibilitychange',()=>{
     // Page hidden: HRTF will die. Spin up plain Audio from current position.
     const pos=adhanAudio.currentTime;
     const src=adhanAudio.src;
+    // Pause HRTF audio so it doesn't double-play on return
+    try{adhanAudio.pause();}catch(e){}
     adhanPlainFallback=new Audio(src);
     adhanPlainFallback.volume=Math.min(1.0,(S.tickVol||100)/100);
     adhanPlainFallback.currentTime=pos;
@@ -1485,13 +1487,19 @@ document.addEventListener('visibilitychange',()=>{
     adhanPlainFallback.addEventListener('ended',()=>{adhanPlaying=false;releaseWakeLock();adhanPlainFallback=null;});
     // MediaSession stays active from original registration
   }else if(!document.hidden&&adhanPlainFallback){
-    // Page visible again: stop plain fallback, HRTF resumes if AudioContext alive
-    if(adhanAudio.paused||adhanAudio.ended){
-      // HRTF stream died — let plain continue
-    }else{
-      // HRTF still going — kill plain
-      adhanPlainFallback.pause();
-      adhanPlainFallback=null;
+    // Page visible again: always kill plain fallback, resync HRTF from plain's position
+    const pos=adhanPlainFallback.currentTime;
+    const wasEnded=adhanPlainFallback.ended;
+    adhanPlainFallback.pause();
+    adhanPlainFallback=null;
+    if(wasEnded){adhanPlaying=false;releaseWakeLock();return;}
+    // If HRTF audio is still usable, seek it to where plain left off
+    if(adhanAudio&&!adhanAudio.ended){
+      try{
+        if(qiblaAudioCtx&&qiblaAudioCtx.state==='suspended')qiblaAudioCtx.resume();
+        adhanAudio.currentTime=pos;
+        adhanAudio.play().catch(()=>{});
+      }catch(e){}
     }
   }
 });
