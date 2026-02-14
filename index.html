@@ -271,13 +271,13 @@ function loadS(){
   try{
     const s=JSON.parse(localStorage.getItem('rc6')||'{}');
     return{
-      city:s.city||'',country:s.country||'',method:s.method||'2',adhan:s.adhan||'makkah',
+      city:s.city||'',country:s.country||'',method:s.method||'2',adhan:s.adhan||'mishari',
       lat:s.lat||null,lng:s.lng||null,geoCity:s.geoCity||'',
       numerals:s.numerals||'arabic',movement:s.movement||'quartz',tickVol:s.tickVol!=null?s.tickVol:100,
       mode:s.mode||'day',dial:s.dial||'slate',lumeColor:s.lumeColor||0,
     };
   }catch(e){
-    return{city:'',country:'',method:'2',adhan:'makkah',lat:null,lng:null,geoCity:'',numerals:'arabic',movement:'quartz',tickVol:100,mode:'auto',dial:'slate',lumeColor:0};
+    return{city:'',country:'',method:'2',adhan:'mishari',lat:null,lng:null,geoCity:'',numerals:'arabic',movement:'quartz',tickVol:100,mode:'auto',dial:'slate',lumeColor:0};
   }
 }
 let S=loadS();
