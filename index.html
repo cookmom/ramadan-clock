@@ -1404,7 +1404,7 @@ function releaseWakeLock(){
 }
 
 // ── Adhan Debug Log ──
-const _ADHAN_VER='v39-smoothpan';
+const _ADHAN_VER='v40-fixpan';
 const _adhanLog=[];
 function adhanDbg(msg){
   const t=new Date().toTimeString().slice(0,8);
@@ -1450,8 +1450,10 @@ function updateAdhanPannerPosition(){
   const h=deviceHeading||0;
   const ra=qiblaAngle-h;
   // StereoPanner: -1 (left) to +1 (right) based on relative angle to Qibla
-  // Smooth with linearRampTo to avoid clipping/clicks on rapid rotation
+  // Cancel previous ramp before setting new one, then smooth 150ms ramp
   const pan=Math.max(-1,Math.min(1,Math.sin(ra)));
+  adhanPanner.pan.cancelScheduledValues(adhanCtx.currentTime);
+  adhanPanner.pan.setValueAtTime(adhanPanner.pan.value,adhanCtx.currentTime);
   adhanPanner.pan.linearRampToValueAtTime(pan,adhanCtx.currentTime+0.15);
   const now=Date.now();
   if(now-_lastPannerLog>2000){_lastPannerLog=now;adhanDbg('pan h='+(h*180/Math.PI).toFixed(0)+'° q='+(qiblaAngle*180/Math.PI).toFixed(0)+'° ra='+(ra*180/Math.PI).toFixed(0)+'° pan='+pan.toFixed(2)+' evt='+compassEventCount);}
@@ -1488,7 +1490,8 @@ function startHrtfBuffer(pos){
   });
 }
 
-function startHrtfSequence(src){
+function startHrtfSequence(src,startOffset){
+  const offset=startOffset||0;
   adhanCtx=new(window.AudioContext||window.webkitAudioContext)();
   adhanPannerInterval=setInterval(updateAdhanPannerPosition,200);
   adhanPlaying=true; // re-assert — unlock pause event may have cleared it
@@ -1498,8 +1501,8 @@ function startHrtfSequence(src){
     .then(decoded=>{
       adhanDecodedBuf=decoded;
       adhanPlaying=true; // re-assert again after async
-      adhanDbg('decoded '+decoded.duration.toFixed(1)+'s, starting HRTF');
-      return startHrtfBuffer(0);
+      adhanDbg('decoded '+decoded.duration.toFixed(1)+'s, starting HRTF from '+offset.toFixed(2));
+      return startHrtfBuffer(offset);
     })
     .catch(e=>{
       adhanDbg('HRTF setup failed: '+e+', falling back to plain');
@@ -1549,16 +1552,17 @@ function playAdhan(){
       adhanAudio._unlocked=false;
       adhanAudio.play().then(()=>{
         adhanAudio._swapping=true; // prevent async pause event from killing panner interval
+        const unlockPos=adhanAudio.currentTime; // how far the blip played
         adhanAudio.pause();
         adhanAudio.currentTime=0;
         adhanAudio._unlocked=true;
         setupAdhanAudioEvents(adhanAudio);
         // Clear _swapping after pause event has fired (next event loop tick)
         setTimeout(()=>{adhanAudio._swapping=false;},0);
-        adhanDbg('plain Audio unlocked for background use');
+        adhanDbg('plain Audio unlocked (blip='+unlockPos.toFixed(2)+'s)');
         
-        // STEP 2: decode + start HRTF (sequenced AFTER unlock)
-        startHrtfSequence(src);
+        // STEP 2: decode + start HRTF from where unlock left off (avoid double-play)
+        startHrtfSequence(src,unlockPos);
       }).catch(e=>{
         adhanDbg('plain unlock failed: '+e+', playing plain only');
         adhanAudio=new Audio(src);
