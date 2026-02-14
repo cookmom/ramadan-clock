@@ -1044,6 +1044,7 @@ function getMoonPhase(){
   return day/29.5;
 }
 
+let lastMoonX=0,lastMoonY=0,lastMoonR=0;
 function drawMoon(c){
   if(celestialProgress<0.01)return;
   const moonR=R*0.13;
@@ -1055,6 +1056,7 @@ function drawMoon(c){
   const riseEase=1-Math.pow(1-celestialProgress,3);
   const moonX=startX+(endX-startX)*riseEase;
   const moonY=startY+(endY-startY)*riseEase;
+  lastMoonX=moonX/dpr;lastMoonY=moonY/dpr;lastMoonR=moonR/dpr;
 
   ctx.save();
   // Moon starts dim, brightens to full by animation end
@@ -1873,6 +1875,32 @@ function showDots(){
 }
 // Swipe detection
 let swipeX0=null,swipeY0=null;
+const ADHAN_KEYS=['mishari','makkah','madinah','off'];
+const ADHAN_LABELS={'mishari':'Mishary al-Afasy','makkah':'Makkah','madinah':'Madinah','off':'Off'};
+function cycleMoonAdhan(tx,ty){
+  if(lastMoonR<1||celestialProgress<0.3)return false;
+  const dist=Math.sqrt((tx-lastMoonX)**2+(ty-lastMoonY)**2);
+  if(dist>lastMoonR*2.5)return false;
+  // Cycle adhan
+  const cur=S.adhan||'mishari';
+  const idx=(ADHAN_KEYS.indexOf(cur)+1)%ADHAN_KEYS.length;
+  S.adhan=ADHAN_KEYS[idx];
+  localStorage.setItem('rc6',JSON.stringify(S));
+  // Stop current adhan if playing
+  if(adhanAudio){adhanAudio.pause();adhanAudio.currentTime=0;adhanAudio=null;}
+  // Show label briefly
+  const label=ADHAN_LABELS[S.adhan];
+  const loc=document.getElementById('loc');
+  const oldText=loc.textContent;
+  loc.textContent='Adhan: '+label;
+  setTimeout(()=>{updateInfo();},2000);
+  // Play preview (first 8 seconds)
+  if(S.adhan!=='off'){
+    playAdhan();
+    setTimeout(()=>{if(adhanAudio){adhanAudio.pause();adhanAudio.currentTime=0;adhanAudio=null;}},8000);
+  }
+  return true;
+}
 function handleSwipe(dx,dy,isTouch){
   if(Math.abs(dx)>50&&Math.abs(dx)>Math.abs(dy)*1.5){
     swipeDial(dx<0?1:-1);
@@ -1888,15 +1916,20 @@ function handleSwipe(dx,dy,isTouch){
 cv.addEventListener('touchstart',e=>{swipeX0=e.touches[0].clientX;swipeY0=e.touches[0].clientY;},{passive:true});
 cv.addEventListener('touchend',e=>{
   if(swipeX0===null)return;
-  const dx=e.changedTouches[0].clientX-swipeX0,dy=e.changedTouches[0].clientY-swipeY0;
-  swipeX0=null;handleSwipe(dx,dy,true);
+  const tx=e.changedTouches[0].clientX,ty=e.changedTouches[0].clientY;
+  const dx=tx-swipeX0,dy=ty-swipeY0;
+  swipeX0=null;
+  if(Math.abs(dx)<15&&Math.abs(dy)<15&&cycleMoonAdhan(tx,ty))return;
+  handleSwipe(dx,dy,true);
 });
 // Mouse (PC click-drag)
 cv.addEventListener('mousedown',e=>{swipeX0=e.clientX;swipeY0=e.clientY;});
 cv.addEventListener('mouseup',e=>{
   if(swipeX0===null)return;
   const dx=e.clientX-swipeX0,dy=e.clientY-swipeY0;
-  swipeX0=null;handleSwipe(dx,dy,false);
+  swipeX0=null;
+  if(Math.abs(dx)<15&&Math.abs(dy)<15&&cycleMoonAdhan(e.clientX,e.clientY))return;
+  handleSwipe(dx,dy,false);
 });
 buildDialDots();
 
