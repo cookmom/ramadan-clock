@@ -843,13 +843,29 @@ function drawSplitFlap(c){
   const fajr=pM(PD.Fajr),mag=pM(PD.Maghrib),now=nM();
   let label='',mins=0;
   const sunnahTag=!isRam&&isSunnahDay?' · SUNNAH':'';
-  if(now>=fajr&&now<mag){mins=mag-now;label='UNTIL IFTAR'+sunnahTag;}
-  else if(now<fajr){mins=fajr-now;label='UNTIL FAJR'+sunnahTag;}
+
+  // Primary countdown (fasting-related)
+  let priMins=0,priLabel='';
+  if(now>=fajr&&now<mag){priMins=mag-now;priLabel='UNTIL IFTAR'+sunnahTag;}
+  else if(now<fajr){priMins=fajr-now;priLabel='UNTIL FAJR'+sunnahTag;}
   else{
     const endLabel=isRam?'IFTAR':'MAGHRIB';
     drawSplitFlapChars(c,['0','0',':','0','0'],endLabel);
     return;
   }
+
+  // Next prayer countdown (any prayer)
+  let nxtMins=0,nxtLabel='';
+  for(let i=0;i<PN.length;i++){
+    const pt=pM(PD[PN[i]]);
+    if(pt>now){nxtMins=pt-now;nxtLabel='UNTIL '+PN[i].toUpperCase();break;}
+  }
+
+  // Toggle every minute: even minutes = primary (iftar/fajr), odd = next prayer
+  // If next prayer IS the same as primary, always show primary
+  const useAlt=nxtLabel&&nxtLabel!==priLabel&&(Math.floor(Date.now()/60000)%2===1);
+  if(useAlt){mins=nxtMins;label=nxtLabel;}
+  else{mins=priMins;label=priLabel;}
   const h=Math.floor(mins/60),m=Math.floor(mins%60);
   const chars=[
     String(Math.floor(h/10)),String(h%10),
