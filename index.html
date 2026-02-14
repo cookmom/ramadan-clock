@@ -360,7 +360,7 @@ window.openSettings=()=>{
   document.getElementById('sCity').value=S.city||S.geoCity||'';
   document.getElementById('sCountry').value=S.country;
   document.getElementById('sMethod').value=S.method;
-  document.getElementById('sAdhan').value=S.adhan||'makkah';
+  document.getElementById('sAdhan').value=S.adhan||'mishari';
   document.getElementById('sNum').value=S.numerals;
   document.getElementById('sDial').value=S.dial;
   updateSettingsUI();
@@ -1378,7 +1378,7 @@ const ADHAN_SOURCES={
 let adhanAudio=null;
 
 function playAdhan(){
-  const src=ADHAN_SOURCES[S.adhan||'makkah'];
+  const src=ADHAN_SOURCES[S.adhan||'mishari'];
   if(!src)return false;
   try{
     if(adhanAudio){adhanAudio.pause();adhanAudio.currentTime=0;}
