@@ -1463,8 +1463,10 @@ function playAdhan(){
 
 // ── HRTF↔Plain adhan swap on visibility ──
 let adhanHrtfCtx=null,adhanHrtfBufSrc=null,adhanHrtfGain=null,adhanPannerInterval=null;
+let hrtfGeneration=0;
 function startHrtfFromPosition(pos){
-  adhanDbg('startHrtf pos='+pos.toFixed(2));
+  const gen=++hrtfGeneration;
+  adhanDbg('startHrtf pos='+pos.toFixed(2)+' gen='+gen);
   const src=ADHAN_SOURCES[S.adhan||'mishari'];
   if(!src||qiblaAngle===null){adhanDbg('no src or qibla, reject');return Promise.reject();}
   if(adhanHrtfBufSrc)try{adhanHrtfBufSrc.stop();}catch(e){}
@@ -1475,7 +1477,7 @@ function startHrtfFromPosition(pos){
   return fetch(src).then(r=>{adhanDbg('fetched, status='+r.status);return r;}).then(r=>r.arrayBuffer())
     .then(buf=>adhanHrtfCtx.decodeAudioData(buf))
     .then(decoded=>{
-      if(!adhanPlaying)return;
+      if(!adhanPlaying||gen!==hrtfGeneration){adhanDbg('stale gen='+gen+' cur='+hrtfGeneration+', skip');return;}
       const bufSrc=adhanHrtfCtx.createBufferSource();
       bufSrc.buffer=decoded;
       adhanHrtfBufSrc=bufSrc;
