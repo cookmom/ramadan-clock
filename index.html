@@ -1401,7 +1401,7 @@ function releaseWakeLock(){
 }
 
 // ── Adhan Debug Log ──
-const _ADHAN_VER='v28-seqchain';
+const _ADHAN_VER='v29-reassert';
 const _adhanLog=[];
 function adhanDbg(msg){
   const t=new Date().toTimeString().slice(0,8);
@@ -1488,17 +1488,19 @@ function startHrtfBuffer(pos){
 function startHrtfSequence(src){
   adhanCtx=new(window.AudioContext||window.webkitAudioContext)();
   adhanPannerInterval=setInterval(updateAdhanPannerPosition,200);
+  adhanPlaying=true; // re-assert — unlock pause event may have cleared it
   
   fetch(src).then(r=>r.arrayBuffer())
     .then(buf=>adhanCtx.decodeAudioData(buf))
     .then(decoded=>{
-      if(!adhanPlaying){adhanDbg('decode done but not playing, skip');return;}
       adhanDecodedBuf=decoded;
+      adhanPlaying=true; // re-assert again after async
       adhanDbg('decoded '+decoded.duration.toFixed(1)+'s, starting HRTF');
       return startHrtfBuffer(0);
     })
     .catch(e=>{
       adhanDbg('HRTF setup failed: '+e+', falling back to plain');
+      adhanPlaying=true;
       if(adhanAudio&&adhanAudio._unlocked){adhanAudio.currentTime=0;adhanAudio.play().catch(()=>{});}
     });
 }
