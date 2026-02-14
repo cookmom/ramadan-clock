@@ -1098,7 +1098,7 @@ function drawMoon(c){
 function drawFace(c){
   if(embedMode){
     ctx.clearRect(0,0,W,H);
-    ctx.save();ctx.beginPath();ctx.arc(cx,cy,R*1.02,0,Math.PI*2);ctx.clip();
+    ctx.save();ctx.beginPath();ctx.arc(cx,cy,R*1.18,0,Math.PI*2);ctx.clip();
     ctx.fillStyle=c.bg;ctx.fillRect(0,0,W,H);
   }else{
     ctx.fillStyle=c.bg;ctx.fillRect(0,0,W,H);
