@@ -624,7 +624,7 @@ function drawQiblaWindow(c){
   const qr=R*0.07;
   const midR=(R-R*0.18+R-R*0.03)/2;
   const qx=cx, qy=cy-midR;
-  let arrowAng=deviceHeading!==null?qiblaAngle-deviceHeading:-Math.PI/2; // no gyro: point up (12 o'clock)
+  let arrowAng=deviceHeading!==null?qiblaAngle-deviceHeading:0; // no gyro: point up (12 o'clock)
   let normAng=arrowAng%(Math.PI*2);
   if(normAng>Math.PI)normAng-=Math.PI*2;
   if(normAng<-Math.PI)normAng+=Math.PI*2;
