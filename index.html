@@ -634,6 +634,7 @@ function drawQiblaWindow(c){
   qiblaAligned=aligned;
   const pulse=aligned?Math.sin(Date.now()*0.006)*0.5+0.5:0;
   if(aligned&&!qiblaWasAligned){qiblaGreenStart=performance.now();}
+  if(!aligned){qiblaGreenStart=0;}
   qiblaWasAligned=aligned;
   ctx.save();
   // Shadow (same as hour marker shadow)
