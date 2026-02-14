@@ -1790,12 +1790,28 @@ cv.addEventListener('click',e=>{
   if(!('ontouchstart' in window))toggleInfo();
 });
 
+// ── URL params for embedded showcase ──
+const urlP=new URLSearchParams(window.location.search);
+const embedMode=urlP.has('embed');
+if(urlP.has('dial'))pickDial(urlP.get('dial'));
+if(urlP.get('mode')==='night'){S.mode='night';modeTarget=1;modeBlend=1;celestialProgress=1;}
+if(urlP.get('mode')==='day'){S.mode='day';modeTarget=0;modeBlend=0;}
+if(urlP.has('time')){devTimeMin=parseFloat(urlP.get('time'));}
+if(urlP.get('ramadan')==='true'){devRamadan=true;}
+if(urlP.get('tawaf')==='true'){devRamadan=true;setTimeout(()=>{celestialProgress=0;modeBlend=0;modeTarget=0;startTawaf(true);},1000);}
+if(embedMode){
+  // Hide overlays and info for clean embed
+  const ov=document.getElementById('tapOverlay');if(ov)ov.style.display='none';
+  document.querySelectorAll('.info').forEach(el=>el.style.display='none');
+  const dd=document.getElementById('dialDots');if(dd)dd.style.display='none';
+}
+
 // ── Init ──
 updateModeBlend();
-if(resolveMode()==='night')modeBlend=1; // no transition on load
+if(!urlP.has('mode')&&resolveMode()==='night')modeBlend=1;
 D=getColors();
 applyThemeToUI();
-calcQibla(); // try city fallback immediately
+calcQibla();
 fetchPrayer();
 setInterval(fetchPrayer,30*60*1000);
 setInterval(updateInfo,1000);
