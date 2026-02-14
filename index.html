@@ -148,7 +148,7 @@ input.sv{width:120px;}
 
 <div class="sov" id="sov" onclick="if(event.target===this)closeSettings()">
   <div class="scard" id="scard">
-    <h3 id="settingsTitle">☪ Settings</h3>
+    <h3 id="settingsTitle">Settings</h3>
 
     <div class="sr"><span class="sl">City</span><input class="sv" id="sCity" value="Los Angeles"></div>
     <div class="sr"><span class="sl">Country</span><input class="sv" id="sCountry" value="US"></div>
@@ -481,7 +481,7 @@ function updateInfo(){
   if(isRam){
     if(now>=fajr&&now<mag){const l=mag-now;el.innerHTML=`Fasting · <span class="tl" style="color:${c.accent}">${Math.floor(l/60)}h ${Math.floor(l%60)}m to Iftar</span>`;}
     else if(now<fajr){const l=fajr-now;el.innerHTML=`Suhoor · <span class="tl" style="color:${c.accent}">${Math.floor(l/60)}h ${Math.floor(l%60)}m to Fajr</span>`;}
-    else el.innerHTML=`<span style="color:${c.accent}">Iftar Mubarak ☪</span>`;
+    else el.innerHTML=`<span style="color:${c.accent}">Iftar Mubarak</span>`;
   }else{el.innerHTML=`Fajr <span class="tl" style="color:${c.accent}">${f12(fajr)}</span> · Maghrib <span class="tl" style="color:${c.accent}">${f12(mag)}</span>`;}
 }
 
@@ -1332,7 +1332,7 @@ function checkPrayerAlarm(){
       playPrayerAlarm();
       // Browser notification
       if('Notification' in window&&Notification.permission==='granted'){
-        new Notification('🕌 '+name,{body:'It\'s time for '+name+' prayer',tag:'prayer-'+name});
+        new Notification(name+' Prayer',{body:'It\'s time for '+name+' prayer',tag:'prayer-'+name});
       }
       return;
     }
