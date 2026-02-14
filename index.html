@@ -1421,7 +1421,7 @@ function releaseWakeLock(){
 }
 
 // ── Adhan Debug Log ──
-const _ADHAN_VER='v46-nopreplay';
+const _ADHAN_VER='v47-callerdbg';
 const _adhanLog=[];
 function adhanDbg(msg){
   const t=new Date().toTimeString().slice(0,8);
@@ -1532,6 +1532,8 @@ function startHrtfSequence(src,startOffset){
 
 function playAdhan(){
   if(adhanPlaying){adhanDbg('playAdhan() skipped — already playing');return true;}
+  // Log call stack to find phantom triggers
+  adhanDbg('playAdhan CALLER: '+(new Error().stack||'').split('\n').slice(1,3).join(' < ').trim());
   const src=ADHAN_SOURCES[S.adhan||'mishari'];
   if(!src)return false;
   const useHrtf=qiblaAngle!==null;
@@ -1732,6 +1734,7 @@ function checkPrayerAlarm(){
     const pt=pM(PD[name]);
     if(now===pt&&lastAlarmPrayer!==name){
       lastAlarmPrayer=name;
+      adhanDbg('ALARM: '+name+' now='+now+' pt='+pt);
       if(!playAdhan())playPrayerAlarm(); // adhan first, oud fallback
       // Browser notification — prefer SW for PWA background support
       if('Notification' in window&&Notification.permission==='granted'){
