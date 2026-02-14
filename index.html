@@ -403,7 +403,7 @@ window.setLume=i=>{S.lumeColor=i;buildLumeGrid();};
 
 function applyThemeToUI(){
   const c=getColors();
-  document.body.style.background=c.bg;
+  if(!embedMode)document.body.style.background=c.bg;
   const ov=document.getElementById('tapOverlay');
   if(!ov||ov.style.display==='none')document.querySelector('meta[name="theme-color"]').content=c.bg;
   const root=document.documentElement;
@@ -1711,7 +1711,7 @@ function draw(){
   }
 
   const c=getColors();
-  document.body.style.background=c.bg;
+  if(!embedMode)document.body.style.background=c.bg;
   const ov=document.getElementById('tapOverlay');
   if(!ov||ov.style.display==='none')document.querySelector('meta[name="theme-color"]').content=c.bg;
   updatePixelShift();
@@ -1841,6 +1841,7 @@ const embedFeature=urlP.get('feature'); // prayers, countdown, qibla, etc.
 const hideMarkers=urlP.has('nomarkers');
 if(embedMode){
   // Hide overlays and chrome for clean embed
+  document.body.style.background='transparent';
   const ov=document.getElementById('tapOverlay');if(ov)ov.style.display='none';
   const dd=document.getElementById('dialDots');if(dd)dd.style.display='none';
   // Feature-specific: show relevant info panels
