@@ -1401,7 +1401,7 @@ function releaseWakeLock(){
 }
 
 // ── Adhan Debug Log ──
-const _ADHAN_VER='v21';
+const _ADHAN_VER='v22-splitpath';
 const _adhanLog=[];
 function adhanDbg(msg){
   const t=new Date().toTimeString().slice(0,8);
@@ -1414,23 +1414,107 @@ function adhanDbg(msg){
   el.scrollTop=el.scrollHeight;
 }
 
+// ── HRTF Spatial Adhan — Single-Source Split-Path Architecture ──
+// ONE Audio element is the single source of truth for playback + MediaSession.
+// createMediaElementSource() captures it ONCE into an AudioContext graph with two paths:
+//   Path A: source → PannerNode(HRTF) → gainHrtf → destination  (spatial)
+//   Path B: source → gainPlain → destination                     (pass-through)
+// Foreground: gainHrtf=vol, gainPlain=0 (hear HRTF)
+// Background: gainHrtf=0, gainPlain=vol (iOS suspends AudioContext, but Audio element
+//             keeps playing via MediaSession — when gainPlain feeds destination directly
+//             through the suspended context, the Audio element's native output takes over)
+// Key insight: when AudioContext is suspended, Audio element plays natively (no graph).
+// When resumed, graph reconnects seamlessly. No dual sources, no sync, no double-play.
+let adhanCtx=null,adhanSourceNode=null,adhanPanner=null;
+let adhanGainHrtf=null,adhanGainPlain=null,adhanPannerInterval=null;
+
+function setupAdhanGraph(audioEl){
+  // Create or reuse AudioContext
+  if(!adhanCtx||adhanCtx.state==='closed')
+    adhanCtx=new(window.AudioContext||window.webkitAudioContext)();
+  
+  // createMediaElementSource is one-time per element — reuse if same element
+  if(adhanSourceNode){try{adhanSourceNode.disconnect();}catch(e){}}
+  adhanSourceNode=adhanCtx.createMediaElementSource(audioEl);
+  
+  // Path A: HRTF spatial
+  adhanPanner=adhanCtx.createPanner();
+  adhanPanner.panningModel='HRTF';
+  adhanPanner.distanceModel='inverse';
+  adhanPanner.refDistance=1;adhanPanner.maxDistance=100;adhanPanner.rolloffFactor=1;
+  adhanPanner.coneInnerAngle=360;adhanPanner.coneOuterAngle=360;
+  adhanGainHrtf=adhanCtx.createGain();
+  
+  // Path B: plain pass-through
+  adhanGainPlain=adhanCtx.createGain();
+  
+  // Wire: source → panner → gainHrtf → dest
+  //        source → gainPlain → dest
+  adhanSourceNode.connect(adhanPanner);
+  adhanPanner.connect(adhanGainHrtf);
+  adhanGainHrtf.connect(adhanCtx.destination);
+  adhanSourceNode.connect(adhanGainPlain);
+  adhanGainPlain.connect(adhanCtx.destination);
+  
+  adhanDbg('graph built: source→panner→gainH→dest + source→gainP→dest');
+}
+
+function setAdhanMode(mode,vol){
+  // mode: 'hrtf' | 'plain'
+  if(!adhanGainHrtf||!adhanGainPlain)return;
+  const t=(adhanCtx&&adhanCtx.state==='running')?adhanCtx.currentTime:0;
+  if(mode==='hrtf'){
+    adhanGainHrtf.gain.setValueAtTime(vol,t);
+    adhanGainPlain.gain.setValueAtTime(0,t);
+  }else{
+    adhanGainHrtf.gain.setValueAtTime(0,t);
+    adhanGainPlain.gain.setValueAtTime(vol,t);
+  }
+  adhanDbg('mode='+mode+' vol='+vol.toFixed(2)+' ctxState='+(adhanCtx?adhanCtx.state:'null'));
+}
+
+function updateAdhanPannerPosition(){
+  if(!adhanPanner||qiblaAngle===null)return;
+  const h=deviceHeading||0;
+  const ra=qiblaAngle-h;
+  const t=(adhanCtx&&adhanCtx.state==='running')?adhanCtx.currentTime:0;
+  adhanPanner.positionX.setValueAtTime(Math.sin(ra),t);
+  adhanPanner.positionY.setValueAtTime(0,t);
+  adhanPanner.positionZ.setValueAtTime(-Math.cos(ra),t);
+}
+
 function playAdhan(){
   const src=ADHAN_SOURCES[S.adhan||'mishari'];
   if(!src)return false;
-  adhanDbg('playAdhan() src='+src+' qibla='+(qiblaAngle!==null)+' prevBuf='+(!!adhanHrtfBufSrc)+' prevCtx='+(adhanHrtfCtx?adhanHrtfCtx.state:'null'));
+  const useHrtf=qiblaAngle!==null;
+  adhanDbg('playAdhan() src='+src+' hrtf='+useHrtf);
   try{
-    // Kill everything from previous play
-    if(adhanHrtfBufSrc){try{adhanHrtfBufSrc.stop();}catch(e){}adhanHrtfBufSrc=null;adhanDbg('killed prev bufSrc');}
-    if(adhanHrtfCtx){try{adhanHrtfCtx.close();}catch(e){}adhanHrtfCtx=null;adhanDbg('closed prev ctx');}
+    // Kill previous
     if(adhanPannerInterval){clearInterval(adhanPannerInterval);adhanPannerInterval=null;}
-    if(adhanAudio){adhanDbg('stopping prev adhanAudio');adhanAudio.pause();adhanAudio.currentTime=0;}
+    if(adhanAudio){adhanAudio.pause();adhanAudio.currentTime=0;}
+    // Close old context so createMediaElementSource works on new Audio
+    if(adhanCtx&&adhanCtx.state!=='closed'){try{adhanCtx.close();}catch(e){}}
+    adhanCtx=null;adhanSourceNode=null;adhanPanner=null;adhanGainHrtf=null;adhanGainPlain=null;
+    
     adhanAudio=new Audio(src);
-    adhanAudio.addEventListener('ended',()=>{adhanPlaying=false;releaseWakeLock();if(adhanHrtfBufSrc)try{adhanHrtfBufSrc.stop();}catch(e){}adhanHrtfBufSrc=null;if(adhanPannerInterval)clearInterval(adhanPannerInterval);});
-    adhanAudio.addEventListener('pause',()=>{adhanPlaying=false;releaseWakeLock();if(adhanHrtfBufSrc)try{adhanHrtfBufSrc.stop();}catch(e){}adhanHrtfBufSrc=null;if(adhanPannerInterval)clearInterval(adhanPannerInterval);});
+    adhanAudio.crossOrigin='anonymous';
+    adhanAudio._useHrtf=useHrtf;
+    
+    adhanAudio.addEventListener('ended',()=>{
+      adhanPlaying=false;releaseWakeLock();
+      if(adhanPannerInterval){clearInterval(adhanPannerInterval);adhanPannerInterval=null;}
+      adhanDbg('adhan ended');
+    });
+    adhanAudio.addEventListener('pause',()=>{
+      adhanPlaying=false;releaseWakeLock();
+      if(adhanPannerInterval){clearInterval(adhanPannerInterval);adhanPannerInterval=null;}
+    });
+    
     adhanPlaying=true;
     requestWakeLock();
+    const vol=Math.min(1.0,(S.tickVol||100)/100);
     
-    // MediaSession for background/lock screen playback
+    // MediaSession for lock screen / background
     if('mediaSession' in navigator){
       navigator.mediaSession.metadata=new MediaMetadata({
         title:'Adhan',
@@ -1442,25 +1526,21 @@ function playAdhan(){
       navigator.mediaSession.setActionHandler('stop',()=>{if(adhanAudio){adhanAudio.pause();adhanAudio.currentTime=0;}});
     }
     
-    adhanAudio._hrtfActive=false;
-    adhanAudio._hrtfPos=0;
-    const vol=Math.min(1.0,(S.tickVol||100)/100);
-    
-    if(qiblaAngle!==null){
-      adhanAudio._useHrtf=true;
-      // Track HRTF position for resume
-      if(adhanPollInterval)clearInterval(adhanPollInterval);
-      adhanPollInterval=setInterval(()=>{
-        if(!adhanPlaying){clearInterval(adhanPollInterval);return;}
-        if(adhanHrtfCtx&&adhanAudio._hrtfActive)adhanAudio._hrtfPos=adhanHrtfCtx.currentTime;
-        adhanDbg('POLL pos='+adhanAudio._hrtfPos.toFixed(1)+' hrtf='+adhanAudio._hrtfActive+' ctx='+(adhanHrtfCtx?adhanHrtfCtx.state:'null'));
-      },3000);
-      adhanDbg('starting HRTF from pos 0');
-      startHrtfFromPosition(0).catch(e=>{
-        adhanDbg('HRTF FAILED, falling back to plain: '+e);
+    if(useHrtf){
+      // Build the split-path graph
+      setupAdhanGraph(adhanAudio);
+      updateAdhanPannerPosition();
+      // Start in HRTF mode
+      setAdhanMode('hrtf',vol);
+      // Update panner position as device rotates
+      adhanPannerInterval=setInterval(updateAdhanPannerPosition,200);
+      // Resume context (required for user gesture on iOS)
+      adhanCtx.resume().then(()=>{
+        adhanDbg('ctx resumed, state='+adhanCtx.state);
+        adhanAudio.play().catch(e=>adhanDbg('play failed: '+e));
+      }).catch(e=>{
+        adhanDbg('ctx resume failed: '+e+', playing plain');
         adhanAudio._useHrtf=false;
-        adhanAudio.muted=false;
-        adhanAudio.volume=vol;
         adhanAudio.play().catch(()=>{});
       });
     }else{
@@ -1468,73 +1548,31 @@ function playAdhan(){
       adhanAudio.play().catch(()=>{});
     }
     return true;
-  }catch(e){return false;}
+  }catch(e){adhanDbg('playAdhan error: '+e);return false;}
 }
 
-// ── HRTF↔Plain adhan swap on visibility ──
-let adhanHrtfCtx=null,adhanHrtfBufSrc=null,adhanHrtfGain=null,adhanPannerInterval=null,adhanPollInterval=null;
-let hrtfGeneration=0;
-function startHrtfFromPosition(pos){
-  const gen=++hrtfGeneration;
-  adhanDbg('startHrtf pos='+pos.toFixed(2)+' gen='+gen);
-  const src=ADHAN_SOURCES[S.adhan||'mishari'];
-  if(!src||qiblaAngle===null){adhanDbg('no src or qibla, reject');return Promise.reject();}
-  if(adhanHrtfBufSrc)try{adhanHrtfBufSrc.stop();}catch(e){}
-  if(adhanPannerInterval)clearInterval(adhanPannerInterval);
-  if(!adhanHrtfCtx||adhanHrtfCtx.state==='closed')
-    adhanHrtfCtx=new(window.AudioContext||window.webkitAudioContext)();
-  adhanDbg('fetching '+src);
-  return fetch(src).then(r=>{adhanDbg('fetched, status='+r.status);return r;}).then(r=>r.arrayBuffer())
-    .then(buf=>adhanHrtfCtx.decodeAudioData(buf))
-    .then(decoded=>{
-      if(!adhanPlaying||gen!==hrtfGeneration){adhanDbg('stale gen='+gen+' cur='+hrtfGeneration+', skip');return;}
-      const bufSrc=adhanHrtfCtx.createBufferSource();
-      bufSrc.buffer=decoded;
-      adhanHrtfBufSrc=bufSrc;
-      const panner=adhanHrtfCtx.createPanner();
-      panner.panningModel='HRTF';panner.distanceModel='inverse';
-      panner.refDistance=1;panner.maxDistance=100;panner.rolloffFactor=1;
-      panner.coneInnerAngle=360;panner.coneOuterAngle=360;
-      const h=deviceHeading||0;const ra=qiblaAngle-h;
-      panner.positionX.setValueAtTime(Math.sin(ra),adhanHrtfCtx.currentTime);
-      panner.positionY.setValueAtTime(0,adhanHrtfCtx.currentTime);
-      panner.positionZ.setValueAtTime(-Math.cos(ra),adhanHrtfCtx.currentTime);
-      adhanPannerInterval=setInterval(()=>{
-        if(!adhanPlaying){clearInterval(adhanPannerInterval);return;}
-        const h2=deviceHeading||0;const ra2=qiblaAngle-h2;
-        panner.positionX.setValueAtTime(Math.sin(ra2),adhanHrtfCtx.currentTime);
-        panner.positionZ.setValueAtTime(-Math.cos(ra2),adhanHrtfCtx.currentTime);
-      },200);
-      const gain=adhanHrtfCtx.createGain();
-      const vol=Math.min(1.0,(S.tickVol||100)/100);
-      gain.gain.value=vol;
-      adhanHrtfGain=gain;
-      bufSrc.connect(panner).connect(gain).connect(adhanHrtfCtx.destination);
-      bufSrc.start(0,pos);
-      adhanAudio._hrtfActive=true;
-      adhanAudio.volume=0;adhanAudio.muted=true;
-      adhanDbg('HRTF started at pos='+pos.toFixed(2)+' plainVol='+adhanAudio.volume+' plainPaused='+adhanAudio.paused+' ctxState='+adhanHrtfCtx.state+' ctxTime='+adhanHrtfCtx.currentTime.toFixed(2));
-      bufSrc.onended=()=>{adhanAudio._hrtfActive=false;adhanHrtfBufSrc=null;};
-    });
-}
-
+// ── Visibility swap: HRTF ↔ Plain ──
 document.addEventListener('visibilitychange',()=>{
   if(!adhanPlaying||!adhanAudio||!adhanAudio._useHrtf)return;
+  const vol=Math.min(1.0,(S.tickVol||100)/100);
   if(document.hidden){
-    if(adhanHrtfCtx)adhanAudio._hrtfPos=adhanHrtfCtx.currentTime;
-    adhanDbg('HIDE: saved pos='+adhanAudio._hrtfPos.toFixed(2));
+    // Going to background: switch to plain path
+    // iOS will suspend AudioContext, but Audio element keeps playing natively
+    setAdhanMode('plain',vol);
+    if(adhanCtx)adhanCtx.suspend().catch(()=>{});
+    adhanDbg('HIDE: switched to plain, suspending ctx');
   }else{
-    const pos=adhanAudio._hrtfPos||0;
-    adhanDbg('SHOW: restarting HRTF from pos='+pos.toFixed(2));
-    startHrtfFromPosition(pos).then(()=>{
-      adhanDbg('SHOW: HRTF restarted');
-    }).catch(e=>{
-      adhanDbg('SHOW: HRTF FAILED, plain fallback pos='+pos.toFixed(2));
-      adhanAudio.muted=false;
-      adhanAudio.volume=Math.min(1.0,(S.tickVol||100)/100);
-      adhanAudio.currentTime=pos;
-      adhanAudio.play().catch(()=>{});
-    });
+    // Returning to foreground: resume context, switch back to HRTF
+    adhanDbg('SHOW: resuming ctx for HRTF');
+    if(adhanCtx){
+      adhanCtx.resume().then(()=>{
+        updateAdhanPannerPosition();
+        setAdhanMode('hrtf',vol);
+        adhanDbg('SHOW: HRTF restored, ctx='+adhanCtx.state);
+      }).catch(e=>{
+        adhanDbg('SHOW: resume failed, staying plain: '+e);
+      });
+    }
   }
 });
 
