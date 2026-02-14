@@ -624,8 +624,7 @@ function drawQiblaWindow(c){
   const qr=R*0.07;
   const midR=(R-R*0.18+R-R*0.03)/2;
   const qx=cx, qy=cy-midR;
-  let arrowAng=qiblaAngle;
-  if(deviceHeading!==null) arrowAng=qiblaAngle-deviceHeading;
+  let arrowAng=deviceHeading!==null?qiblaAngle-deviceHeading:-Math.PI/2; // no gyro: point up (12 o'clock)
   let normAng=arrowAng%(Math.PI*2);
   if(normAng>Math.PI)normAng-=Math.PI*2;
   if(normAng<-Math.PI)normAng+=Math.PI*2;
@@ -659,22 +658,28 @@ function drawQiblaWindow(c){
     ctx.beginPath();ctx.arc(qx,qy,qr+4*dpr,0,Math.PI*2);ctx.fill();
     ctx.shadowBlur=0;
   }
-  // Needle shadow
-  const nL=lumeR*0.8;
+  // Needle
+  const nL=lumeR*0.85;
   const tipX=qx+Math.sin(arrowAng)*nL,tipY=qy-Math.cos(arrowAng)*nL;
   const tailX=qx-Math.sin(arrowAng)*nL*0.35,tailY=qy+Math.cos(arrowAng)*nL*0.35;
-  const pX=Math.cos(arrowAng)*nL*0.22,pY=Math.sin(arrowAng)*nL*0.22;
-  ctx.fillStyle='rgba(0,0,0,0.3)';ctx.beginPath();
-  ctx.moveTo(tipX+0.5*dpr,tipY+1*dpr);ctx.lineTo(tailX+pX+0.5*dpr,tailY+pY+1*dpr);
-  ctx.lineTo(tailX-pX+0.5*dpr,tailY-pY+1*dpr);ctx.closePath();ctx.fill();
-  // Needle
-  ctx.fillStyle=aligned?'#4ade80':c.accent;
-  ctx.globalAlpha=aligned?(0.95+pulse*0.05):0.9;
+  const pX=Math.cos(arrowAng)*nL*0.24,pY=Math.sin(arrowAng)*nL*0.24;
+  // Shadow
+  ctx.fillStyle='rgba(0,0,0,0.45)';ctx.beginPath();
+  ctx.moveTo(tipX+0.8*dpr,tipY+1.5*dpr);ctx.lineTo(tailX+pX+0.8*dpr,tailY+pY+1.5*dpr);
+  ctx.lineTo(tailX-pX+0.8*dpr,tailY-pY+1.5*dpr);ctx.closePath();ctx.fill();
+  // Body — high contrast
+  ctx.fillStyle=aligned?'#4ade80':c.hand;
+  ctx.globalAlpha=1;
   ctx.beginPath();ctx.moveTo(tipX,tipY);
   ctx.lineTo(tailX+pX,tailY+pY);ctx.lineTo(tailX-pX,tailY-pY);
   ctx.closePath();ctx.fill();
-  // Needle edge highlight
-  ctx.strokeStyle='rgba(255,255,255,0.15)';ctx.lineWidth=0.5*dpr;
+  // Dark outline for contrast against lume
+  ctx.strokeStyle='rgba(0,0,0,0.4)';ctx.lineWidth=0.8*dpr;
+  ctx.beginPath();ctx.moveTo(tipX,tipY);
+  ctx.lineTo(tailX+pX,tailY+pY);ctx.lineTo(tailX-pX,tailY-pY);
+  ctx.closePath();ctx.stroke();
+  // Bright edge highlight
+  ctx.strokeStyle='rgba(255,255,255,0.25)';ctx.lineWidth=0.5*dpr;
   ctx.beginPath();ctx.moveTo(tipX,tipY);ctx.lineTo(tailX+pX,tailY+pY);ctx.stroke();
   ctx.globalAlpha=1;
   ctx.restore();
