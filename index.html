@@ -630,7 +630,7 @@ function drawQiblaWindow(c){
   const aligned=deviceHeading!==null&&Math.abs(normAng)<(5*Math.PI/180);
   qiblaAligned=aligned;
   const pulse=aligned?Math.sin(Date.now()*0.006)*0.5+0.5:0;
-  if(aligned&&!qiblaWasAligned){qiblaTick();if(navigator.vibrate)navigator.vibrate(50);}
+  if(aligned&&!qiblaWasAligned){}
   qiblaWasAligned=aligned;
   ctx.save();
   // Shadow (same as hour marker shadow)
