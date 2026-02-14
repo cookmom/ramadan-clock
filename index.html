@@ -1862,10 +1862,6 @@ if(embedMode){
   }
   if(embedFeature==='countdown'){
     devRamadan=true;
-    // Show only fasting status, hide prayer times text
-    const btm=document.querySelector('.info-bottom');
-    if(btm){btm.style.display='';btm.classList.add('visible');btm.style.transition='none';}
-    const pr=document.getElementById('prayers');if(pr)pr.style.display='none';
   }
 }
 
