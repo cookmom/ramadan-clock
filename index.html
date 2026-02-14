@@ -733,7 +733,7 @@ function drawSplitFlap(c){
         playFlapClick(intensity);
       }
     }
-    drawSplitFlapChars(c,displayChars,landed?'IFTAR MUBARAK':'');
+    drawSplitFlapChars(c,displayChars,landed?'IFTAR':'');
     return;
   }else{
     if(flapTawafActive){flapTawafActive=false;flapTawafLanded=false;}
@@ -745,7 +745,7 @@ function drawSplitFlap(c){
   if(now>=fajr&&now<mag){mins=mag-now;label='IFTAR COUNTDOWN'+sunnahTag;}
   else if(now<fajr){mins=fajr-now;label='FAJR'+sunnahTag;}
   else{
-    const endLabel=isRam?'IFTAR MUBARAK':'MAGHRIB';
+    const endLabel=isRam?'IFTAR':'MAGHRIB';
     drawSplitFlapChars(c,['0','0',':','0','0'],endLabel);
     return;
   }
