@@ -1556,7 +1556,7 @@ function checkTawaf(){
   if(!PD)return;
   const now=nM(),mag=pM(PD.Maghrib);
   const preStart=mag-TAWAF_PRESTART_MIN;
-  if(now>=preStart&&now<mag+1&&!tawafTriggered){tawafTriggered=true;startTawaf(false);}
+  if(now>=preStart&&now<mag+5&&!tawafTriggered){tawafTriggered=true;startTawaf(false);}
   if(now<preStart)tawafTriggered=false;
 }
 
