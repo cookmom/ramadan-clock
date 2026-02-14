@@ -1417,7 +1417,7 @@ function releaseWakeLock(){
 }
 
 // ── Adhan Debug Log ──
-const _ADHAN_VER='v43-preunlock';
+const _ADHAN_VER='v44-mediaguard';
 const _adhanLog=[];
 function adhanDbg(msg){
   const t=new Date().toTimeString().slice(0,8);
@@ -1606,8 +1606,9 @@ function setupAdhanAudioEvents(audio){
   });
   // MediaSession controls
   if('mediaSession' in navigator){
-    navigator.mediaSession.setActionHandler('play',()=>{if(adhanAudio)adhanAudio.play();});
-    navigator.mediaSession.setActionHandler('pause',()=>{if(adhanAudio)adhanAudio.pause();});
+    // Only allow play/pause when in background (plain mode) — not during HRTF foreground
+    navigator.mediaSession.setActionHandler('play',()=>{if(adhanAudio&&document.hidden)adhanAudio.play();});
+    navigator.mediaSession.setActionHandler('pause',()=>{if(adhanAudio&&document.hidden)adhanAudio.pause();});
     navigator.mediaSession.setActionHandler('stop',()=>{if(adhanAudio){adhanAudio.pause();}adhanPlaying=false;releaseWakeLock();});
   }
 }
