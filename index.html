@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Suhoor to Iftar">
-<meta name="theme-color" content="#2e8b57">
+<meta name="theme-color" content="#000000">
 <link rel="manifest" href="manifest.json">
 <title>Suhoor to Iftar</title>
 <style>
@@ -407,7 +407,8 @@ window.setLume=i=>{S.lumeColor=i;buildLumeGrid();};
 function applyThemeToUI(){
   const c=getColors();
   document.body.style.background=c.bg;
-  document.querySelector('meta[name="theme-color"]').content=c.bg;
+  const ov=document.getElementById('tapOverlay');
+  if(!ov||ov.style.display==='none')document.querySelector('meta[name="theme-color"]').content=c.bg;
   const root=document.documentElement;
   root.style.setProperty('--theme-text',c.text);
   root.style.setProperty('--theme-dim',c.textDim);
@@ -1594,6 +1595,9 @@ function draw(){
   }
 
   const c=getColors();
+  document.body.style.background=c.bg;
+  const ov=document.getElementById('tapOverlay');
+  if(!ov||ov.style.display==='none')document.querySelector('meta[name="theme-color"]').content=c.bg;
   updatePixelShift();
 
   ctx.save();
