@@ -1417,7 +1417,7 @@ function releaseWakeLock(){
 }
 
 // ── Adhan Debug Log ──
-const _ADHAN_VER='v45-gainboost';
+const _ADHAN_VER='v45b-doubleguard';
 const _adhanLog=[];
 function adhanDbg(msg){
   const t=new Date().toTimeString().slice(0,8);
@@ -1493,6 +1493,8 @@ function startHrtfBuffer(pos){
     // Track position
     adhanHrtfStartOffset=pos;
     adhanHrtfStartCtxTime=adhanCtx.currentTime;
+    // Ensure plain Audio is silent before HRTF starts
+    if(adhanAudio&&!adhanAudio.paused){adhanAudio._swapping=true;adhanAudio.pause();setTimeout(()=>{if(adhanAudio)adhanAudio._swapping=false;},50);}
     bufSrc.start(0,pos);
     
     bufSrc.onended=()=>{
@@ -1558,9 +1560,14 @@ function playAdhan(){
     if(useHrtf){
       // Use pre-unlocked Audio element if available (no audible blip)
       // Otherwise fall back to unlock-on-play (brief blip)
-      if(_preUnlockedAudio){
+      if(_preUnlockedAudio&&_preUnlockedAudio._unlocked){
         adhanAudio=_preUnlockedAudio;
         _preUnlockedAudio=null;
+        // Force paused state — guard against race where it's still playing
+        adhanAudio._swapping=true;
+        if(!adhanAudio.paused)adhanAudio.pause();
+        adhanAudio.currentTime=0;
+        setTimeout(()=>{adhanAudio._swapping=false;},50);
         setupAdhanAudioEvents(adhanAudio);
         adhanDbg('using pre-unlocked Audio (silent)');
         startHrtfSequence(src,0);
