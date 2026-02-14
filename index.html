@@ -2095,7 +2095,7 @@ function cycleMoonAdhan(tx,ty){
 function handleSwipe(dx,dy,isTouch){
   if(Math.abs(dx)>50&&Math.abs(dx)>Math.abs(dy)*1.5){
     swipeDial(dx<0?1:-1);
-  }else if(!embedMode&&Math.abs(dy)>50&&Math.abs(dy)>Math.abs(dx)*1.5){
+  }else if((!embedMode||embedSwipeV)&&Math.abs(dy)>50&&Math.abs(dy)>Math.abs(dx)*1.5){
     S.mode=dy<0?'day':'night';
     localStorage.setItem('rc6',JSON.stringify(S));
     updateModeBlend();
@@ -2154,6 +2154,7 @@ cv.addEventListener('click',e=>{
 // ── URL params for embedded showcase ──
 const urlP=new URLSearchParams(window.location.search);
 const embedMode=urlP.has('embed');
+const embedSwipeV=urlP.has('swipev');
 if(urlP.has('dial'))pickDial(urlP.get('dial'));
 if(urlP.get('mode')==='night'){S.mode='night';modeTarget=1;modeBlend=1;celestialProgress=1;}
 if(urlP.get('mode')==='day'){S.mode='day';modeTarget=0;modeBlend=0;}
