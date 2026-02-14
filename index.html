@@ -1074,9 +1074,10 @@ function drawMoon(c){
 
   ctx.save();
   // Clip moon to ONLY render outside the dial circle — it rises from behind the clock
+  // Use R*0.82 so moon is hidden behind the hour indices, only visible above the dial
   ctx.beginPath();
   ctx.rect(0,0,W,H);
-  ctx.arc(cx,cy,R*0.98,0,Math.PI*2,true);
+  ctx.arc(cx,cy,R*0.82,0,Math.PI*2,true);
   ctx.clip('evenodd');
 
   // Moon starts dim, brightens to full by animation end
