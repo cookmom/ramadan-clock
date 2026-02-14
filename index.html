@@ -1491,12 +1491,9 @@ document.addEventListener('visibilitychange',()=>{
     // Sync position in case of drift
     try{adhanPlainFallback.currentTime=adhanAudio.currentTime;}catch(e){}
   }else if(!document.hidden&&adhanAudio._hrtfActive){
-    // Page visible: resume HRTF, mute plain
-    try{
-      if(qiblaAudioCtx&&qiblaAudioCtx.state==='suspended')qiblaAudioCtx.resume();
-      adhanAudio.currentTime=adhanPlainFallback.currentTime;
-    }catch(e){}
-    adhanPlainFallback.volume=0;
+    // Page visible: kill HRTF, let plain continue (avoids sync issues)
+    try{adhanAudio.pause();}catch(e){}
+    adhanAudio._hrtfActive=false;
   }
 });
 
