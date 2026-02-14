@@ -1894,10 +1894,9 @@ function cycleMoonAdhan(tx,ty){
   const oldText=loc.textContent;
   loc.textContent='Adhan: '+label;
   setTimeout(()=>{updateInfo();},2000);
-  // Play preview (first 8 seconds)
+  // Play full adhan
   if(S.adhan!=='off'){
     playAdhan();
-    setTimeout(()=>{if(adhanAudio){adhanAudio.pause();adhanAudio.currentTime=0;adhanAudio=null;}},8000);
   }
   return true;
 }
