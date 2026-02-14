@@ -1573,8 +1573,23 @@ function checkTawaf(){
 }
 
 function draw(){
-  if(S.mode==='auto')updateModeBlend();
   checkTawaf();
+
+  // Celestial + mode blend — must run BEFORE getColors()
+  if(tawafState==='spinning'&&tawafActive){
+    celestialProgress=0;modeBlend=0;modeTarget=0;
+  }else if(tawafState==='hold'){
+    modeTarget=1;modeBlend+=(1-modeBlend)*0.04;
+    celestialProgress=modeBlend;
+  }else if(tawafState==='pre_mag'){
+    celestialProgress=0;modeBlend=0;modeTarget=0;
+  }else{
+    if(S.mode==='auto')updateModeBlend();
+    const nightTarget=resolveMode()==='night'?1:0;
+    celestialProgress+=(nightTarget-celestialProgress)*0.03;
+    if(Math.abs(celestialProgress-nightTarget)<0.005)celestialProgress=nightTarget;
+  }
+
   const c=getColors();
   updatePixelShift();
 
@@ -1582,26 +1597,6 @@ function draw(){
   ctx.translate(pixelShiftX*dpr,pixelShiftY*dpr);
 
   ctx.clearRect(-10,-10,W+20,H+20);
-
-  // Celestial: tied to tawaf gong timing
-  // First gong at vm=720, last at vm=5040. Celestial maps across that range.
-  if(tawafState==='spinning'&&tawafActive){
-    // Keep day mode during tawaf — night transition comes after
-    celestialProgress=0;modeBlend=0;modeTarget=0;
-  }else if(tawafState==='hold'){
-    // Tawaf done — now transition to night
-    modeTarget=1;modeBlend+=(1-modeBlend)*0.04;
-    celestialProgress=modeBlend;
-  }else if(tawafState==='pre_mag'){
-    // Hold celestial at 0 during pre-mag countdown — prevent moon flash
-    celestialProgress=0;modeBlend=0;modeTarget=0;
-  }else{
-    // Outside tawaf: celestial follows night mode
-    const nightTarget=resolveMode()==='night'?1:0;
-    celestialProgress+=(nightTarget-celestialProgress)*0.03;
-    if(Math.abs(celestialProgress-nightTarget)<0.005)celestialProgress=nightTarget;
-    updateModeBlend();
-  }
 
   drawFace(c);
   drawStars(c); // behind everything
