@@ -1401,7 +1401,7 @@ function releaseWakeLock(){
 }
 
 // ── Adhan Debug Log ──
-const _ADHAN_VER='v15';
+const _ADHAN_VER='v16';
 const _adhanLog=[];
 function adhanDbg(msg){
   const t=new Date().toTimeString().slice(0,8);
@@ -1445,8 +1445,8 @@ function playAdhan(){
     if(qiblaAngle!==null){
       adhanAudio._useHrtf=true;
       // Start plain Audio immediately at near-zero volume — keeps iOS audio session alive
-      adhanAudio.volume=0.001;
-      adhanAudio.play().then(()=>{adhanDbg('plain pre-started vol=0.001');}).catch(e=>{adhanDbg('plain pre-start FAIL: '+e);});
+      adhanAudio.volume=0;
+      adhanAudio.play().then(()=>{adhanDbg('plain pre-started vol=0');}).catch(e=>{adhanDbg('plain pre-start FAIL: '+e);});
       adhanDbg('starting HRTF from pos 0');
       startHrtfFromPosition(0).catch(e=>{
         adhanDbg('HRTF init FAILED: '+e);
@@ -1503,7 +1503,7 @@ function startHrtfFromPosition(pos){
       bufSrc.connect(panner).connect(gain).connect(adhanHrtfCtx.destination);
       bufSrc.start(0,pos);
       adhanAudio._hrtfActive=true;
-      adhanAudio.volume=0.001;
+      adhanAudio.volume=0;
       adhanDbg('HRTF started at pos='+pos.toFixed(2)+' plainVol='+adhanAudio.volume+' plainPaused='+adhanAudio.paused);
       bufSrc.onended=()=>{adhanAudio._hrtfActive=false;adhanHrtfBufSrc=null;};
     });
