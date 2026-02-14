@@ -778,10 +778,10 @@ function drawSplitFlap(c){
 }
 function drawSplitFlapChars(c,chars,sub){
   const wy=cy+R*0.38;
-  const digitW=R*0.058; // width per digit cell
-  const colonW=R*0.025; // narrow colon column
+  const digitW=R*0.04; // width per digit cell
+  const colonW=R*0.017; // narrow colon column
   const cellGap=R*0.005; // gap between cells
-  const cellH=R*0.1;
+  const cellH=R*0.07;
   // Compute total width with per-char widths
   const charWidths=chars.map(ch=>ch===':'?colonW:ch===' '?cellGap*2:digitW);
   const totalW=charWidths.reduce((a,w)=>a+w,0)+(chars.length-1)*cellGap;
@@ -790,7 +790,7 @@ function drawSplitFlapChars(c,chars,sub){
   const halfH=cellH/2-gap/2;
   const wr=R*0.012;
   const nowMs=performance.now();
-  const fontSize=R*0.062;
+  const fontSize=R*0.043;
 
   ctx.save();
 
@@ -798,7 +798,7 @@ function drawSplitFlapChars(c,chars,sub){
   ctx.textAlign='center';ctx.textBaseline='middle';
   ctx.font=`500 ${R*0.024}px 'Inter',system-ui,sans-serif`;
   ctx.fillStyle=c.lume;ctx.globalAlpha=0.3;
-  ctx.fillText(sub,cx,wy+cellH/2+R*0.028);
+  ctx.fillText(sub,cx,wy+cellH/2+R*0.02);
   ctx.globalAlpha=1;
 
   let curX=startX;
