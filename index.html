@@ -1401,7 +1401,7 @@ function releaseWakeLock(){
 }
 
 // ── Adhan Debug Log ──
-const _ADHAN_VER='v27-swapguard';
+const _ADHAN_VER='v28-seqchain';
 const _adhanLog=[];
 function adhanDbg(msg){
   const t=new Date().toTimeString().slice(0,8);
@@ -1485,6 +1485,24 @@ function startHrtfBuffer(pos){
   });
 }
 
+function startHrtfSequence(src){
+  adhanCtx=new(window.AudioContext||window.webkitAudioContext)();
+  adhanPannerInterval=setInterval(updateAdhanPannerPosition,200);
+  
+  fetch(src).then(r=>r.arrayBuffer())
+    .then(buf=>adhanCtx.decodeAudioData(buf))
+    .then(decoded=>{
+      if(!adhanPlaying){adhanDbg('decode done but not playing, skip');return;}
+      adhanDecodedBuf=decoded;
+      adhanDbg('decoded '+decoded.duration.toFixed(1)+'s, starting HRTF');
+      return startHrtfBuffer(0);
+    })
+    .catch(e=>{
+      adhanDbg('HRTF setup failed: '+e+', falling back to plain');
+      if(adhanAudio&&adhanAudio._unlocked){adhanAudio.currentTime=0;adhanAudio.play().catch(()=>{});}
+    });
+}
+
 function playAdhan(){
   const src=ADHAN_SOURCES[S.adhan||'mishari'];
   if(!src)return false;
@@ -1517,37 +1535,28 @@ function playAdhan(){
     }
     
     if(useHrtf){
-      // "Unlock" a plain Audio element NOW (user gesture context) so we can
-      // resume it later from visibilitychange without a new gesture.
-      // iOS requires first play() to be from user gesture — subsequent play() calls work.
+      // STEP 1: "Unlock" plain Audio (user gesture) for later background use.
+      // iOS requires first play() from gesture — subsequent play() calls work.
+      // The brief play is audible (can't mute on iOS) but it's the adhan, that's OK.
       adhanAudio=new Audio(src);
-      setupAdhanAudioEvents(adhanAudio);
-      adhanAudio._swapping=true; // prevent pause handler from killing adhanPlaying
+      adhanAudio._isBackup=true;
+      adhanAudio._unlocked=false;
+      // Don't use setupAdhanAudioEvents yet — we don't want pause handler during unlock
       adhanAudio.play().then(()=>{
         adhanAudio.pause();
-        adhanAudio._swapping=false;
         adhanAudio.currentTime=0;
         adhanAudio._unlocked=true;
+        // NOW attach events (after unlock pause is done)
+        setupAdhanAudioEvents(adhanAudio);
         adhanDbg('plain Audio unlocked for background use');
-      }).catch(e=>{adhanAudio._swapping=false;adhanDbg('plain unlock failed: '+e);});
-      
-      // Create AudioContext and decode buffer for HRTF
-      adhanCtx=new(window.AudioContext||window.webkitAudioContext)();
-      adhanPannerInterval=setInterval(updateAdhanPannerPosition,200);
-      
-      fetch(src).then(r=>r.arrayBuffer())
-        .then(buf=>adhanCtx.decodeAudioData(buf))
-        .then(decoded=>{
-          if(!adhanPlaying)return;
-          adhanDecodedBuf=decoded;
-          adhanDbg('decoded '+decoded.duration.toFixed(1)+'s, starting HRTF');
-          return startHrtfBuffer(0);
-        })
-        .catch(e=>{
-          adhanDbg('HRTF setup failed, falling back to plain: '+e);
-          // Fallback: resume the unlocked plain Audio
-          if(adhanAudio){adhanAudio.currentTime=0;adhanAudio.play().catch(()=>{});}
-        });
+        
+        // STEP 2: decode + start HRTF (sequenced AFTER unlock)
+        startHrtfSequence(src);
+      }).catch(e=>{
+        adhanDbg('plain unlock failed: '+e+', playing plain only');
+        setupAdhanAudioEvents(adhanAudio);
+        adhanAudio.play().catch(()=>{});
+      });
     }else{
       adhanAudio=new Audio(src);
       setupAdhanAudioEvents(adhanAudio);
