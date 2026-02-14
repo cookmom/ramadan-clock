@@ -1580,7 +1580,8 @@ function draw(){
   if(tawafState==='spinning'&&tawafActive){
     celestialProgress=0;modeBlend=0;modeTarget=0;
   }else if(tawafState==='hold'){
-    modeTarget=1;modeBlend+=(1-modeBlend)*0.04;
+    modeTarget=1;
+    // Don't blend here — getColors() handles it at the same 0.04 rate as normal transitions
     celestialProgress=modeBlend;
   }else if(tawafState==='pre_mag'){
     celestialProgress=0;modeBlend=0;modeTarget=0;
