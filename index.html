@@ -1404,7 +1404,7 @@ function releaseWakeLock(){
 }
 
 // ── Adhan Debug Log ──
-const _ADHAN_VER='v41-directpan';
+const _ADHAN_VER='v42-showrace';
 const _adhanLog=[];
 function adhanDbg(msg){
   const t=new Date().toTimeString().slice(0,8);
@@ -1626,12 +1626,15 @@ document.addEventListener('visibilitychange',()=>{
     if(adhanAudio&&!adhanAudio.paused){
       adhanAudio._swapping=true;
       adhanAudio.pause();
-      adhanAudio._swapping=false;
+      // Keep _swapping=true until async pause event fires (same fix as unlock)
+      setTimeout(()=>{adhanAudio._swapping=false;},50);
     }
     if(adhanDecodedBuf&&adhanCtx){
       // Restart panner interval if it was cleared
       if(!adhanPannerInterval)adhanPannerInterval=setInterval(updateAdhanPannerPosition,200);
       startHrtfBuffer(pos).then(()=>{
+        adhanPlaying=true; // re-assert in case pause handler cleared it
+        if(!adhanPannerInterval)adhanPannerInterval=setInterval(updateAdhanPannerPosition,200);
         adhanDbg('SHOW: HRTF restored at pos='+pos.toFixed(2));
       }).catch(e=>{
         adhanDbg('SHOW: HRTF failed, resuming plain: '+e);
