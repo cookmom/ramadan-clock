@@ -1612,25 +1612,6 @@ function drawHands(c){
   const secAng=(sec/60)*Math.PI*2-Math.PI/2;
   currentSecAngle=secAng;
 
-  // Motion blur trails during tawaf
-  if(tawafActive&&tawafState==='spinning'){
-    const elapsed=performance.now()-tawafStart;
-    const progress=Math.min(elapsed/TAWAF_DURATION,1);
-    // Trail spread increases with speed, then shrinks on ease-out
-    const speed=progress<0.85?Math.min(progress/0.15,1):Math.max(0,(1-progress)/0.15);
-    const trails=6;
-    const hourSpread=speed*0.35; // radians of trail arc
-    const minSpread=speed*0.55;
-    for(let i=trails;i>=1;i--){
-      const t=i/trails;
-      ctx.globalAlpha=0.08*(1-t*0.7);
-      // Trails behind the hand (positive offset = CW = where hand was, since hand moves CCW)
-      drawHand(c,hourAng+hourSpread*t,R*0.52,R*0.028,R*0.008,R*0.06);
-      drawHand(c,minAng+minSpread*t,R*0.72,R*0.022,R*0.005,R*0.08);
-    }
-    ctx.globalAlpha=1;
-  }
-
   drawHand(c,hourAng,R*0.52,R*0.028,R*0.008,R*0.06);
   drawHand(c,minAng,R*0.72,R*0.022,R*0.005,R*0.08);
 
