@@ -1428,7 +1428,7 @@ function playAdhan(){
     
     // HRTF spatial adhan — fetch as buffer for same-origin files
     if(qiblaAngle!==null){
-      adhanAudio.volume=0.001; // near-silent but keeps audio session alive for iOS
+      adhanAudio._useHrtf=true;
       document.title='HRTF:fetching';
       fetch(src).then(r=>{document.title='HRTF:decoding';return r.arrayBuffer();}).then(buf=>{
         if(!adhanPlaying)return;
@@ -1464,15 +1464,14 @@ function playAdhan(){
         
         // Start HRTF synced, mute plain
         bufSrc.start(0,adhanAudio.currentTime);
-        adhanAudio.volume=0.001;
         adhanAudio._hrtfActive=true;
         document.title='HRTF:active';
         bufSrc.onended=()=>{adhanAudio._hrtfActive=false;adhanHrtfBufSrc=null;};
-      }).catch(e=>{document.title='HRTF:FAIL '+e;adhanAudio.volume=vol;});
+      }).catch(e=>{document.title='HRTF:FAIL '+e;adhanAudio._useHrtf=false;adhanAudio.volume=vol;adhanAudio.play().catch(()=>{});});
     }else{
       adhanAudio.volume=vol;
+      adhanAudio.play().catch(()=>{});
     }
-    adhanAudio.play().catch(()=>{});
     return true;
   }catch(e){return false;}
 }
@@ -1490,6 +1489,7 @@ document.addEventListener('visibilitychange',()=>{
     adhanHrtfBufSrc=null;
     if(adhanPannerInterval)clearInterval(adhanPannerInterval);
     adhanAudio.volume=vol;
+    adhanAudio.play().catch(()=>{});
   }
 });
 
