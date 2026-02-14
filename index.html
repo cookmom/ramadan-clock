@@ -1404,7 +1404,7 @@ function releaseWakeLock(){
 }
 
 // ── Adhan Debug Log ──
-const _ADHAN_VER='v34-hrtfpanner';
+const _ADHAN_VER='v35-directval';
 const _adhanLog=[];
 function adhanDbg(msg){
   const t=new Date().toTimeString().slice(0,8);
@@ -1450,13 +1450,13 @@ function updateAdhanPannerPosition(){
   const h=deviceHeading||0;
   const ra=qiblaAngle-h;
   // HRTF PannerNode: place sound on a circle around the listener at distance 2
+  // Use .value directly — setValueAtTime can stack/freeze on iOS
   const d=2;
   const x=Math.sin(ra)*d;
   const z=-Math.cos(ra)*d;
-  const t=adhanCtx.currentTime;
-  adhanPanner.positionX.setValueAtTime(x,t);
-  adhanPanner.positionY.setValueAtTime(0,t);
-  adhanPanner.positionZ.setValueAtTime(z,t);
+  adhanPanner.positionX.value=x;
+  adhanPanner.positionY.value=0;
+  adhanPanner.positionZ.value=z;
   const now=Date.now();
   if(now-_lastPannerLog>2000){_lastPannerLog=now;adhanDbg('pan h='+(h*180/Math.PI).toFixed(0)+'° q='+(qiblaAngle*180/Math.PI).toFixed(0)+'° ra='+(ra*180/Math.PI).toFixed(0)+'° x='+x.toFixed(2)+' z='+z.toFixed(2)+' evt='+compassEventCount);}
 }
