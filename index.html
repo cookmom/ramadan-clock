@@ -1459,6 +1459,7 @@ function playAdhan(){
       const gain=qiblaAudioCtx.createGain();
       gain.gain.value=Math.min(1.0,(S.tickVol||100)/100);
       source.connect(panner).connect(gain).connect(qiblaAudioCtx.destination);
+      adhanAudio._hrtfActive=true;
       adhanAudio.play().catch(()=>{});
     }else{
       // Fallback: no spatial, plain audio
@@ -1468,6 +1469,32 @@ function playAdhan(){
     return true;
   }catch(e){return false;}
 }
+
+// ── HRTF→Plain fallback on visibility change ──
+let adhanPlainFallback=null;
+document.addEventListener('visibilitychange',()=>{
+  if(!adhanAudio||adhanAudio.paused||adhanAudio.ended||!adhanPlaying)return;
+  if(document.hidden&&adhanAudio._hrtfActive){
+    // Page hidden: HRTF will die. Spin up plain Audio from current position.
+    const pos=adhanAudio.currentTime;
+    const src=adhanAudio.src;
+    adhanPlainFallback=new Audio(src);
+    adhanPlainFallback.volume=Math.min(1.0,(S.tickVol||100)/100);
+    adhanPlainFallback.currentTime=pos;
+    adhanPlainFallback.play().catch(()=>{});
+    adhanPlainFallback.addEventListener('ended',()=>{adhanPlaying=false;releaseWakeLock();adhanPlainFallback=null;});
+    // MediaSession stays active from original registration
+  }else if(!document.hidden&&adhanPlainFallback){
+    // Page visible again: stop plain fallback, HRTF resumes if AudioContext alive
+    if(adhanAudio.paused||adhanAudio.ended){
+      // HRTF stream died — let plain continue
+    }else{
+      // HRTF still going — kill plain
+      adhanPlainFallback.pause();
+      adhanPlainFallback=null;
+    }
+  }
+});
 
 function playPrayerAlarm(){
   if(!qiblaAudioCtx)return;
