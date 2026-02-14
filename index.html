@@ -652,7 +652,7 @@ function drawQiblaWindow(c){
   ctx.beginPath();ctx.arc(qx,qy,lumeR,0,Math.PI*2);ctx.fill();
   ctx.shadowBlur=0;
   // Needle
-  const nL=lumeR*0.85;
+  const nL=lumeR*1.105;
   const tipX=qx+Math.sin(arrowAng)*nL,tipY=qy-Math.cos(arrowAng)*nL;
   const tailX=qx-Math.sin(arrowAng)*nL*0.35,tailY=qy+Math.cos(arrowAng)*nL*0.35;
   const pX=Math.cos(arrowAng)*nL*0.38,pY=Math.sin(arrowAng)*nL*0.38;
