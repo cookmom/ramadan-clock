@@ -332,16 +332,9 @@ function getColors(){
   };
 }
 
-// Pixel shift for burn-in protection
-let pixelShiftX=0, pixelShiftY=0, lastShift=0;
-function updatePixelShift(){
-  const now=Date.now();
-  if(now-lastShift>120000){ // every 2 minutes
-    pixelShiftX=Math.round((Math.random()-0.5)*4);
-    pixelShiftY=Math.round((Math.random()-0.5)*4);
-    lastShift=now;
-  }
-}
+// Pixel shift disabled — Tawfeeq prefers static
+let pixelShiftX=0, pixelShiftY=0;
+function updatePixelShift(){}
 
 window.openSettings=()=>{
   document.getElementById('sCity').value=S.city;
