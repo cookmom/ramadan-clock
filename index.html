@@ -1401,7 +1401,7 @@ function releaseWakeLock(){
 }
 
 // ── Adhan Debug Log ──
-const _ADHAN_VER='v20';
+const _ADHAN_VER='v21';
 const _adhanLog=[];
 function adhanDbg(msg){
   const t=new Date().toTimeString().slice(0,8);
@@ -1443,45 +1443,23 @@ function playAdhan(){
     }
     
     adhanAudio._hrtfActive=false;
+    adhanAudio._hrtfPos=0;
     const vol=Math.min(1.0,(S.tickVol||100)/100);
     
-    // HRTF spatial adhan — fetch as buffer for same-origin files
     if(qiblaAngle!==null){
       adhanAudio._useHrtf=true;
-      // Start plain Audio immediately at near-zero volume — keeps iOS audio session alive
-      adhanAudio.volume=0;adhanAudio.muted=true;
-      adhanAudio.play().then(()=>{adhanDbg('plain pre-started vol=0');}).catch(e=>{adhanDbg('plain pre-start FAIL: '+e);});
-      // Poll audio state every 2s
+      // Track HRTF position for resume
       if(adhanPollInterval)clearInterval(adhanPollInterval);
       adhanPollInterval=setInterval(()=>{
         if(!adhanPlaying){clearInterval(adhanPollInterval);return;}
-        // Plain Audio state
-        const pV=adhanAudio?adhanAudio.volume:'?';
-        const pP=adhanAudio?adhanAudio.paused:'?';
-        const pM=adhanAudio?adhanAudio.muted:'?';
-        const pT=adhanAudio?adhanAudio.currentTime.toFixed(1):'?';
-        // HRTF state
-        const hA=adhanAudio?adhanAudio._hrtfActive:'?';
-        const cS=adhanHrtfCtx?adhanHrtfCtx.state:'null';
-        const cT=adhanHrtfCtx?adhanHrtfCtx.currentTime.toFixed(1):'null';
-        const bS=adhanHrtfBufSrc?'alive':'dead';
-        const hG=adhanHrtfGain?adhanHrtfGain.gain.value.toFixed(3):'null';
-        // Other audio contexts
-        const qS=typeof qiblaAudioCtx!=='undefined'&&qiblaAudioCtx?qiblaAudioCtx.state:'null';
-        // Count ALL audio elements on page
-        const allAudio=document.querySelectorAll('audio');
-        const playingAudio=Array.from(allAudio).filter(a=>!a.paused);
-        // Check all Audio objects we know about
-        adhanDbg('POLL plain:v='+pV+' p='+pP+' m='+pM+' t='+pT);
-        adhanDbg('POLL hrtf:'+hA+' ctx='+cS+' ct='+cT+' buf='+bS+' gain='+hG);
-        adhanDbg('POLL qiblaCtx='+qS+' audioEls='+allAudio.length+' playing='+playingAudio.length);
-        // Log MediaSession state
-        if(navigator.mediaSession)adhanDbg('POLL mediaSession='+navigator.mediaSession.playbackState);
+        if(adhanHrtfCtx&&adhanAudio._hrtfActive)adhanAudio._hrtfPos=adhanHrtfCtx.currentTime;
+        adhanDbg('POLL pos='+adhanAudio._hrtfPos.toFixed(1)+' hrtf='+adhanAudio._hrtfActive+' ctx='+(adhanHrtfCtx?adhanHrtfCtx.state:'null'));
       },3000);
       adhanDbg('starting HRTF from pos 0');
       startHrtfFromPosition(0).catch(e=>{
-        adhanDbg('HRTF init FAILED: '+e);
+        adhanDbg('HRTF FAILED, falling back to plain: '+e);
         adhanAudio._useHrtf=false;
+        adhanAudio.muted=false;
         adhanAudio.volume=vol;
         adhanAudio.play().catch(()=>{});
       });
@@ -1542,23 +1520,21 @@ function startHrtfFromPosition(pos){
 
 document.addEventListener('visibilitychange',()=>{
   if(!adhanPlaying||!adhanAudio||!adhanAudio._useHrtf)return;
-  const vol=Math.min(1.0,(S.tickVol||100)/100);
-  adhanDbg('visibility: hidden='+document.hidden+' hrtfActive='+adhanAudio._hrtfActive+' useHrtf='+adhanAudio._useHrtf+' plainVol='+adhanAudio.volume+' plainPaused='+adhanAudio.paused);
-  if(document.hidden&&adhanAudio._hrtfActive){
-    adhanDbg('HIDE: killing HRTF, unmuting plain (already playing)');
-    adhanAudio._hrtfActive=false;
-    if(adhanHrtfGain)adhanHrtfGain.gain.value=0;
-    if(adhanHrtfBufSrc)try{adhanHrtfBufSrc.stop();}catch(e){}
-    adhanHrtfBufSrc=null;
-    if(adhanPannerInterval)clearInterval(adhanPannerInterval);
-    adhanAudio.muted=false;
-    adhanAudio.volume=vol;
-  }else if(!document.hidden&&!adhanAudio._hrtfActive){
-    const pos=adhanAudio.currentTime;
-    adhanDbg('SHOW: restarting HRTF from plain pos='+pos.toFixed(2));
+  if(document.hidden){
+    if(adhanHrtfCtx)adhanAudio._hrtfPos=adhanHrtfCtx.currentTime;
+    adhanDbg('HIDE: saved pos='+adhanAudio._hrtfPos.toFixed(2));
+  }else{
+    const pos=adhanAudio._hrtfPos||0;
+    adhanDbg('SHOW: restarting HRTF from pos='+pos.toFixed(2));
     startHrtfFromPosition(pos).then(()=>{
-      adhanDbg('SHOW: HRTF restarted, plain already muted');
-    }).catch(e=>{adhanDbg('SHOW: HRTF restart FAILED: '+e);});
+      adhanDbg('SHOW: HRTF restarted');
+    }).catch(e=>{
+      adhanDbg('SHOW: HRTF FAILED, plain fallback pos='+pos.toFixed(2));
+      adhanAudio.muted=false;
+      adhanAudio.volume=Math.min(1.0,(S.tickVol||100)/100);
+      adhanAudio.currentTime=pos;
+      adhanAudio.play().catch(()=>{});
+    });
   }
 });
 
