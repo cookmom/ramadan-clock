@@ -1463,7 +1463,6 @@ function playPrayerAlarm(){
 
 function checkPrayerAlarm(){
   if(!PD||!tickEnabled)return;
-  if(devTimeMin!==null)return; // skip in dev mode
   const now=Math.floor(nM());
   for(const name of PN){
     const pt=pM(PD[name]);
