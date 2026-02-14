@@ -1555,9 +1555,19 @@ function checkTawaf(){
   if(tawafState!=='idle')return;
   if(!PD)return;
   const now=nM(),mag=pM(PD.Maghrib);
-  const preStart=mag-TAWAF_PRESTART_MIN;
-  if(now>=preStart&&now<mag+5&&!tawafTriggered){tawafTriggered=true;startTawaf(false);}
-  if(now<preStart)tawafTriggered=false;
+  // Trigger 1 min before Maghrib; offset tawafStart so first gong lands exactly at Maghrib
+  const earlyMin=1;
+  if(now>=mag-earlyMin&&now<mag+5&&!tawafTriggered){
+    tawafTriggered=true;
+    const secsToMag=(mag-now)*60;
+    // Offset start time: first gong fires at TAWAF_PREGONG_MS into animation
+    // So start = now - (TAWAF_PREGONG_MS - secsToMag*1000)
+    const offsetMs=TAWAF_PREGONG_MS-Math.max(0,secsToMag)*1000;
+    tawafLastLap=0;celestialProgress=0;modeBlend=0;modeTarget=0;
+    tawafActive=true;tawafStart=performance.now()-Math.max(0,offsetMs);
+    tawafState='spinning';
+  }
+  if(now<mag-earlyMin)tawafTriggered=false;
 }
 
 function draw(){
