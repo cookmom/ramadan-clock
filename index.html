@@ -1077,11 +1077,8 @@ function drawMoon(c){
   const moonBrightness=0.15+0.85*celestialProgress;
   ctx.globalAlpha=celestialProgress*moonBrightness;
 
-  // Clip: exclude clock face so moon appears to rise from behind
-  ctx.beginPath();
-  ctx.rect(0,0,W,H);
-  ctx.arc(cx,cy,R*1.02,0,Math.PI*2,true); // CCW = cut hole
-  ctx.clip();
+  // Moon renders between background and clock face (no clip needed)
+  // The clock ring/indices draw on top, naturally occluding the moon's lower edge
 
   // Moon glow
   const glowGrad=ctx.createRadialGradient(moonX,moonY,moonR*0.5,moonX,moonY,moonR*3);
@@ -2021,7 +2018,8 @@ function draw(){
   ctx.clearRect(-10,-10,W+20,H+20);
 
   drawFace(c);
-  drawStars(c); // behind everything
+  drawStars(c);
+  drawMoon(c); // above bg, below clock face
   drawFastingArc(c);
   drawQiblaWindow(c);
   drawSplitFlap(c);
@@ -2029,7 +2027,6 @@ function draw(){
   drawIndices(c);
   drawNumerals(c);
   drawHands(c);
-  drawMoon(c); // on top, clipped behind clock face
 
   ctx.restore();
   requestAnimationFrame(draw);
