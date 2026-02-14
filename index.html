@@ -253,12 +253,13 @@ function loadS(){
   try{
     const s=JSON.parse(localStorage.getItem('rc6')||'{}');
     return{
-      city:s.city||'Los Angeles',country:s.country||'US',method:s.method||'2',
+      city:s.city||'',country:s.country||'',method:s.method||'2',
+      lat:s.lat||null,lng:s.lng||null,geoCity:s.geoCity||'',
       numerals:s.numerals||'arabic',movement:s.movement||'quartz',tickVol:s.tickVol!=null?s.tickVol:100,
       mode:s.mode||'day',dial:s.dial||'slate',lumeColor:s.lumeColor||0,
     };
   }catch(e){
-    return{city:'Los Angeles',country:'US',method:'2',numerals:'arabic',movement:'quartz',tickVol:100,mode:'auto',dial:'slate',lumeColor:0};
+    return{city:'',country:'',method:'2',lat:null,lng:null,geoCity:'',numerals:'arabic',movement:'quartz',tickVol:100,mode:'auto',dial:'slate',lumeColor:0};
   }
 }
 let S=loadS();
@@ -338,7 +339,7 @@ let pixelShiftX=0, pixelShiftY=0;
 function updatePixelShift(){}
 
 window.openSettings=()=>{
-  document.getElementById('sCity').value=S.city;
+  document.getElementById('sCity').value=S.city||S.geoCity||'';
   document.getElementById('sCountry').value=S.country;
   document.getElementById('sMethod').value=S.method;
   document.getElementById('sNum').value=S.numerals;
@@ -348,8 +349,10 @@ window.openSettings=()=>{
 };
 window.closeSettings=()=>document.getElementById('sov').classList.remove('open');
 window.saveSettings=()=>{
-  S.city=document.getElementById('sCity').value.trim()||'Los Angeles';
+  S.city=document.getElementById('sCity').value.trim();
   S.country=document.getElementById('sCountry').value.trim()||'US';
+  // Manual city entry overrides geolocation coords
+  if(S.city){S.lat=null;S.lng=null;S.geoCity='';};
   S.method=document.getElementById('sMethod').value;
   S.numerals=document.getElementById('sNum').value;
   S.dial=document.getElementById('sDial').value;
@@ -444,7 +447,28 @@ function f12(m){const h=Math.floor(m/60),mi=Math.floor(m%60);return`${h%12||12}:
 const MN={'1':'Karachi','2':'ISNA','3':'MWL','4':'Umm Al-Qura','5':'Egyptian','7':'Tehran','8':'Gulf','15':'Moonsighting'};
 
 async function fetchPrayer(){
-  try{const r=await fetch(`https://api.aladhan.com/v1/timingsByCity?city=${encodeURIComponent(S.city)}&country=${encodeURIComponent(S.country)}&method=${S.method}`);const j=await r.json();if(j.code===200){PD=j.data.timings;DD=j.data.date;updateInfo();if(qiblaAngle===null)calcQibla();}}catch(e){document.getElementById('loc').textContent='Failed to load';}
+  try{
+    let url;
+    if(S.lat!=null&&S.lng!=null){
+      url=`https://api.aladhan.com/v1/timings/${Math.floor(Date.now()/1000)}?latitude=${S.lat}&longitude=${S.lng}&method=${S.method}`;
+    }else if(S.city){
+      url=`https://api.aladhan.com/v1/timingsByCity?city=${encodeURIComponent(S.city)}&country=${encodeURIComponent(S.country||'US')}&method=${S.method}`;
+    }else{
+      document.getElementById('loc').textContent='Tap to set location';
+      document.getElementById('loc').style.cursor='pointer';
+      return;
+    }
+    const r=await fetch(url);const j=await r.json();
+    if(j.code===200){
+      PD=j.data.timings;DD=j.data.date;
+      // Extract city from Aladhan meta if we used coords
+      if(S.lat!=null&&!S.geoCity&&j.data.meta&&j.data.meta.timezone){
+        S.geoCity=j.data.meta.timezone.split('/').pop().replace(/_/g,' ');
+        localStorage.setItem('rc6',JSON.stringify(S));
+      }
+      updateInfo();if(qiblaAngle===null)calcQibla();
+    }
+  }catch(e){document.getElementById('loc').textContent='Failed to load';}
 }
 
 function updateInfo(){
@@ -455,7 +479,8 @@ function updateInfo(){
   document.getElementById('hijri').style.color=c.text;
   document.getElementById('greg').textContent=`${g.weekday.en}, ${g.day} ${g.month.en} ${g.year}`;
   document.getElementById('greg').style.color=c.textDim;
-  document.getElementById('loc').textContent=`${S.city} · ${MN[S.method]||'ISNA'}`;
+  const displayCity=S.city||S.geoCity||'Unknown';
+  document.getElementById('loc').textContent=`${displayCity} · ${MN[S.method]||'ISNA'}`;
   document.getElementById('loc').style.color=c.textMuted;
   const lbl=document.getElementById('ramLabel');
   lbl.style.color=c.accent;
@@ -507,10 +532,11 @@ const CITY_COORDS={'los angeles':[34.05,-118.24],'new york':[40.71,-74.01],'lond
 
 function calcQibla(){
   if(userLat===null){
-    // Fallback: use city from settings
-    const coords=CITY_COORDS[(S.city||'').toLowerCase()];
+    // Fallback: use saved geo coords or city lookup
+    if(S.lat!=null&&S.lng!=null){userLat=S.lat*Math.PI/180;userLng=S.lng*Math.PI/180;}
+    else{const coords=CITY_COORDS[(S.city||'').toLowerCase()];
     if(coords){userLat=coords[0]*Math.PI/180;userLng=coords[1]*Math.PI/180;}
-    else return;
+    else return;}
   }
   const dLng=MECCA_LNG-userLng;
   const y=Math.sin(dLng)*Math.cos(MECCA_LAT);
@@ -518,16 +544,28 @@ function calcQibla(){
   qiblaAngle=Math.atan2(y,x);
 }
 
-function requestGeoForQibla(){
+function requestGeo(){
   if(navigator.geolocation){
     navigator.geolocation.getCurrentPosition(p=>{
       userLat=p.coords.latitude*Math.PI/180;
       userLng=p.coords.longitude*Math.PI/180;
       calcQibla();
-    },()=>{/* fallback: no qibla */},{enableHighAccuracy:false,timeout:10000});
+      // If no manual city set, use coords for prayer times
+      if(!S.city){
+        S.lat=p.coords.latitude;S.lng=p.coords.longitude;
+        localStorage.setItem('rc6',JSON.stringify(S));
+        fetchPrayer();
+      }
+    },()=>{
+      // Geolocation denied — if no city set, prompt user
+      if(!S.city&&!S.lat){
+        document.getElementById('loc').textContent='Tap to set location';
+        document.getElementById('loc').style.cursor='pointer';
+      }
+    },{enableHighAccuracy:false,timeout:10000});
   }
 }
-requestGeoForQibla();
+requestGeo();
 
 // DeviceOrientation for compass heading
 let compassSupported=false,compassInited=false;
@@ -560,7 +598,7 @@ function activateAll(){
     DeviceOrientationEvent.requestPermission().then(r=>{if(r==='granted'){compassInited=false;initCompass();}}).catch(()=>{});
   }else{initCompass();}
   // Retry geolocation after user gesture
-  if(qiblaAngle===null)requestGeoForQibla();
+  if(qiblaAngle===null)requestGeo();
   // Dismiss overlay
   tapOverlay.style.opacity='0';
   setTimeout(()=>tapOverlay.style.display='none',500);
