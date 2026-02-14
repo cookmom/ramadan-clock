@@ -2163,9 +2163,11 @@ if(urlP.get('tawaf')==='true'){devRamadan=true;setTimeout(()=>{celestialProgress
 const embedFeature=urlP.get('feature'); // prayers, countdown, qibla, etc.
 const hideMarkers=urlP.has('nomarkers');
 if(embedMode){
-  // Hide overlays and chrome for clean embed
+  // Hide overlays and chrome for clean embed — also auto-activate
   document.body.style.background='transparent';
-  const ov=document.getElementById('tapOverlay');if(ov)ov.style.display='none';
+  const ov=document.getElementById('tapOverlay');if(ov){ov.style.display='none';ov.remove();}
+  // Auto-init compass and audio context without user gesture in embed mode
+  initCompass();
   const dd=document.getElementById('dialDots');if(dd)dd.style.display='none';
   // Feature-specific: show relevant info panels
   if(embedFeature==='prayers'){
