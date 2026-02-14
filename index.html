@@ -601,18 +601,19 @@ function requestGeo(){
 requestGeo();
 
 // DeviceOrientation for compass heading
-let compassSupported=false,compassInited=false;
+let compassSupported=false,compassInited=false,compassEventCount=0;
 function initCompass(){
   if(compassInited)return;compassInited=true;
   // Prefer absolute (Android)
   if('ondeviceorientationabsolute' in window){
     window.addEventListener('deviceorientationabsolute',e=>{
-      if(e.alpha!=null){deviceHeading=(360-e.alpha)*Math.PI/180;compassSupported=true;}
+      if(e.alpha!=null){deviceHeading=(360-e.alpha)*Math.PI/180;compassSupported=true;compassEventCount++;}
     });
   }
   // Fallback / iOS
   window.addEventListener('deviceorientation',e=>{
     if(compassSupported)return;
+    compassEventCount++;
     if(e.webkitCompassHeading!=null){
       deviceHeading=e.webkitCompassHeading*Math.PI/180;
     }else if(e.alpha!=null&&e.absolute){
@@ -1401,7 +1402,7 @@ function releaseWakeLock(){
 }
 
 // ── Adhan Debug Log ──
-const _ADHAN_VER='v31-stereopan';
+const _ADHAN_VER='v32-compassdbg';
 const _adhanLog=[];
 function adhanDbg(msg){
   const t=new Date().toTimeString().slice(0,8);
@@ -1450,7 +1451,7 @@ function updateAdhanPannerPosition(){
   const pan=Math.max(-1,Math.min(1,Math.sin(ra)));
   adhanPanner.pan.setValueAtTime(pan,adhanCtx.currentTime);
   const now=Date.now();
-  if(now-_lastPannerLog>3000){_lastPannerLog=now;adhanDbg('pan h='+(h*180/Math.PI).toFixed(0)+'° qibla='+(qiblaAngle*180/Math.PI).toFixed(0)+'° ra='+(ra*180/Math.PI).toFixed(0)+'° pan='+pan.toFixed(2));}
+  if(now-_lastPannerLog>2000){_lastPannerLog=now;adhanDbg('pan h='+(h*180/Math.PI).toFixed(0)+'° q='+(qiblaAngle*180/Math.PI).toFixed(0)+'° ra='+(ra*180/Math.PI).toFixed(0)+'° pan='+pan.toFixed(2)+' evt='+compassEventCount);}
 }
 
 function startHrtfBuffer(pos){
