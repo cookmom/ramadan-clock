@@ -673,16 +673,11 @@ function _preUnlockAudio(){
 document.addEventListener('touchstart',function unlockAudio(){
   if(!qiblaAudioCtx)qiblaAudioCtx=new(window.AudioContext||window.webkitAudioContext)();
   if(qiblaAudioCtx.state==='suspended')qiblaAudioCtx.resume();
-  // Pre-create adhan AudioContext during user gesture so it's unlocked for alarm triggers
-  if(!adhanCtx){adhanCtx=new(window.AudioContext||window.webkitAudioContext)();adhanCtx.resume();adhanDbg('adhanCtx pre-unlocked via tap');}
-  else if(adhanCtx.state==='suspended'){adhanCtx.resume();}
   _preUnlockAudio();
 },{once:false});
 document.addEventListener('click',function unlockAudio2(){
   if(!qiblaAudioCtx)qiblaAudioCtx=new(window.AudioContext||window.webkitAudioContext)();
   if(qiblaAudioCtx.state==='suspended')qiblaAudioCtx.resume();
-  if(!adhanCtx){adhanCtx=new(window.AudioContext||window.webkitAudioContext)();adhanCtx.resume();adhanDbg('adhanCtx pre-unlocked via click');}
-  else if(adhanCtx.state==='suspended'){adhanCtx.resume();}
   _preUnlockAudio();
 });
 function qiblaTick(){
@@ -1442,7 +1437,7 @@ function releaseWakeLock(){
 }
 
 // ── Adhan Debug Log ──
-const _ADHAN_VER='v54-ctxreuse';
+const _ADHAN_VER='v55-qiblactx';
 const _adhanLog=[];
 // Auto-show debug panel on load
 requestAnimationFrame(()=>{adhanDbg('ready');});
@@ -1544,10 +1539,11 @@ function startHrtfBuffer(pos){
 
 function startHrtfSequence(src,startOffset){
   const offset=startOffset||0;
-  // Reuse pre-unlocked context if available, else create (will be suspended without gesture)
-  if(!adhanCtx)adhanCtx=new(window.AudioContext||window.webkitAudioContext)();
+  // Use qiblaAudioCtx — it stays alive via tick sounds, so iOS won't suspend it
+  // Separate adhanCtx gets suspended during the gap between user tap and alarm
+  adhanCtx=qiblaAudioCtx||adhanCtx||new(window.AudioContext||window.webkitAudioContext)();
   if(adhanCtx.state==='suspended')adhanCtx.resume();
-  adhanDbg('hrtfSeq ctx='+adhanCtx.state+' reused='+(!!adhanCtx));
+  adhanDbg('hrtfSeq ctx='+adhanCtx.state+' isQibla='+(adhanCtx===qiblaAudioCtx));
   adhanPannerInterval=setInterval(updateAdhanPannerPosition,200);
   adhanPlaying=true; // re-assert — unlock pause event may have cleared it
   
