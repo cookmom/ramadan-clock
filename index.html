@@ -1407,8 +1407,8 @@ function playAdhan(){
     if(adhanAudio){adhanAudio.pause();adhanAudio.currentTime=0;}
     adhanAudio=new Audio(src);
     adhanAudio.crossOrigin='anonymous';
-    adhanAudio.addEventListener('ended',()=>{adhanPlaying=false;releaseWakeLock();if(adhanAudioCtx)try{adhanAudioCtx.close();}catch(e){};adhanAudioCtx=null;});
-    adhanAudio.addEventListener('pause',()=>{if(!document.hidden){adhanPlaying=false;releaseWakeLock();}});
+    adhanAudio.addEventListener('ended',()=>{adhanPlaying=false;releaseWakeLock();});
+    adhanAudio.addEventListener('pause',()=>{adhanPlaying=false;releaseWakeLock();});
     adhanPlaying=true;
     requestWakeLock();
     
@@ -1424,83 +1424,15 @@ function playAdhan(){
       navigator.mediaSession.setActionHandler('stop',()=>{if(adhanAudio){adhanAudio.pause();adhanAudio.currentTime=0;}});
     }
     
-    // Always use plain Audio as primary — reliable, survives background
+    // Plain Audio — reliable, survives background
     adhanAudio.volume=Math.min(1.0,(S.tickVol||100)/100);
-    adhanAudio._hrtfActive=false;
-    
-    // Try HRTF spatial overlay via separate AudioContext + buffer
-    if(qiblaAngle!==null){
-      try{
-        if(adhanAudioCtx)adhanAudioCtx.close();
-      }catch(e){}
-      adhanAudioCtx=null;
-      // Fetch audio as buffer for HRTF (separate from plain Audio element)
-      fetch(src).then(r=>r.arrayBuffer()).then(buf=>{
-        adhanAudioCtx=new(window.AudioContext||window.webkitAudioContext)();
-        return adhanAudioCtx.decodeAudioData(buf);
-      }).then(decoded=>{
-        if(!adhanPlaying||!adhanAudioCtx)return;
-        const bufSrc=adhanAudioCtx.createBufferSource();
-        bufSrc.buffer=decoded;
-        adhanAudio._hrtfBufSrc=bufSrc;
-        
-        const panner=adhanAudioCtx.createPanner();
-        panner.panningModel='HRTF';
-        panner.distanceModel='inverse';
-        panner.refDistance=1;panner.maxDistance=100;panner.rolloffFactor=1;
-        panner.coneInnerAngle=360;panner.coneOuterAngle=360;
-        
-        const heading=deviceHeading||0;
-        const relAngle=qiblaAngle-heading;
-        panner.positionX.setValueAtTime(Math.sin(relAngle),adhanAudioCtx.currentTime);
-        panner.positionY.setValueAtTime(0,adhanAudioCtx.currentTime);
-        panner.positionZ.setValueAtTime(-Math.cos(relAngle),adhanAudioCtx.currentTime);
-        adhanAudio._pannerInterval=setInterval(()=>{
-          if(!adhanPlaying){clearInterval(adhanAudio._pannerInterval);return;}
-          const h=deviceHeading||0;const ra=qiblaAngle-h;
-          panner.positionX.setValueAtTime(Math.sin(ra),adhanAudioCtx.currentTime);
-          panner.positionZ.setValueAtTime(-Math.cos(ra),adhanAudioCtx.currentTime);
-        },200);
-        
-        const gain=adhanAudioCtx.createGain();
-        gain.gain.value=Math.min(1.0,(S.tickVol||100)/100);
-        adhanAudio._hrtfGain=gain;
-        bufSrc.connect(panner).connect(gain).connect(adhanAudioCtx.destination);
-        
-        // Start HRTF buffer synced to plain Audio position, mute plain
-        bufSrc.start(0,adhanAudio.currentTime);
-        adhanAudio.volume=0;
-        adhanAudio._hrtfActive=true;
-        bufSrc.onended=()=>{adhanAudio._hrtfActive=false;};
-      }).catch(()=>{/* CORS or decode fail — plain Audio keeps playing */});
-    }
-    
     adhanAudio.play().catch(()=>{});
     return true;
   }catch(e){return false;}
 }
 
-// ── HRTF↔Plain swap on visibility change ──
-let adhanAudioCtx=null;
-document.addEventListener('visibilitychange',()=>{
-  if(!adhanPlaying||!adhanAudio)return;
-  const vol=Math.min(1.0,(S.tickVol||100)/100);
-  if(document.hidden&&adhanAudio._hrtfActive){
-    // Page hidden: suspend HRTF, unmute plain Audio
-    try{if(adhanAudioCtx)adhanAudioCtx.suspend();}catch(e){}
-    adhanAudio.volume=vol;
-    adhanAudio._hrtfActive=false;
-  }else if(!document.hidden&&adhanAudioCtx&&adhanAudio.volume>0){
-    // Page visible: try to resume HRTF, mute plain
-    try{
-      adhanAudioCtx.resume().then(()=>{
-        if(!adhanPlaying)return;
-        adhanAudio.volume=0;
-        adhanAudio._hrtfActive=true;
-      }).catch(()=>{});
-    }catch(e){}
-  }
-});
+// HRTF spatial adhan — future: self-hosted audio files will enable this
+// Internet Archive doesn't serve CORS headers, blocking fetch+decodeAudioData
 
 function playPrayerAlarm(){
   if(!qiblaAudioCtx)return;
