@@ -1713,11 +1713,23 @@ window.pickDial=function(key){
   buildDialDots();
   document.getElementById('sDial').value=key;
 };
+let dialPreviewTimer=null;
 function swipeDial(dir){
   const idx=DIAL_KEYS.indexOf(S.dial);
   const next=DIAL_KEYS[(idx+dir+DIAL_KEYS.length)%DIAL_KEYS.length];
   pickDial(next);
   showDots();
+  // Flash to day mode briefly so user can see the dial color
+  if(modeBlend>0.3){
+    const savedMode=S.mode;
+    modeTarget=0; // snap toward day
+    clearTimeout(dialPreviewTimer);
+    dialPreviewTimer=setTimeout(()=>{
+      S.mode=savedMode;
+      if(savedMode==='auto')updateModeBlend();
+      else modeTarget=savedMode==='night'?1:0;
+    },2000);
+  }
 }
 let dotTimer=null;
 function showDots(){
