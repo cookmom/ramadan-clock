@@ -1421,8 +1421,10 @@ function releaseWakeLock(){
 }
 
 // ── Adhan Debug Log ──
-const _ADHAN_VER='v52-hidediag';
+const _ADHAN_VER='v52b-autodbg';
 const _adhanLog=[];
+// Auto-show debug panel on load
+requestAnimationFrame(()=>{adhanDbg('ready');});
 function adhanDbg(msg){
   const t=new Date().toTimeString().slice(0,8);
   _adhanLog.push(t+' '+msg);
