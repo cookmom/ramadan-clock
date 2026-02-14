@@ -1799,11 +1799,25 @@ if(urlP.get('mode')==='day'){S.mode='day';modeTarget=0;modeBlend=0;}
 if(urlP.has('time')){devTimeMin=parseFloat(urlP.get('time'));}
 if(urlP.get('ramadan')==='true'){devRamadan=true;}
 if(urlP.get('tawaf')==='true'){devRamadan=true;setTimeout(()=>{celestialProgress=0;modeBlend=0;modeTarget=0;startTawaf(true);},1000);}
+const embedFeature=urlP.get('feature'); // prayers, countdown, qibla, etc.
 if(embedMode){
-  // Hide overlays and info for clean embed
+  // Hide overlays and chrome for clean embed
   const ov=document.getElementById('tapOverlay');if(ov)ov.style.display='none';
-  document.querySelectorAll('.info').forEach(el=>el.style.display='none');
   const dd=document.getElementById('dialDots');if(dd)dd.style.display='none';
+  // Feature-specific: show relevant info panels
+  if(embedFeature==='prayers'){
+    // Show prayer times row persistently
+    document.querySelectorAll('.info').forEach(el=>el.classList.add('visible'));
+    document.querySelectorAll('.info').forEach(el=>el.style.transition='none');
+  }else{
+    document.querySelectorAll('.info').forEach(el=>el.style.display='none');
+  }
+  if(embedFeature==='countdown'){
+    devRamadan=true;
+    // Show fasting status persistently
+    const btm=document.querySelector('.info-bottom');
+    if(btm){btm.style.display='';btm.classList.add('visible');btm.style.transition='none';}
+  }
 }
 
 // ── Init ──
