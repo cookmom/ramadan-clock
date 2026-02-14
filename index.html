@@ -1401,7 +1401,7 @@ function releaseWakeLock(){
 }
 
 // ── Adhan Debug Log ──
-const _ADHAN_VER='v22-splitpath';
+const _ADHAN_VER='v23-dualswap';
 const _adhanLog=[];
 function adhanDbg(msg){
   const t=new Date().toTimeString().slice(0,8);
@@ -1414,78 +1414,58 @@ function adhanDbg(msg){
   el.scrollTop=el.scrollHeight;
 }
 
-// ── HRTF Spatial Adhan — Single-Source Split-Path Architecture ──
-// ONE Audio element is the single source of truth for playback + MediaSession.
-// createMediaElementSource() captures it ONCE into an AudioContext graph with two paths:
-//   Path A: source → PannerNode(HRTF) → gainHrtf → destination  (spatial)
-//   Path B: source → gainPlain → destination                     (pass-through)
-// Foreground: gainHrtf=vol, gainPlain=0 (hear HRTF)
-// Background: gainHrtf=0, gainPlain=vol (iOS suspends AudioContext, but Audio element
-//             keeps playing via MediaSession — when gainPlain feeds destination directly
-//             through the suspended context, the Audio element's native output takes over)
-// Key insight: when AudioContext is suspended, Audio element plays natively (no graph).
-// When resumed, graph reconnects seamlessly. No dual sources, no sync, no double-play.
-let adhanCtx=null,adhanSourceNode=null,adhanPanner=null;
-let adhanGainHrtf=null,adhanGainPlain=null,adhanPannerInterval=null;
-
-function setupAdhanGraph(audioEl){
-  // Create or reuse AudioContext
-  if(!adhanCtx||adhanCtx.state==='closed')
-    adhanCtx=new(window.AudioContext||window.webkitAudioContext)();
-  
-  // createMediaElementSource is one-time per element — reuse if same element
-  if(adhanSourceNode){try{adhanSourceNode.disconnect();}catch(e){}}
-  adhanSourceNode=adhanCtx.createMediaElementSource(audioEl);
-  
-  // Path A: HRTF spatial
-  adhanPanner=adhanCtx.createPanner();
-  adhanPanner.panningModel='HRTF';
-  adhanPanner.distanceModel='inverse';
-  adhanPanner.refDistance=1;adhanPanner.maxDistance=100;adhanPanner.rolloffFactor=1;
-  adhanPanner.coneInnerAngle=360;adhanPanner.coneOuterAngle=360;
-  adhanGainHrtf=adhanCtx.createGain();
-  
-  // Path B: plain pass-through
-  adhanGainPlain=adhanCtx.createGain();
-  
-  // Wire: source → panner → gainHrtf → dest
-  //        source → gainPlain → dest
-  adhanSourceNode.connect(adhanPanner);
-  adhanPanner.connect(adhanGainHrtf);
-  adhanGainHrtf.connect(adhanCtx.destination);
-  adhanSourceNode.connect(adhanGainPlain);
-  adhanGainPlain.connect(adhanCtx.destination);
-  
-  adhanDbg('graph built: source→panner→gainH→dest + source→gainP→dest');
-}
-
-function setAdhanMode(mode,vol){
-  // mode: 'hrtf' | 'plain'
-  if(!adhanGainHrtf||!adhanGainPlain)return;
-  const t=(adhanCtx&&adhanCtx.state==='running')?adhanCtx.currentTime:0;
-  const ramp=0.05; // 50ms crossfade to avoid click/crack
-  if(mode==='hrtf'){
-    adhanGainHrtf.gain.setValueAtTime(adhanGainHrtf.gain.value,t);
-    adhanGainPlain.gain.setValueAtTime(adhanGainPlain.gain.value,t);
-    adhanGainHrtf.gain.linearRampToValueAtTime(vol,t+ramp);
-    adhanGainPlain.gain.linearRampToValueAtTime(0,t+ramp);
-  }else{
-    adhanGainHrtf.gain.setValueAtTime(adhanGainHrtf.gain.value,t);
-    adhanGainPlain.gain.setValueAtTime(adhanGainPlain.gain.value,t);
-    adhanGainPlain.gain.linearRampToValueAtTime(vol,t+ramp);
-    adhanGainHrtf.gain.linearRampToValueAtTime(0,t+ramp);
-  }
-  adhanDbg('mode='+mode+' vol='+vol.toFixed(2)+' ramp='+ramp+'s ctxState='+(adhanCtx?adhanCtx.state:'null'));
-}
+// ── HRTF Spatial Adhan — Dual-Element Swap Architecture ──
+// Problem: createMediaElementSource permanently captures Audio output into graph.
+// When iOS suspends AudioContext in background, NO audio comes out — not even plain.
+// Solution: TWO Audio elements, ONE plays at a time, never both.
+//   - adhanAudio: plain Audio element, NOT captured. Plays in background via MediaSession.
+//   - HRTF: AudioBufferSourceNode in AudioContext with PannerNode. Plays in foreground.
+// HIDE: stop HRTF buffer, play plain Audio from same position.
+// SHOW: pause plain Audio, start HRTF buffer from plain Audio's currentTime.
+// Plain Audio element is the position clock — its currentTime is always truth.
+let adhanCtx=null,adhanBufSrc=null,adhanPanner=null;
+let adhanGain=null,adhanPannerInterval=null,adhanDecodedBuf=null;
 
 function updateAdhanPannerPosition(){
-  if(!adhanPanner||qiblaAngle===null)return;
+  if(!adhanPanner||qiblaAngle===null||!adhanCtx||adhanCtx.state!=='running')return;
   const h=deviceHeading||0;
   const ra=qiblaAngle-h;
-  const t=(adhanCtx&&adhanCtx.state==='running')?adhanCtx.currentTime:0;
-  adhanPanner.positionX.setValueAtTime(Math.sin(ra),t);
-  adhanPanner.positionY.setValueAtTime(0,t);
-  adhanPanner.positionZ.setValueAtTime(-Math.cos(ra),t);
+  adhanPanner.positionX.setValueAtTime(Math.sin(ra),adhanCtx.currentTime);
+  adhanPanner.positionY.setValueAtTime(0,adhanCtx.currentTime);
+  adhanPanner.positionZ.setValueAtTime(-Math.cos(ra),adhanCtx.currentTime);
+}
+
+function startHrtfBuffer(pos){
+  // Stop any existing buffer source
+  if(adhanBufSrc){try{adhanBufSrc.stop();}catch(e){}adhanBufSrc=null;}
+  if(!adhanCtx||!adhanDecodedBuf||!adhanPlaying)return Promise.reject('no ctx/buf');
+  
+  return adhanCtx.resume().then(()=>{
+    const bufSrc=adhanCtx.createBufferSource();
+    bufSrc.buffer=adhanDecodedBuf;
+    adhanBufSrc=bufSrc;
+    
+    // Build fresh panner + gain for this segment
+    adhanPanner=adhanCtx.createPanner();
+    adhanPanner.panningModel='HRTF';
+    adhanPanner.distanceModel='inverse';
+    adhanPanner.refDistance=1;adhanPanner.maxDistance=100;adhanPanner.rolloffFactor=1;
+    adhanPanner.coneInnerAngle=360;adhanPanner.coneOuterAngle=360;
+    updateAdhanPannerPosition();
+    
+    const vol=Math.min(1.0,(S.tickVol||100)/100);
+    adhanGain=adhanCtx.createGain();
+    adhanGain.gain.value=vol;
+    
+    bufSrc.connect(adhanPanner).connect(adhanGain).connect(adhanCtx.destination);
+    bufSrc.start(0,pos);
+    
+    bufSrc.onended=()=>{
+      if(adhanBufSrc===bufSrc)adhanBufSrc=null;
+    };
+    
+    adhanDbg('HRTF buf started pos='+pos.toFixed(2)+' ctx='+adhanCtx.state);
+  });
 }
 
 function playAdhan(){
@@ -1496,22 +1476,26 @@ function playAdhan(){
   try{
     // Kill previous
     if(adhanPannerInterval){clearInterval(adhanPannerInterval);adhanPannerInterval=null;}
+    if(adhanBufSrc){try{adhanBufSrc.stop();}catch(e){}adhanBufSrc=null;}
     if(adhanAudio){adhanAudio.pause();adhanAudio.currentTime=0;}
-    // Close old context so createMediaElementSource works on new Audio
     if(adhanCtx&&adhanCtx.state!=='closed'){try{adhanCtx.close();}catch(e){}}
-    adhanCtx=null;adhanSourceNode=null;adhanPanner=null;adhanGainHrtf=null;adhanGainPlain=null;
+    adhanCtx=null;adhanPanner=null;adhanGain=null;adhanDecodedBuf=null;
     
+    // Plain Audio element — never captured by createMediaElementSource
     adhanAudio=new Audio(src);
-    adhanAudio.crossOrigin='anonymous';
     adhanAudio._useHrtf=useHrtf;
+    adhanAudio._hrtfActive=false;
     
     adhanAudio.addEventListener('ended',()=>{
       adhanPlaying=false;releaseWakeLock();
+      if(adhanBufSrc){try{adhanBufSrc.stop();}catch(e){}adhanBufSrc=null;}
       if(adhanPannerInterval){clearInterval(adhanPannerInterval);adhanPannerInterval=null;}
       adhanDbg('adhan ended');
     });
     adhanAudio.addEventListener('pause',()=>{
+      if(!adhanPlaying)return; // already handled
       adhanPlaying=false;releaseWakeLock();
+      if(adhanBufSrc){try{adhanBufSrc.stop();}catch(e){}adhanBufSrc=null;}
       if(adhanPannerInterval){clearInterval(adhanPannerInterval);adhanPannerInterval=null;}
     });
     
@@ -1527,27 +1511,37 @@ function playAdhan(){
         album:'Ramadan Clock'
       });
       navigator.mediaSession.setActionHandler('play',()=>{if(adhanAudio)adhanAudio.play();});
-      navigator.mediaSession.setActionHandler('pause',()=>{if(adhanAudio)adhanAudio.pause();});
+      navigator.mediaSession.setActionHandler('pause',()=>{if(adhanAudio){adhanAudio.pause();}});
       navigator.mediaSession.setActionHandler('stop',()=>{if(adhanAudio){adhanAudio.pause();adhanAudio.currentTime=0;}});
     }
     
     if(useHrtf){
-      // Build the split-path graph
-      setupAdhanGraph(adhanAudio);
-      updateAdhanPannerPosition();
-      // Start in HRTF mode
-      setAdhanMode('hrtf',vol);
-      // Update panner position as device rotates
+      // Start plain Audio immediately (it's always playing as position clock)
+      adhanAudio.volume=0; // muted while HRTF is active
+      adhanAudio.play().catch(e=>adhanDbg('plain play failed: '+e));
+      
+      // Create AudioContext and decode buffer for HRTF
+      adhanCtx=new(window.AudioContext||window.webkitAudioContext)();
       adhanPannerInterval=setInterval(updateAdhanPannerPosition,200);
-      // Resume context (required for user gesture on iOS)
-      adhanCtx.resume().then(()=>{
-        adhanDbg('ctx resumed, state='+adhanCtx.state);
-        adhanAudio.play().catch(e=>adhanDbg('play failed: '+e));
-      }).catch(e=>{
-        adhanDbg('ctx resume failed: '+e+', playing plain');
-        adhanAudio._useHrtf=false;
-        adhanAudio.play().catch(()=>{});
-      });
+      
+      fetch(src).then(r=>r.arrayBuffer())
+        .then(buf=>adhanCtx.decodeAudioData(buf))
+        .then(decoded=>{
+          if(!adhanPlaying)return;
+          adhanDecodedBuf=decoded;
+          // Start HRTF from current plain Audio position
+          const pos=adhanAudio.currentTime||0;
+          adhanDbg('decoded, starting HRTF from pos='+pos.toFixed(2));
+          return startHrtfBuffer(pos).then(()=>{
+            adhanAudio._hrtfActive=true;
+            // Plain Audio stays playing but muted — it's our position clock
+          });
+        })
+        .catch(e=>{
+          adhanDbg('HRTF setup failed, falling back to plain: '+e);
+          adhanAudio._useHrtf=false;
+          adhanAudio.volume=vol;
+        });
     }else{
       adhanAudio.volume=vol;
       adhanAudio.play().catch(()=>{});
@@ -1561,22 +1555,27 @@ document.addEventListener('visibilitychange',()=>{
   if(!adhanPlaying||!adhanAudio||!adhanAudio._useHrtf)return;
   const vol=Math.min(1.0,(S.tickVol||100)/100);
   if(document.hidden){
-    // Going to background: switch to plain path
-    // iOS will suspend AudioContext, but Audio element keeps playing natively
-    setAdhanMode('plain',vol);
-    if(adhanCtx)adhanCtx.suspend().catch(()=>{});
-    adhanDbg('HIDE: switched to plain, suspending ctx');
+    // BACKGROUND: stop HRTF buffer, unmute plain Audio (it's been playing silently)
+    if(adhanBufSrc){try{adhanBufSrc.stop();}catch(e){}adhanBufSrc=null;}
+    adhanAudio._hrtfActive=false;
+    adhanAudio.volume=vol;
+    adhanDbg('HIDE: killed HRTF, unmuted plain at pos='+adhanAudio.currentTime.toFixed(2));
   }else{
-    // Returning to foreground: resume context, switch back to HRTF
-    adhanDbg('SHOW: resuming ctx for HRTF');
-    if(adhanCtx){
-      adhanCtx.resume().then(()=>{
-        updateAdhanPannerPosition();
-        setAdhanMode('hrtf',vol);
-        adhanDbg('SHOW: HRTF restored, ctx='+adhanCtx.state);
+    // FOREGROUND: mute plain Audio, start HRTF buffer from plain's currentTime
+    const pos=adhanAudio.currentTime;
+    adhanDbg('SHOW: restarting HRTF from pos='+pos.toFixed(2));
+    adhanAudio.volume=0;
+    if(adhanDecodedBuf&&adhanCtx){
+      startHrtfBuffer(pos).then(()=>{
+        adhanAudio._hrtfActive=true;
+        adhanDbg('SHOW: HRTF restored at pos='+pos.toFixed(2));
       }).catch(e=>{
-        adhanDbg('SHOW: resume failed, staying plain: '+e);
+        adhanDbg('SHOW: HRTF failed, staying plain: '+e);
+        adhanAudio.volume=vol;
+        adhanAudio._useHrtf=false;
       });
+    }else{
+      adhanAudio.volume=vol;
     }
   }
 });
