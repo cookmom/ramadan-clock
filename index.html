@@ -1407,7 +1407,7 @@ function adhanDbg(msg){
   _adhanLog.push(t+' '+msg);
   let el=document.getElementById('adhan-dbg');
   if(!el){el=document.createElement('pre');el.id='adhan-dbg';
-    el.style.cssText='position:fixed;bottom:0;left:0;right:0;max-height:40vh;overflow:auto;background:rgba(0,0,0,.85);color:#0f0;font:11px/1.4 monospace;padding:8px;z-index:99999;pointer-events:auto;';
+    el.style.cssText='position:fixed;bottom:0;left:0;right:0;max-height:70vh;overflow:auto;background:rgba(0,0,0,.92);color:#0f0;font:10px/1.3 monospace;padding:8px;z-index:99999;pointer-events:auto;';
     document.body.appendChild(el);}
   el.textContent=_adhanLog.join('\n');
   el.scrollTop=el.scrollHeight;
