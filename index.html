@@ -1404,7 +1404,7 @@ function releaseWakeLock(){
 }
 
 // ── Adhan Debug Log ──
-const _ADHAN_VER='v40-fixpan';
+const _ADHAN_VER='v41-directpan';
 const _adhanLog=[];
 function adhanDbg(msg){
   const t=new Date().toTimeString().slice(0,8);
@@ -1450,11 +1450,8 @@ function updateAdhanPannerPosition(){
   const h=deviceHeading||0;
   const ra=qiblaAngle-h;
   // StereoPanner: -1 (left) to +1 (right) based on relative angle to Qibla
-  // Cancel previous ramp before setting new one, then smooth 150ms ramp
   const pan=Math.max(-1,Math.min(1,Math.sin(ra)));
-  adhanPanner.pan.cancelScheduledValues(adhanCtx.currentTime);
-  adhanPanner.pan.setValueAtTime(adhanPanner.pan.value,adhanCtx.currentTime);
-  adhanPanner.pan.linearRampToValueAtTime(pan,adhanCtx.currentTime+0.15);
+  adhanPanner.pan.value=pan;
   const now=Date.now();
   if(now-_lastPannerLog>2000){_lastPannerLog=now;adhanDbg('pan h='+(h*180/Math.PI).toFixed(0)+'° q='+(qiblaAngle*180/Math.PI).toFixed(0)+'° ra='+(ra*180/Math.PI).toFixed(0)+'° pan='+pan.toFixed(2)+' evt='+compassEventCount);}
 }
