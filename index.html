@@ -1271,7 +1271,7 @@ function playTick(loud){
 }
 
 function tickAudio(s,ms){
-  if(S.movement==='digital')return;
+  if(S.movement==='digital'||modeBlend>0.5)return;
   if(!qiblaAudioCtx)return;
   let step,rate;
   if(S.movement==='quartz'){
@@ -1394,10 +1394,11 @@ function drawHands(c){
   const now=devNow();
   const h0=now.getHours()%12,m0=now.getMinutes(),s0=now.getSeconds(),ms0=now.getMilliseconds();
 
-  // Movement types
+  // Movement types — auto-switch to silent digital in night mode
+  const effectiveMovement=modeBlend>0.5?'digital':S.movement;
   let sec;
-  if(S.movement==='quartz') sec=s0;
-  else if(S.movement==='mechanical') sec=Math.floor(s0*8+ms0/1000*8)/8;
+  if(effectiveMovement==='quartz') sec=s0;
+  else if(effectiveMovement==='mechanical') sec=Math.floor(s0*8+ms0/1000*8)/8;
   else sec=s0+ms0/1000;
 
   // Tick audio — suppress during tawaf (hands aren't ticking normally)
