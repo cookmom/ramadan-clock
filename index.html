@@ -1404,7 +1404,7 @@ function releaseWakeLock(){
 }
 
 // ── Adhan Debug Log ──
-const _ADHAN_VER='v36-pandbg';
+const _ADHAN_VER='v37-intervalfix';
 const _adhanLog=[];
 function adhanDbg(msg){
   const t=new Date().toTimeString().slice(0,8);
@@ -1446,11 +1446,7 @@ function adhanPosition(){
 
 let _lastPannerLog=0;
 function updateAdhanPannerPosition(){
-  if(!adhanPanner||qiblaAngle===null||!adhanCtx||adhanCtx.state!=='running'){
-    const now=Date.now();
-    if(now-_lastPannerLog>3000){_lastPannerLog=now;adhanDbg('pan SKIP p='+!!adhanPanner+' q='+(qiblaAngle!==null)+' ctx='+!!(adhanCtx)+' st='+(adhanCtx?adhanCtx.state:'null'));}
-    return;
-  }
+  if(!adhanPanner||qiblaAngle===null||!adhanCtx||adhanCtx.state!=='running')return;
   const h=deviceHeading||0;
   const ra=qiblaAngle-h;
   // HRTF PannerNode: place sound on a circle around the listener at distance 2
@@ -1565,10 +1561,13 @@ function playAdhan(){
       adhanAudio._isBackup=true;
       adhanAudio._unlocked=false;
       adhanAudio.play().then(()=>{
+        adhanAudio._swapping=true; // prevent async pause event from killing panner interval
         adhanAudio.pause();
         adhanAudio.currentTime=0;
         adhanAudio._unlocked=true;
         setupAdhanAudioEvents(adhanAudio);
+        // Clear _swapping after pause event has fired (next event loop tick)
+        setTimeout(()=>{adhanAudio._swapping=false;},0);
         adhanDbg('plain Audio unlocked for background use');
         
         // STEP 2: decode + start HRTF (sequenced AFTER unlock)
