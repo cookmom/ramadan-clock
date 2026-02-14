@@ -1386,8 +1386,12 @@ function getTawafVirtualMin(){
     tawafCurrentVM=5040;endTawafSpin();return 0;
   }
   const t=Math.min(elapsed/TAWAF_DURATION,1);
-  // Linear — each revolution exactly 2 seconds, no easing
-  const vm=Math.min(5040,5040*t);
+  // Linear with ease-out in final 15% — hands decelerate before landing
+  const easeStart=0.85;
+  let mapped;
+  if(t<easeStart){mapped=t;}
+  else{const u=(t-easeStart)/(1-easeStart);mapped=easeStart+(1-easeStart)*(1-(1-u)*(1-u));}
+  const vm=Math.min(5040,5040*mapped);
   tawafCurrentVM=vm;
   // Gong AFTER each completed hour-hand revolution (720 virtual min = 12h)
   // Use threshold slightly below 720 to catch the 7th lap at vm≈5040
