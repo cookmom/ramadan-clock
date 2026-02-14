@@ -1400,9 +1400,13 @@ function checkPrayerAlarm(){
     if(now===pt&&lastAlarmPrayer!==name){
       lastAlarmPrayer=name;
       playPrayerAlarm();
-      // Browser notification
+      // Browser notification — prefer SW for PWA background support
       if('Notification' in window&&Notification.permission==='granted'){
-        new Notification(name+' Prayer',{body:'It\'s time for '+name+' prayer',tag:'prayer-'+name});
+        if(swReg){
+          swReg.showNotification(name+' Prayer',{body:'It\'s time for '+name+' prayer',icon:'icon-192.png',badge:'icon-192.png',tag:'prayer-'+name,renotify:true});
+        }else{
+          new Notification(name+' Prayer',{body:'It\'s time for '+name+' prayer',tag:'prayer-'+name});
+        }
       }
       return;
     }
@@ -1415,7 +1419,11 @@ function checkPrayerAlarm(){
   }
 }
 
-// Request notification permission on first interaction
+// Service Worker + Notifications
+let swReg=null;
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js').then(r=>{swReg=r;}).catch(()=>{});
+}
 function requestNotifPermission(){
   if('Notification' in window&&Notification.permission==='default'){
     Notification.requestPermission();
