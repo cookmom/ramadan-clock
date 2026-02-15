@@ -665,7 +665,7 @@ function updateColors() {
   if (qiblaNeedle) qiblaNeedle.material.color = hexToVec3(c.bg);
   
   // Bloom intensity based on night mode
-  bloomPass.strength = modeBlend * 0.4; // subtle glow only in night mode
+  bloomPass.strength = 0; // bloom disabled — fix selective bloom first
   
   // Stars visibility
   starsGroup.children.forEach(mesh => {
