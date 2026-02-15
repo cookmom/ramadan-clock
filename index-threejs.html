@@ -246,11 +246,11 @@ function buildMarkers() {
   for(let i=0;i<60;i++){
     const ang = Math.PI/2 - (i/60)*Math.PI*2; // CW from 12
     const isHour = i%5===0;
-    // Skip hour markers where numerals go
+    // At numeral positions, draw minute tick instead of hour marker
     const hourIdx = i/5;
-    if(isHour && [0,2,4,6,8,10].includes(hourIdx)) continue;
+    const isNumeralPos = isHour && [0,2,4,6,8,10].includes(hourIdx);
     
-    if(isHour){
+    if(isHour && !isNumeralPos){
       const mH=R*0.12, mW=R*0.032, depth=3;
       const geo = extrudedPill(mW, mH, depth);
       const mesh = new THREE.Mesh(geo, metalMat(c.hand));
