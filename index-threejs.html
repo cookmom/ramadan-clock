@@ -15,6 +15,7 @@ canvas{display:block;width:100%;height:100%}
 #info.visible{opacity:1}
 #info .hijri{font-size:14px;font-weight:500;letter-spacing:.5px}
 #info .greg{font-size:11px;font-weight:300;margin-top:2px}
+#info .surah{font-size:10px;font-weight:200;letter-spacing:1.5px;text-transform:uppercase;margin-top:6px;opacity:0.6}
 #dialBar{position:fixed;bottom:calc(env(safe-area-inset-bottom,0px) + 50px);left:0;right:0;display:flex;justify-content:center;gap:8px;opacity:0;transition:opacity .4s;z-index:10;pointer-events:none}
 #dialBar.visible{opacity:1;pointer-events:auto}
 .dial-dot{width:8px;height:8px;border-radius:50%;border:1.5px solid rgba(255,255,255,.3);cursor:pointer;transition:all .3s}
@@ -23,7 +24,7 @@ canvas{display:block;width:100%;height:100%}
 </head>
 <body>
 <div id="vignette"></div>
-<div id="info"><div class="hijri" id="hijri"></div><div class="greg" id="greg"></div></div>
+<div id="info"><div class="hijri" id="hijri"></div><div class="greg" id="greg"></div><div class="surah" id="surah"></div></div>
 <div id="dialBar">
   <div class="dial-dot" data-dial="tennis" style="border-color:#2e8b57"></div>
   <div class="dial-dot" data-dial="white" style="border-color:#e8e4dc"></div>
@@ -47,21 +48,22 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 // CONFIG
 // ══════════════════════════════════════════
 const DIALS = {
-  tennis: {bg:0x2e8b57, lume:0xc8e860, hand:0xf4f0e0, sec:0xffffff, text:'#fffff0'},
-  white:  {bg:0xe8e4dc, lume:0x1a1a1a, hand:0x111111, sec:0xc41e3a, text:'#1a1a1a'},
-  salmon: {bg:0xc47a60, lume:0xfff0e0, hand:0xf8f4ec, sec:0xffffff, text:'#fff0e0'},
-  slate:  {bg:0x585860, lume:0xe8e0c8, hand:0xd0d0d4, sec:0xff6633, text:'#e8e0c8'},
-  sky:    {bg:0x5a9ac0, lume:0xf0f8ff, hand:0xf4f0e8, sec:0xffffff, text:'#f0f8ff'},
-  cream:  {bg:0xd8ccb4, lume:0x3a3530, hand:0x2a2520, sec:0x3a3530, text:'#3a3530'},
+  tennis: {bg:0x2e8b57, lume:0xd4e8a0, hand:0xf4f0e0, sec:0xffffff, text:'#fffff0', surah:'Ar-Raḥmān'},       // cream-green — gardens of paradise
+  white:  {bg:0xe8e4dc, lume:0x2a3a5a, hand:0x111111, sec:0xc41e3a, text:'#1a1a1a', surah:'An-Nūr'},           // blued steel indices — light upon light
+  salmon: {bg:0xc47a60, lume:0xf0dcc0, hand:0xf8f4ec, sec:0xffffff, text:'#fff0e0', surah:'Ash-Shams'},        // warm ivory — the sun
+  slate:  {bg:0x585860, lume:0xe8e0c8, hand:0xd0d0d4, sec:0xff6633, text:'#e8e0c8', surah:'Al-Layl'},          // classic SuperLuminova cream — the night
+  sky:    {bg:0x5a9ac0, lume:0xe0f0ff, hand:0xf4f0e8, sec:0xffffff, text:'#f0f8ff', surah:'Al-Burūj'},         // ice white — the constellations
+  cream:  {bg:0xd8ccb4, lume:0x4a3828, hand:0x2a2520, sec:0x3a3530, text:'#3a3530', surah:'At-Tīn'},           // dark chocolate — the fig
 };
 // Night lume palettes — modeled after real SuperLuminova variants
+// Each matches the daytime lume character but amplified for glow
 const NIGHT_LUME = {
-  tennis: { emissive: 0x90ff40 },  // C1 SuperLuminova — vivid green (matches dial energy)
-  white:  { emissive: 0xa0d8ff },  // BGW9 — cool blue-white (elegant on white dial)
-  salmon: { emissive: 0xffb870 },  // Old radium — warm amber-orange (vintage warmth)
-  slate:  { emissive: 0xc0e890 },  // C3 — classic green-cream (THE lume color, most watches)
-  sky:    { emissive: 0x70c8ff },  // BGW9 variant — ice blue (harmonizes with sky dial)
-  cream:  { emissive: 0xe8d090 },  // Old tritium — warm gold (patina feel)
+  tennis: { emissive: 0x88ff30 },  // C1 — vivid green, gardens glowing at night
+  white:  { emissive: 0x90c8ff },  // BGW9 — cool blue from the blued steel indices
+  salmon: { emissive: 0xffc070 },  // Old radium — warm amber, sunset afterglow
+  slate:  { emissive: 0xc8e8a0 },  // C3 — classic green-cream, the iconic lume
+  sky:    { emissive: 0x80d0ff },  // BGW9 — ice blue constellations
+  cream:  { emissive: 0xe0c878 },  // Tritium — warm gold, aged patina
 };
 const DIAL_NAMES = Object.keys(DIALS);
 const ARABIC = ['١٢','١','٢','٣','٤','٥','٦','٧','٨','٩','١٠','١١'];
@@ -698,6 +700,14 @@ function buildStars(){
 // ══════════════════════════════════════════
 // BUILD ALL
 // ══════════════════════════════════════════
+function updateSurah() {
+  const el = document.getElementById('surah');
+  if(el) {
+    const d = DIALS[currentDial];
+    el.textContent = d.surah || '';
+    el.style.color = d.text || '#ffffff';
+  }
+}
 function buildAll(){
   // Clear clockGroup
   while(clockGroup.children.length) clockGroup.remove(clockGroup.children[0]);
@@ -709,6 +719,7 @@ function buildAll(){
   buildQibla();
   buildFlap();
   buildStars();
+  updateSurah();
 }
 // Wait for fonts then build (Lateef for Arabic numerals)
 document.fonts.ready.then(()=>buildAll());
