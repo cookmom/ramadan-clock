@@ -246,12 +246,9 @@ function buildMarkers() {
   for(let i=0;i<60;i++){
     const ang = Math.PI/2 - (i/60)*Math.PI*2; // CW from 12
     const isHour = i%5===0;
-    // Skip 12 and 6 positions
-    const atBot = i===29||i===30||i===31;
-    if(atBot) continue;
-    // Skip hour markers where numerals go (2,4,8,10 = minute 10,20,40,50)
+    // Skip hour markers where numerals go
     const hourIdx = i/5;
-    if(isHour && [0,2,4,8,10].includes(hourIdx)) continue;
+    if(isHour && [0,2,4,6,8,10].includes(hourIdx)) continue;
     
     if(isHour){
       const mH=R*0.12, mW=R*0.032, depth=3;
