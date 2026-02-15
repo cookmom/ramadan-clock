@@ -126,11 +126,14 @@ rimLight.position.set(80, 40, -100);
 scene.add(rimLight);
 
 // Accent spot — warm highlight on gauge disc area
-const spotLight = new THREE.SpotLight(0xffeedd, 1.5, 500, Math.PI*0.15, 0.6, 1);
-spotLight.position.set(40, -30, 250);
+const spotLight = new THREE.SpotLight(0xffeedd, 2.0, 500, Math.PI*0.15, 0.5, 1);
+spotLight.position.set(30, -50, 200);
 spotLight.target.position.set(0, -R*0.5, 0);
 scene.add(spotLight);
 scene.add(spotLight.target);
+
+// (reflection card removed — using spot + env instead)
+
 
 // ══════════════════════════════════════════
 // MATERIALS (PBR)
@@ -478,8 +481,8 @@ function buildQibla() {
   const gaugeR = R*0.38 - 1;
   const gaugeGeo = new THREE.CircleGeometry(gaugeR, 64);
   const gaugeMat = new THREE.MeshPhysicalMaterial({ 
-    color: 0x8899aa, roughness: 0.25, metalness: 0.9, 
-    clearcoat: 0.6, clearcoatRoughness: 0.15, reflectivity: 0.8
+    color: 0xaab0b8, roughness: 0.3, metalness: 0.7, 
+    clearcoat: 0.5, clearcoatRoughness: 0.2, reflectivity: 0.6
   });
   const gaugeMesh = new THREE.Mesh(gaugeGeo, gaugeMat);
   gaugeMesh.position.y = -R*0.5;
