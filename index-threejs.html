@@ -640,6 +640,114 @@ function buildQibla() {
   const baseDisc = new THREE.Mesh(new THREE.CircleGeometry(gaugeR, 64), baseMat);
   qiblaGroup.add(baseDisc);
   
+  // ── Moon phase (Hijri calendar) ──
+  // Ramadan 2026: Feb 17 – Mar 18 (approx)
+  const RAMADAN_START = new Date(2026, 1, 17); // Feb 17
+  const RAMADAN_DAYS = 30;
+  const now = new Date();
+  const dayOfRamadan = Math.max(0, Math.min(RAMADAN_DAYS, Math.floor((now - RAMADAN_START) / 86400000) + 1));
+  const moonPhase = dayOfRamadan / RAMADAN_DAYS; // 0→1 over the month
+  
+  // Moon disc — bright circle
+  const moonR = gaugeR * 0.42;
+  const moonMat = new THREE.MeshPhysicalMaterial({
+    color: 0xf8f4e8, roughness: 0.6, metalness: 0.05,
+    emissive: 0xf8f4e8, emissiveIntensity: 0.05,
+    envMapIntensity: 0
+  });
+  const moonDisc = new THREE.Mesh(new THREE.CircleGeometry(moonR, 64), moonMat);
+  moonDisc.position.z = 0.1;
+  qiblaGroup.add(moonDisc);
+  
+  // Shadow overlay — creates crescent shape via canvas texture
+  const moonCv = document.createElement('canvas');
+  moonCv.width = 256; moonCv.height = 256;
+  const mCtx = moonCv.getContext('2d');
+  const cx = 128, cy = 128, mr = 120;
+  
+  // Draw shadow side
+  mCtx.fillStyle = 'rgba(0,0,0,0)';
+  mCtx.clearRect(0, 0, 256, 256);
+  
+  // Hijri moon: day 1 = thin crescent (right lit), day 15 = full, day 29 = thin crescent (left lit)
+  // Phase 0→0.5 = waxing (right to full), 0.5→1 = waning (full to left crescent)
+  const p = moonPhase;
+  mCtx.save();
+  mCtx.beginPath();
+  mCtx.arc(cx, cy, mr, 0, Math.PI*2);
+  mCtx.clip();
+  
+  // Dark background (shadow)
+  const bgCol = new THREE.Color(d.bg).multiplyScalar(0.5);
+  mCtx.fillStyle = `rgb(${bgCol.r*255|0},${bgCol.g*255|0},${bgCol.b*255|0})`;
+  mCtx.fillRect(0, 0, 256, 256);
+  
+  // Lit portion — draw as ellipse
+  mCtx.fillStyle = '#f8f4e8';
+  mCtx.beginPath();
+  if(p <= 0.5) {
+    // Waxing: right side lit, growing
+    const illumination = p * 2; // 0→1
+    // Right half always lit
+    mCtx.arc(cx, cy, mr, -Math.PI/2, Math.PI/2);
+    // Left edge: ellipse that grows from right to left
+    mCtx.ellipse(cx, cy, mr * Math.abs(1 - illumination*2), mr, 0, Math.PI/2, -Math.PI/2, illumination > 0.5);
+  } else {
+    // Waning: left side lit, shrinking from right
+    const illumination = (1 - p) * 2; // 1→0
+    // Left half always lit
+    mCtx.arc(cx, cy, mr, Math.PI/2, -Math.PI/2);
+    // Right edge: ellipse that shrinks
+    mCtx.ellipse(cx, cy, mr * Math.abs(1 - illumination*2), mr, 0, -Math.PI/2, Math.PI/2, illumination > 0.5);
+  }
+  mCtx.fill();
+  mCtx.restore();
+  
+  // Soft edge
+  const grad = mCtx.createRadialGradient(cx, cy, mr*0.9, cx, cy, mr);
+  grad.addColorStop(0, 'rgba(0,0,0,0)');
+  grad.addColorStop(1, 'rgba(0,0,0,1)');
+  mCtx.fillStyle = grad;
+  mCtx.fillRect(0, 0, 256, 256);
+  
+  const moonTex = new THREE.CanvasTexture(moonCv);
+  const moonOverlay = new THREE.Mesh(
+    new THREE.CircleGeometry(moonR, 64),
+    new THREE.MeshBasicMaterial({map: moonTex, transparent: true})
+  );
+  moonOverlay.position.z = 0.15;
+  qiblaGroup.add(moonOverlay);
+  
+  // ── Fasting arc (Fajr → Maghrib daily progress) ──
+  if(PD && PD.Fajr && PD.Maghrib) {
+    const fajrMin = pM(PD.Fajr);
+    const maghribMin = pM(PD.Maghrib);
+    const nowMin = now.getHours()*60 + now.getMinutes();
+    const fastDuration = maghribMin - fajrMin;
+    const fastProgress = Math.max(0, Math.min(1, (nowMin - fajrMin) / fastDuration));
+    
+    // Only show during fasting hours
+    if(nowMin >= fajrMin && nowMin <= maghribMin) {
+      const arcR = gaugeR - 0.5;
+      const arcWidth = 1.5;
+      const startAng = Math.PI/2; // 12 o'clock of subdial
+      const sweep = fastProgress * Math.PI * 2;
+      
+      const arcShape = new THREE.Shape();
+      arcShape.absarc(0, 0, arcR, startAng, startAng - sweep, true);
+      arcShape.absarc(0, 0, arcR - arcWidth, startAng - sweep, startAng, false);
+      arcShape.closePath();
+      
+      const arcGeo = new THREE.ShapeGeometry(arcShape);
+      const arcMat = new THREE.MeshBasicMaterial({
+        color: 0x2a9d5c, transparent: true, opacity: 0.7
+      });
+      const arcMesh = new THREE.Mesh(arcGeo, arcMat);
+      arcMesh.position.z = 0.3;
+      qiblaGroup.add(arcMesh);
+    }
+  }
+  
   // Outer rotor — the main Ressence-style rotating disc
   qiblaRotor = new THREE.Group();
   qiblaRotor.position.z = 0.5;
@@ -730,8 +838,12 @@ function buildQibla() {
   clockGroup.add(qiblaGroup);
 }
 
+// Rebuild subdial every 60s to update fasting arc
+let lastSubdialRebuild = 0;
 function updateQibla() {
   if(!qiblaRotor) return;
+  const now = Date.now();
+  if(now - lastSubdialRebuild > 60000) { lastSubdialRebuild = now; buildQibla(); }
   // Smooth compass heading
   compassHeading += ((targetCompassHeading - compassHeading + 540) % 360 - 180) * 0.08;
   
