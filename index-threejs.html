@@ -85,7 +85,7 @@ cam.lookAt(0, 0, 0);
 // ══════════════════════════════════════════
 // LIGHTING
 // ══════════════════════════════════════════
-const ambLight = new THREE.AmbientLight(0xffffff, 0.5);
+const ambLight = new THREE.AmbientLight(0xffffff, 0.3);
 scene.add(ambLight);
 
 // Softbox rect light — product-shot fill
@@ -94,7 +94,7 @@ RectAreaLightUniformsLib.init();
 
 // No env map — clean direct lighting only
 
-const rectLight = new THREE.RectAreaLight(0xffffff, 0.8, 447, 447);
+const rectLight = new THREE.RectAreaLight(0xffffff, 0.3, 447, 447);
 rectLight.position.set(0, 0, 300);
 rectLight.lookAt(0, 0, 0);
 scene.add(rectLight);
