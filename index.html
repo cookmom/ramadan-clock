@@ -739,7 +739,7 @@ function drawQiblaWindow(c){
   ctx.save();
   ctx.translate(qx,qy);
   ctx.rotate(arrowAng);
-  const qiblaColor=S.dial==='tennis'?'#c0392b':D.bg;
+  const qiblaColor=S.dial==='tennis'?'#d4a017':D.bg; // gold on tennis (green), dial bg on others
   let needleColor=qiblaColor;
   if(aligned||qiblaGreenStart>0){
     const since=performance.now()-qiblaGreenStart;
@@ -1451,7 +1451,7 @@ function releaseWakeLock(){
 }
 
 // ── Adhan Debug Log ──
-const _ADHAN_VER='v66-contrast';
+const _ADHAN_VER='v67-qiblagold';
 const _adhanLog=[];
 // Auto-show debug panel on load
 requestAnimationFrame(()=>{adhanDbg('ready');});
