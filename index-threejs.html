@@ -1068,12 +1068,8 @@ function animate() {
   updateFlap(c);
   updateFastingArc(c);
   
-  // Render bloom scene
-  renderer.autoClear = false;
-  renderer.clear();
-  
-  // Render main scene with bloom
-  composer.render();
+  // Render directly — bypass EffectComposer for clean native AA
+  renderer.render(scene, cam);
 }
 
 // ── Init ──
