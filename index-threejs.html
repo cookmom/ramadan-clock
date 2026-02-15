@@ -252,7 +252,7 @@ function buildMarkers() {
     
     // Always draw a minute tick
     {
-      const tH=R*0.036, tW=0.75, depth=1.5;
+      const tH=R*0.036, tW=0.675, depth=1.5;
       const geo = new THREE.BoxGeometry(tW, tH, depth);
       const mat = new THREE.MeshStandardMaterial({color:c.lume, roughness:0.5, metalness:0.2});
       const mesh = new THREE.Mesh(geo, mat);
