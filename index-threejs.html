@@ -32,7 +32,7 @@ canvas{display:block;width:100%;height:100%}
   <div class="dial-dot active" data-dial="slate" style="border-color:#6a6a74"></div>
   <div class="dial-dot" data-dial="sky" style="border-color:#82b8d8"></div>
   <div class="dial-dot" data-dial="kawthar" style="border-color:#f2dce0"></div>
-  <div class="dial-dot" data-dial="dhuha" style="border-color:#e8b870"></div>
+  <div class="dial-dot" data-dial="dhuha" style="border-color:#f08040"></div>
   <div class="dial-dot" data-dial="najm" style="border-color:#384870"></div>
   <div class="dial-dot" data-dial="qamar" style="border-color:#c0c4cc"></div>
   <div class="dial-dot" data-dial="ward" style="border-color:#d89098"></div>
@@ -60,7 +60,7 @@ const DIALS = {
   slate:  {bg:0x585860, lume:0xe8e0c8, hand:0xd0d0d4, sec:0xff6633, text:'#e8e0c8', surah:'Al-Layl'},          // grey + cream + orange sec — the anchor
   sky:    {bg:0x82b8d8, lume:0xf0f4f8, hand:0xf0f4f8, sec:0xffffff, text:'#f0f4f8', surah:'Al-Burūj'},         // blueberry sorbet
   kawthar:{bg:0xf2dce0, lume:0xc88898, hand:0xc88898, sec:0xc88898, text:'#9a6878', surah:'Al-Kawthar'},        // strawberry + rose gold
-  dhuha:  {bg:0xe8b870, lume:0xfcf4ec, hand:0xfcf4ec, sec:0xffffff, text:'#5a4030', surah:'Aḍ-Ḍuḥā'},          // mango sorbet
+  dhuha:  {bg:0xf08040, lume:0xffffff, hand:0xffffff, sec:0xffffff, text:'#ffffff', surah:'Aḍ-Ḍuḥā'},           // bright orange sorbet
   najm:   {bg:0x384870, lume:0xe0e8f4, hand:0xe0e8f4, sec:0xffffff, text:'#e0e8f4', surah:'An-Najm'},          // blueberry sorbet — softer midnight
   qamar:  {bg:0xc0c4cc, lume:0x2a2a30, hand:0x1a1a20, sec:0x2a2a30, text:'#2a2a30', surah:'Al-Qamar'},         // silver — the neutral
   ward:   {bg:0xd89098, lume:0xf8f0f0, hand:0xf8f0f0, sec:0xffffff, text:'#f8f0f0', surah:'Al-Wāqiʿah'},       // raspberry sorbet
@@ -191,7 +191,7 @@ function dialMat(color) {
     kawthar: { roughness:0.6, metalness:0.15, sheen:0.8, sheenColor:0xd4909a, sheenRoughness:0.3, clearcoat:0.4, clearcoatRoughness:0.3 },
     sky:     { roughness:0.85, metalness:0.0, sheen:0, sheenColor:0x5a9ac0, sheenRoughness:0.8, clearcoat:0, clearcoatRoughness:0 }, // flat matte, no sheen
     najm:    { roughness:0.88, metalness:0.0, sheen:0, sheenColor:0x1a2a48, sheenRoughness:0.8, clearcoat:0, clearcoatRoughness:0 }, // flat matte, no gradient
-    dhuha:   { roughness:0.65, metalness:0.1, sheen:0.6, sheenColor:0xd4a040, sheenRoughness:0.4, clearcoat:0.3, clearcoatRoughness:0.2 }, // warm sunlit
+    dhuha:   { roughness:0.88, metalness:0.0, sheen:0, sheenColor:0xf08040, sheenRoughness:0.8, clearcoat:0, clearcoatRoughness:0 }, // flat matte sorbet
     qamar:   { roughness:0.5, metalness:0.25, sheen:0.4, sheenColor:0x8890a0, sheenRoughness:0.3, clearcoat:0.5, clearcoatRoughness:0.15 }, // cool lunar
     ward:    { roughness:0.75, metalness:0.05, sheen:0.4, sheenColor:0xd06080, sheenRoughness:0.4, clearcoat:0.15, clearcoatRoughness:0.3 }, // dusty rose warmth
     rainbow: { roughness:0.6, metalness:0.1, sheen:0.3, sheenColor:0xd4c090, sheenRoughness:0.3, clearcoat:0.3, clearcoatRoughness:0.2 }, // champagne
