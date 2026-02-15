@@ -97,10 +97,10 @@ RectAreaLightUniformsLib.init();
 const { RGBELoader } = await import('three/addons/loaders/RGBELoader.js');
 const pmrem = new THREE.PMREMGenerator(renderer);
 pmrem.compileEquirectangularShader();
-new RGBELoader().load('https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/studio_small_03_1k.hdr', (tex) => {
+new RGBELoader().load('https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/studio_small_08_1k.hdr', (tex) => {
   const envMap = pmrem.fromEquirectangular(tex).texture;
   scene.environment = envMap;
-  scene.environmentIntensity = 0.6;
+  scene.environmentIntensity = 0.8;
   tex.dispose();
   pmrem.dispose();
 });
@@ -474,14 +474,16 @@ let qiblaGroup;
 function buildQibla() {
   if(qiblaGroup) clockGroup.remove(qiblaGroup);
   qiblaGroup = new THREE.Group();
-  // Metal gauge disc in cutout — slightly convex for reflections
+  // Metal gauge disc — brushed steel sub-dial
   const gaugeR = R*0.38 - 1;
-  const gaugeGeo = new THREE.SphereGeometry(gaugeR*3, 64, 32, 0, Math.PI*2, 0, Math.PI*0.12);
-  const gaugeMat = new THREE.MeshPhysicalMaterial({ color: DIALS[currentDial].hand, roughness: 0.05, metalness: 0.98, clearcoat: 1.0, clearcoatRoughness: 0.05, reflectivity: 1.0 });
+  const gaugeGeo = new THREE.CircleGeometry(gaugeR, 64);
+  const gaugeMat = new THREE.MeshPhysicalMaterial({ 
+    color: 0x8899aa, roughness: 0.25, metalness: 0.9, 
+    clearcoat: 0.6, clearcoatRoughness: 0.15, reflectivity: 0.8
+  });
   const gaugeMesh = new THREE.Mesh(gaugeGeo, gaugeMat);
-  gaugeMesh.rotation.x = Math.PI;
   gaugeMesh.position.y = -R*0.5;
-  gaugeMesh.position.z = gaugeR*3*0.02;
+  gaugeMesh.position.z = 1;
   qiblaGroup.add(gaugeMesh);
   clockGroup.add(qiblaGroup);
 }
