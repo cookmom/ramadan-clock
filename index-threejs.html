@@ -61,7 +61,7 @@ function pM(s){if(!s)return 0;const[h,m]=s.split(':').map(Number);return h*60+m;
 // RENDERER — direct render, no post-processing
 // ══════════════════════════════════════════
 let W = window.innerWidth, H = window.innerHeight;
-const R = 120; // world-space radius
+const R = 80; // world-space radius
 
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference:'high-performance' });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 3));
@@ -75,8 +75,8 @@ document.body.appendChild(renderer.domElement);
 const scene = new THREE.Scene();
 
 // ── Perspective camera (slight top-down angle for depth)
-const cam = new THREE.PerspectiveCamera(40, W/H, 1, 2000);
-cam.position.set(0, -8, 300);
+const cam = new THREE.PerspectiveCamera(28, W/H, 1, 2000);
+cam.position.set(0, -5, 320);
 cam.lookAt(0, 0, 0);
 
 // ══════════════════════════════════════════
