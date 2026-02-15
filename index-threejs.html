@@ -960,7 +960,7 @@ function buildQibla() {
   const glassDome = new THREE.SphereGeometry(
     glassR, 64, 32,
     0, Math.PI*2,
-    0, Math.PI*0.2    // shallower dome (36° cap = watch crystal curve)
+    0, Math.PI*0.12   // very shallow dome (~22° cap, stays under hands)
   );
   const glassMat = new THREE.MeshPhysicalMaterial({
     color: 0xffffff,
@@ -980,7 +980,7 @@ function buildQibla() {
   });
   const glassMesh = new THREE.Mesh(glassDome, glassMat);
   glassMesh.position.y = -R*0.5;
-  glassMesh.position.z = 4;  // sits above compass elements
+  glassMesh.position.z = 2;  // low profile, under hands
   glassMesh.rotation.x = 0;
   glassMesh.renderOrder = 999; // render last for proper transparency
   clockGroup.add(glassMesh);
