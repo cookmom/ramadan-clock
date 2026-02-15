@@ -919,34 +919,44 @@ function buildQibla() {
     { r: rotorR * 0.48, width: 1.0, speed: 0.8,  dir: 1  },  // inner ring — faster CW
   ];
   
-  window._subdialRings = []; // store for animation
-  ringDefs.forEach(rd => {
+  // Sorbet palette — soft pastel segments
+  const sorbet = [
+    0xffb5b5, // strawberry
+    0xffd4a3, // peach
+    0xfff1a3, // lemon
+    0xb5f0c8, // pistachio
+    0xa3d8ff, // blueberry
+    0xd4b5ff, // lavender
+    0xffb5e0, // raspberry
+    0xb5ffe0, // mint
+  ];
+  const segCount = 8; // segments per ring — matches sorbet palette
+  
+  window._subdialRings = [];
+  ringDefs.forEach((rd, ri) => {
     const ringGroup = new THREE.Group();
-    const ringGeo = new THREE.RingGeometry(rd.r - rd.width, rd.r, 64);
-    const ringMat = new THREE.MeshPhysicalMaterial({
-      color: new THREE.Color(d.lume || 0xe8e0c8).multiplyScalar(0.35),
-      roughness: 0.25, metalness: 0.4,
-      transparent: true, opacity: 0.5,
-      side: THREE.DoubleSide,
-      envMapIntensity: 0
-    });
-    const ringMesh = new THREE.Mesh(ringGeo, ringMat);
-    ringGroup.add(ringMesh);
+    const gap = 0.03; // radians gap between segments
     
-    // Add tick marks on each ring for visible rotation
-    const tickCount = Math.round(rd.r * 0.8);
-    for(let t = 0; t < tickCount; t++) {
-      const ang = (t / tickCount) * Math.PI * 2;
-      const tGeo = new THREE.BoxGeometry(0.3, rd.width * 0.6, 0.15);
-      const tMat = new THREE.MeshPhysicalMaterial({
-        color: new THREE.Color(d.lume || 0xe8e0c8).multiplyScalar(0.6),
-        roughness: 0.3, metalness: 0.3, envMapIntensity: 0
+    for(let s = 0; s < segCount; s++) {
+      const startAng = (s / segCount) * Math.PI * 2 + gap;
+      const endAng = ((s + 1) / segCount) * Math.PI * 2 - gap;
+      
+      const segShape = new THREE.Shape();
+      segShape.absarc(0, 0, rd.r, startAng, endAng, false);
+      segShape.absarc(0, 0, rd.r - rd.width, endAng, startAng, true);
+      segShape.closePath();
+      
+      // Offset color index per ring so alignment creates columns
+      const colIdx = (s + ri * 0) % segCount; // same order — alignment = color match
+      const segMat = new THREE.MeshPhysicalMaterial({
+        color: sorbet[colIdx],
+        roughness: 0.25, metalness: 0.15,
+        clearcoat: 0.3,
+        envMapIntensity: 0
       });
-      const tMesh = new THREE.Mesh(tGeo, tMat);
-      const tr = rd.r - rd.width * 0.5;
-      tMesh.position.set(Math.sin(ang) * tr, Math.cos(ang) * tr, 0.1);
-      tMesh.rotation.z = -ang;
-      ringGroup.add(tMesh);
+      const segMesh = new THREE.Mesh(new THREE.ShapeGeometry(segShape), segMat);
+      segMesh.position.z = 0.15;
+      ringGroup.add(segMesh);
     }
     
     ringGroup.position.z = 0.3;
