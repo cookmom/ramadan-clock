@@ -75,8 +75,8 @@ document.body.appendChild(renderer.domElement);
 const scene = new THREE.Scene();
 
 // ── Perspective camera (slight top-down angle for depth)
-const cam = new THREE.PerspectiveCamera(35, W/H, 1, 2000);
-cam.position.set(0, -10, 380);
+const cam = new THREE.PerspectiveCamera(45, W/H, 1, 2000);
+cam.position.set(0, -8, 340);
 cam.lookAt(0, 0, 0);
 
 // ══════════════════════════════════════════
