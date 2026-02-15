@@ -113,7 +113,7 @@ scene.background = new THREE.Color(0x000000);
 
 // Camera: narrow FOV, looking slightly down
 const cam = new THREE.PerspectiveCamera(35, W/H, 1, 2000);
-const camDist = R * 3.2;
+const camDist = R * 4.2; // zoomed out to show full dial + countdown
 cam.position.set(0, -camDist * Math.sin(THREE.MathUtils.degToRad(5)), camDist * Math.cos(THREE.MathUtils.degToRad(5)));
 cam.lookAt(0, 0, 0);
 
@@ -410,14 +410,15 @@ function buildNumerals(c) {
   for (let i=0; i<12; i++) {
     const ang = (i/12)*Math.PI*2 - Math.PI/2;
     const r = R - R*0.32;
-    const fontSize = R*0.14;
-    const w = fontSize*1.5, h = fontSize*1.5;
+    const fontSize = 64; // canvas pixels
+    const w = 96, h = 96; // canvas texture size
     const tex = makeTextCanvas(ARABIC[i], `700 ${fontSize}px Lateef,system-ui,sans-serif`, c.lume, w, h);
     const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthTest: false, side: THREE.DoubleSide });
-    const geo = new THREE.PlaneGeometry(w, h);
+    const planeSize = R*0.18; // world-space size
+    const geo = new THREE.PlaneGeometry(planeSize, planeSize);
     const mesh = new THREE.Mesh(geo, mat);
     mesh.position.set(Math.cos(ang)*r, Math.sin(ang)*r, R*0.02);
-    mesh.lookAt(cam.position); // face camera
+    mesh.lookAt(cam.position);
     numeralsGroup.add(mesh);
     numeralMeshes.push(mesh);
   }
@@ -427,11 +428,12 @@ function buildNumerals(c) {
     const r = R*0.93;
     const label = MIN_LABELS[i];
     if (!label) continue;
-    const fontSize = R*0.045;
-    const w = fontSize*2.5, h = fontSize*1.5;
+    const fontSize = 32;
+    const w = 64, h = 40;
     const tex = makeTextCanvas(label, `500 ${fontSize}px Inter,system-ui,sans-serif`, c.minNum, w, h);
     const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity: 0.35, depthTest: false, side: THREE.DoubleSide });
-    const geo = new THREE.PlaneGeometry(w, h);
+    const planeW = R*0.08, planeH = R*0.05;
+    const geo = new THREE.PlaneGeometry(planeW, planeH);
     const mesh = new THREE.Mesh(geo, mat);
     mesh.position.set(Math.cos(ang)*r, Math.sin(ang)*r, R*0.01);
     numeralsGroup.add(mesh);
@@ -563,20 +565,19 @@ function buildQibla(c) {
   const midR = (R - R*0.18 + R - R*0.03)/2;
   const qr = R*0.118;
 
-  // Raised circle platform
-  const platGeo = new THREE.CylinderGeometry(qr, qr, R*0.008, 64);
+  // Raised circle platform (flat disc)
+  const platGeo = new THREE.CircleGeometry(qr, 64);
   qiblaBgMat = new THREE.MeshStandardMaterial({ color: hex(c.hand), metalness: 0.5, roughness: 0.4 });
   const plat = new THREE.Mesh(platGeo, qiblaBgMat);
-  plat.rotation.x = Math.PI/2;
-  plat.position.set(0, midR, R*0.005);
+  plat.position.set(0, midR, R*0.01);
   plat.castShadow = true;
   qiblaGroup.add(plat);
 
-  // Border ring
-  const borderGeo = new THREE.TorusGeometry(qr, qr*0.04, 8, 64);
-  const borderMat = new THREE.MeshStandardMaterial({ color: 0x333333, metalness: 0.6, roughness: 0.3, transparent: true, opacity: 0.5 });
+  // Thin border ring
+  const borderGeo = new THREE.RingGeometry(qr*0.95, qr, 64);
+  const borderMat = new THREE.MeshStandardMaterial({ color: 0x333333, metalness: 0.6, roughness: 0.3, transparent: true, opacity: 0.4 });
   const border = new THREE.Mesh(borderGeo, borderMat);
-  border.position.set(0, midR, R*0.01);
+  border.position.set(0, midR, R*0.012);
   qiblaGroup.add(border);
 
   // Needle (extruded triangle)
@@ -1003,7 +1004,7 @@ function onResize() {
   cam.aspect = W/H;
   cam.updateProjectionMatrix();
 
-  const newDist = R * 3.2;
+  const newDist = R * 4.2;
   cam.position.set(0, -newDist*Math.sin(THREE.MathUtils.degToRad(5)), newDist*Math.cos(THREE.MathUtils.degToRad(5)));
   cam.lookAt(0,0,0);
 
