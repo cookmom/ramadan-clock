@@ -104,7 +104,7 @@ new RGBELoader().load('https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/phot
   tex.dispose();
   pmrem.dispose();
 });
-const rectLight = new THREE.RectAreaLight(0xffffff, 0, 447, 447);
+const rectLight = new THREE.RectAreaLight(0xffffff, 0.2, 447, 447);
 rectLight.position.set(0, 0, 300);
 rectLight.lookAt(0, 0, 0);
 scene.add(rectLight);
