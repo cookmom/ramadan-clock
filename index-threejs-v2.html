@@ -1,0 +1,1085 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<title>Ramadan Clock — 3D</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600&family=Lateef:wght@700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#000;touch-action:none;user-select:none;-webkit-user-select:none}
+canvas{display:block;width:100%;height:100%}
+#info{position:fixed;bottom:env(safe-area-inset-bottom,12px);left:0;right:0;text-align:center;font-family:'Inter',system-ui,sans-serif;pointer-events:none;z-index:10;padding:0 16px 12px;opacity:0;transition:opacity .4s}
+#info.visible{opacity:1}
+#info .hijri{font-size:14px;font-weight:500;letter-spacing:.5px}
+#info .greg{font-size:11px;font-weight:300;margin-top:2px}
+#info .loc{font-size:10px;font-weight:300;margin-top:4px;opacity:.5}
+#dialBar{position:fixed;bottom:calc(env(safe-area-inset-bottom,0px) + 80px);left:0;right:0;display:flex;justify-content:center;gap:8px;opacity:0;transition:opacity .4s;z-index:10;pointer-events:none}
+#dialBar.visible{opacity:1;pointer-events:auto}
+.dial-dot{width:8px;height:8px;border-radius:50%;border:1.5px solid rgba(255,255,255,.3);cursor:pointer;transition:all .3s}
+.dial-dot.active{border-color:rgba(255,255,255,.8);background:rgba(255,255,255,.5)}
+</style>
+</head>
+<body>
+
+<div id="info">
+  <div class="hijri" id="hijri"></div>
+  <div class="greg" id="greg"></div>
+  <div class="loc" id="loc"></div>
+</div>
+
+<div id="dialBar">
+  <div class="dial-dot" data-dial="tennis" style="border-color:#2e8b57"></div>
+  <div class="dial-dot" data-dial="white" style="border-color:#e8e4dc"></div>
+  <div class="dial-dot" data-dial="salmon" style="border-color:#c47a60"></div>
+  <div class="dial-dot active" data-dial="slate" style="border-color:#6a6a74"></div>
+  <div class="dial-dot" data-dial="sky" style="border-color:#5a9ac0"></div>
+  <div class="dial-dot" data-dial="cream" style="border-color:#d8ccb4"></div>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://esm.sh/three@0.170.0",
+    "three/addons/": "https://esm.sh/three@0.170.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+
+// ══════════════════════════════════════════
+// DIAL COLOR DEFINITIONS
+// ══════════════════════════════════════════
+const DIALS = {
+  tennis: { bg:'#2e8b57', lume:'#c8e860', hand:'#f4f0e0', handStroke:'#ffffff', shadow:'#002814', minNum:'#c8e860', text:'#fffff0' },
+  white:  { bg:'#e8e4dc', lume:'#1a1a1a', hand:'#111111', handStroke:'#222222', shadow:'#000000', minNum:'#000000', text:'#000000' },
+  salmon: { bg:'#c47a60', lume:'#fff0e0', hand:'#f8f4ec', handStroke:'#ffffff', shadow:'#3c140a', minNum:'#fff0e0', text:'#fff0e0' },
+  slate:  { bg:'#3a3a44', lume:'#c0c0ca', hand:'#e0e0e4', handStroke:'#f0f0f4', shadow:'#000000', minNum:'#c0c0ca', text:'#e0e0e4' },
+  sky:    { bg:'#5a9ac0', lume:'#f0f8ff', hand:'#f4f0e8', handStroke:'#ffffff', shadow:'#001428', minNum:'#f0f8ff', text:'#f0f8ff' },
+  cream:  { bg:'#d8ccb4', lume:'#3a3530', hand:'#2a2520', handStroke:'#3a3530', shadow:'#000000', minNum:'#3a3530', text:'#3a3530' },
+};
+
+const LUME_COLORS = ['#c8e860','#e0e0e4','#60a0e0','#e0a040','#40d8d0','#d04040','#a080e0','#d4a017','#e08070','#e070a0','#60d8a0','#e0d060','#a0d0f0','#d0a030'];
+const DIAL_DEFAULT_LUME = { tennis:3, white:2, salmon:4, slate:0, sky:7, cream:6 };
+const DIAL_NAMES = ['tennis','white','salmon','slate','sky','cream'];
+const ARABIC = ['١٢','١','٢','٣','٤','٥','٦','٧','٨','٩','١٠','١١'];
+const MIN_LABELS = ['60','','','','','05','','','','','10','','','','','15','','','','','20','','','','','25','','','','','30','','','','','35','','','','','40','','','','','45','','','','','50','','','','','55','','','',''];
+
+let currentDial = 'slate';
+let modeBlend = 0, modeTarget = 0;
+
+// ══════════════════════════════════════════
+// PRAYER DATA
+// ══════════════════════════════════════════
+let PD = null;
+const PN = ['Fajr','Sunrise','Dhuhr','Asr','Maghrib','Isha'];
+function pM(s) { if(!s) return 0; const [h,m] = s.split(':').map(Number); return h*60+m; }
+function nM() { const d=new Date(); return d.getHours()*60+d.getMinutes()+d.getSeconds()/60; }
+
+// ══════════════════════════════════════════
+// STARS (11 — Surah Yusuf 12:4)
+// ══════════════════════════════════════════
+const STARS = [];
+for (let i=0; i<11; i++) {
+  const t = i/10, x = 0.08+t*0.84, dip = 4*t*(1-t), y = 0.03+dip*0.12;
+  STARS.push({ x, y, r:0.8+Math.sin(i*1.7)*0.5+0.3, speed:0.0009+i*0.00008, offset:i*0.57, bright:0.7+Math.sin(i*2.3)*0.2 });
+}
+
+// ══════════════════════════════════════════
+// THREE.JS SETUP — PerspectiveCamera, Lights, Renderer
+// ══════════════════════════════════════════
+let W = window.innerWidth, H = window.innerHeight;
+let R = Math.min(W,H) * 0.42;
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(W, H);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.0;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x000000);
+
+// Camera: narrow FOV, looking slightly down
+const cam = new THREE.PerspectiveCamera(35, W/H, 1, 2000);
+const camDist = R * 3.2;
+cam.position.set(0, -camDist * Math.sin(THREE.MathUtils.degToRad(5)), camDist * Math.cos(THREE.MathUtils.degToRad(5)));
+cam.lookAt(0, 0, 0);
+
+// ── Lighting ──
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.35);
+scene.add(ambientLight);
+
+const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
+dirLight.position.set(-R*0.8, R*1.5, R*2.5);
+dirLight.castShadow = true;
+dirLight.shadow.mapSize.set(1024, 1024);
+dirLight.shadow.camera.near = 0.5;
+dirLight.shadow.camera.far = R * 8;
+dirLight.shadow.camera.left = -R*1.5;
+dirLight.shadow.camera.right = R*1.5;
+dirLight.shadow.camera.top = R*1.5;
+dirLight.shadow.camera.bottom = -R*1.5;
+dirLight.shadow.bias = -0.001;
+scene.add(dirLight);
+
+// Rim light from below-right
+const rimLight = new THREE.DirectionalLight(0xaabbcc, 0.3);
+rimLight.position.set(R, -R*0.5, R*0.5);
+scene.add(rimLight);
+
+// ══════════════════════════════════════════
+// SELECTIVE BLOOM via layers
+// ══════════════════════════════════════════
+const BLOOM_LAYER = 1;
+const darkMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
+const materialCache = new Map();
+
+const renderTarget = new THREE.WebGLRenderTarget(W, H, {
+  type: THREE.HalfFloatType, samples: 8
+});
+const composer = new EffectComposer(renderer, renderTarget);
+
+const renderPass = new RenderPass(scene, cam);
+composer.addPass(renderPass);
+
+const bloomPass = new UnrealBloomPass(new THREE.Vector2(W, H), 0, 0.3, 0.5);
+composer.addPass(bloomPass);
+
+// Selective bloom: render bloom-only objects, composite
+const bloomComposer = new EffectComposer(renderer, new THREE.WebGLRenderTarget(W, H, { type: THREE.HalfFloatType, samples: 4 }));
+const bloomRenderPass = new RenderPass(scene, cam);
+bloomComposer.addPass(bloomRenderPass);
+const bloomPass2 = new UnrealBloomPass(new THREE.Vector2(W, H), 0.6, 0.3, 0.5);
+bloomComposer.addPass(bloomPass2);
+
+// Final composite shader
+const finalPass = new ShaderPass(new THREE.ShaderMaterial({
+  uniforms: {
+    baseTexture: { value: null },
+    bloomTexture: { value: bloomComposer.renderTarget2.texture },
+  },
+  vertexShader: `varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
+  fragmentShader: `
+    uniform sampler2D baseTexture;
+    uniform sampler2D bloomTexture;
+    varying vec2 vUv;
+    void main(){
+      gl_FragColor = texture2D(baseTexture, vUv) + texture2D(bloomTexture, vUv);
+    }
+  `
+}), 'baseTexture');
+finalPass.needsSwap = true;
+composer.addPass(finalPass);
+
+// ══════════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════════
+function hex(c) { return new THREE.Color(c); }
+function lerpHex(a, b, t) { return new THREE.Color(a).lerp(new THREE.Color(b), t); }
+
+function getColors() {
+  modeBlend += (modeTarget - modeBlend) * 0.04;
+  if (Math.abs(modeBlend - modeTarget) < 0.001) modeBlend = modeTarget;
+  const day = DIALS[currentDial];
+  if (modeBlend < 0.001) return { ...day, nightLume: LUME_COLORS[DIAL_DEFAULT_LUME[currentDial]||0] };
+  const lc = LUME_COLORS[DIAL_DEFAULT_LUME[currentDial]||0];
+  const night = { bg:'#000000', lume:lc, hand:lc, handStroke:lc, shadow:'#000000', minNum:lc, text:lc, nightLume:lc };
+  if (modeBlend > 0.999) return night;
+  const t = modeBlend;
+  const lerp = (a,b) => '#' + new THREE.Color(a).lerp(new THREE.Color(b), t).getHexString();
+  return {
+    bg: lerp(day.bg, night.bg), lume: lerp(day.lume, night.lume),
+    hand: lerp(day.hand, night.hand), handStroke: lerp(day.handStroke, night.handStroke),
+    shadow: lerp(day.shadow, night.shadow), minNum: lerp(day.minNum, night.minNum),
+    text: lerp(day.text, night.text), nightLume: lc
+  };
+}
+
+// ══════════════════════════════════════════
+// EXTRUDED SHAPE HELPERS
+// ══════════════════════════════════════════
+function pillShape(w, h) {
+  const s = new THREE.Shape();
+  const r = w;
+  const h2 = h/2;
+  s.moveTo(-r, -h2+r);
+  s.quadraticCurveTo(-r, -h2, 0, -h2);
+  s.quadraticCurveTo(r, -h2, r, -h2+r);
+  s.lineTo(r, h2-r);
+  s.quadraticCurveTo(r, h2, 0, h2);
+  s.quadraticCurveTo(-r, h2, -r, h2-r);
+  s.closePath();
+  return s;
+}
+
+function taperedHandShape(len, baseW, tipW, tailLen) {
+  const s = new THREE.Shape();
+  s.moveTo(-baseW, -tailLen);
+  s.lineTo(-tipW, len);
+  s.lineTo(tipW, len);
+  s.lineTo(baseW, -tailLen);
+  s.closePath();
+  return s;
+}
+
+// ══════════════════════════════════════════
+// SCENE GROUPS
+// ══════════════════════════════════════════
+const watchGroup = new THREE.Group(); // everything rotates together for gyro
+scene.add(watchGroup);
+
+const dialGroup = new THREE.Group();
+const indicesGroup = new THREE.Group();
+const numeralsGroup = new THREE.Group();
+const arcGroup = new THREE.Group();
+const handsGroup = new THREE.Group();
+const capGroup = new THREE.Group();
+const qiblaGroup = new THREE.Group();
+const flapGroup = new THREE.Group();
+const starsGroup = new THREE.Group();
+
+watchGroup.add(dialGroup, indicesGroup, numeralsGroup, arcGroup, handsGroup, capGroup, qiblaGroup, flapGroup);
+scene.add(starsGroup);
+
+// ══════════════════════════════════════════
+// STORAGE
+// ══════════════════════════════════════════
+let hourMarkerCasings = [], hourLumeInserts = [], minuteTicks = [];
+let numeralMeshes = [], minLabelMeshes = [];
+let hourHandGroup, minuteHandGroup, secondHandGroup;
+let hourHandMat, hourLumeMat, minHandMat, minLumeMat, secHandMat;
+let capMainMat, capLumeMat;
+let dialDiscMat;
+let qiblaBgMat, qiblaNeedleMat;
+let flapCanvas, flapTexture, flapMesh;
+let fastingTubeMesh, fastingProgressMesh, fastingTipMesh;
+let flapPrevChars = [], flapCharAnims = [];
+const FLAP_DUR = 350, FLAP_STAGGER = 60;
+let flapCycleIndex = 0, flapCycleTimer = 0;
+
+// ══════════════════════════════════════════
+// TEXT TEXTURE HELPER
+// ══════════════════════════════════════════
+function makeTextCanvas(text, fontStr, color, w, h) {
+  const c = document.createElement('canvas');
+  c.width = w*2; c.height = h*2;
+  const ctx = c.getContext('2d');
+  ctx.clearRect(0,0,c.width,c.height);
+  ctx.font = fontStr.replace(/(\d+)px/, (_,n)=>(n*2)+'px');
+  ctx.fillStyle = color;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, c.width/2, c.height/2);
+  const tex = new THREE.CanvasTexture(c);
+  tex.minFilter = THREE.LinearFilter;
+  tex.magFilter = THREE.LinearFilter;
+  return tex;
+}
+
+// ══════════════════════════════════════════
+// BUILD CLOCK — All 3D Extruded Geometry
+// ══════════════════════════════════════════
+function buildClock() {
+  // Clear
+  [indicesGroup, numeralsGroup, handsGroup, capGroup, qiblaGroup, arcGroup, flapGroup].forEach(g => {
+    while(g.children.length) { g.remove(g.children[0]); }
+  });
+  while(dialGroup.children.length) dialGroup.remove(dialGroup.children[0]);
+
+  hourMarkerCasings = []; hourLumeInserts = []; minuteTicks = [];
+  numeralMeshes = []; minLabelMeshes = [];
+
+  const c = getColors();
+
+  // ── DIAL DISC (CylinderGeometry — thick disc) ──
+  const discThickness = R * 0.02;
+  const discGeo = new THREE.CylinderGeometry(R * 1.02, R * 1.02, discThickness, 128);
+  dialDiscMat = new THREE.MeshStandardMaterial({
+    color: hex(c.bg), metalness: 0.1, roughness: 0.8, side: THREE.DoubleSide
+  });
+  const disc = new THREE.Mesh(discGeo, dialDiscMat);
+  disc.rotation.x = Math.PI/2; // lay flat (cylinder default is Y-up)
+  disc.position.z = -discThickness/2;
+  disc.receiveShadow = true;
+  dialGroup.add(disc);
+
+  // Dial edge ring (slightly metallic bezel)
+  const bezelGeo = new THREE.TorusGeometry(R * 1.02, R*0.015, 16, 128);
+  const bezelMat = new THREE.MeshStandardMaterial({ color: 0x888888, metalness: 0.8, roughness: 0.2 });
+  const bezel = new THREE.Mesh(bezelGeo, bezelMat);
+  bezel.position.z = 0;
+  dialGroup.add(bezel);
+
+  // ── HOUR INDICES — Extruded pills ──
+  const extrudeDepth = R * 0.015;
+  const bevelSettings = { depth: extrudeDepth, bevelEnabled: true, bevelSegments: 2, bevelSize: extrudeDepth*0.15, bevelThickness: extrudeDepth*0.15 };
+
+  for (let i=0; i<60; i++) {
+    const ang = (i/60) * Math.PI*2 - Math.PI/2;
+    const isHour = i%5 === 0;
+
+    if (isHour) {
+      const inner = R - R*0.18, outer = R - R*0.03;
+      const midR = (inner+outer)/2;
+      const capW = R*0.035, capH = outer-inner;
+
+      // Metal casing — extruded pill
+      const casingShape = pillShape(capW, capH);
+      const casingGeo = new THREE.ExtrudeGeometry(casingShape, { ...bevelSettings, depth: extrudeDepth });
+      const casingMat = new THREE.MeshStandardMaterial({
+        color: hex(c.hand), metalness: 0.7, roughness: 0.3
+      });
+      const casing = new THREE.Mesh(casingGeo, casingMat);
+      casing.position.set(Math.cos(ang)*midR, Math.sin(ang)*midR, 0);
+      casing.rotation.z = ang + Math.PI/2;
+      casing.castShadow = true;
+      indicesGroup.add(casing);
+      hourMarkerCasings.push(casing);
+
+      // Lume insert — slightly smaller, sits on top
+      const inW = capW*0.55, inH = capH*0.75;
+      const lumeShape = pillShape(inW, inH);
+      const lumeGeo = new THREE.ExtrudeGeometry(lumeShape, { depth: extrudeDepth*0.6, bevelEnabled: false });
+      const lumeMat = new THREE.MeshStandardMaterial({
+        color: hex(c.lume), metalness: 0.1, roughness: 0.6,
+        emissive: hex(c.nightLume), emissiveIntensity: 0
+      });
+      const lume = new THREE.Mesh(lumeGeo, lumeMat);
+      lume.position.set(Math.cos(ang)*midR, Math.sin(ang)*midR, extrudeDepth*0.5);
+      lume.rotation.z = ang + Math.PI/2;
+      indicesGroup.add(lume);
+      hourLumeInserts.push(lume);
+    } else {
+      // Minute tick — thin extruded rect
+      const inner = R - R*0.07, outer = R - R*0.03;
+      const tickLen = outer-inner, tickW = 1.2;
+      const tickShape = new THREE.Shape();
+      tickShape.moveTo(-tickW/2, -tickLen/2);
+      tickShape.lineTo(tickW/2, -tickLen/2);
+      tickShape.lineTo(tickW/2, tickLen/2);
+      tickShape.lineTo(-tickW/2, tickLen/2);
+      tickShape.closePath();
+      const tickGeo = new THREE.ExtrudeGeometry(tickShape, { depth: R*0.005, bevelEnabled: false });
+      const tickMat = new THREE.MeshStandardMaterial({
+        color: hex(c.lume), metalness: 0.3, roughness: 0.5, transparent: true, opacity: 0.45
+      });
+      const tick = new THREE.Mesh(tickGeo, tickMat);
+      const mr = (inner+outer)/2;
+      tick.position.set(Math.cos(ang)*mr, Math.sin(ang)*mr, 0);
+      tick.rotation.z = ang + Math.PI/2;
+      indicesGroup.add(tick);
+      minuteTicks.push(tick);
+    }
+  }
+
+  // ── ARABIC NUMERALS (canvas texture on planes) ──
+  buildNumerals(c);
+
+  // ── CLOCK HANDS — Extruded with depth ──
+  buildHands(c);
+
+  // ── CENTER CAP — Half-dome ──
+  buildCap(c);
+
+  // ── QIBLA COMPASS ──
+  buildQibla(c);
+
+  // ── SPLIT-FLAP DISPLAY ──
+  buildFlap(c);
+
+  // ── STARS ──
+  buildStars();
+}
+
+function buildNumerals(c) {
+  while(numeralsGroup.children.length) numeralsGroup.remove(numeralsGroup.children[0]);
+  numeralMeshes = []; minLabelMeshes = [];
+
+  for (let i=0; i<12; i++) {
+    const ang = (i/12)*Math.PI*2 - Math.PI/2;
+    const r = R - R*0.32;
+    const fontSize = R*0.14;
+    const w = fontSize*1.5, h = fontSize*1.5;
+    const tex = makeTextCanvas(ARABIC[i], `700 ${fontSize}px Lateef,system-ui,sans-serif`, c.lume, w, h);
+    const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthTest: false, side: THREE.DoubleSide });
+    const geo = new THREE.PlaneGeometry(w, h);
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(Math.cos(ang)*r, Math.sin(ang)*r, R*0.02);
+    mesh.lookAt(cam.position); // face camera
+    numeralsGroup.add(mesh);
+    numeralMeshes.push(mesh);
+  }
+
+  for (let i=0; i<60; i+=5) {
+    const ang = (i/60)*Math.PI*2 - Math.PI/2;
+    const r = R*0.93;
+    const label = MIN_LABELS[i];
+    if (!label) continue;
+    const fontSize = R*0.045;
+    const w = fontSize*2.5, h = fontSize*1.5;
+    const tex = makeTextCanvas(label, `500 ${fontSize}px Inter,system-ui,sans-serif`, c.minNum, w, h);
+    const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity: 0.35, depthTest: false, side: THREE.DoubleSide });
+    const geo = new THREE.PlaneGeometry(w, h);
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(Math.cos(ang)*r, Math.sin(ang)*r, R*0.01);
+    numeralsGroup.add(mesh);
+    minLabelMeshes.push(mesh);
+  }
+}
+
+function buildHands(c) {
+  const handExtrude = { depth: R*0.012, bevelEnabled: true, bevelSegments: 1, bevelSize: R*0.002, bevelThickness: R*0.002 };
+  const lumeExtrude = { depth: R*0.004, bevelEnabled: false };
+
+  // Hour hand
+  hourHandGroup = new THREE.Group();
+  const hLen = R*0.52, hBase = R*0.028, hTip = R*0.008, hTail = R*0.06;
+  const hShape = taperedHandShape(hLen, hBase, hTip, hTail);
+  const hGeo = new THREE.ExtrudeGeometry(hShape, handExtrude);
+  hourHandMat = new THREE.MeshStandardMaterial({ color: hex(c.hand), metalness: 0.8, roughness: 0.2 });
+  const hMesh = new THREE.Mesh(hGeo, hourHandMat);
+  hMesh.castShadow = true;
+  hourHandGroup.add(hMesh);
+
+  // Hour lume strip
+  const hlW = hBase*0.5, hlH = hLen*0.65;
+  const hlShape = new THREE.Shape();
+  hlShape.moveTo(-hlW/2, hLen*0.05); hlShape.lineTo(hlW/2, hLen*0.05);
+  hlShape.lineTo(hlW/2, hLen*0.05+hlH); hlShape.lineTo(-hlW/2, hLen*0.05+hlH);
+  hlShape.closePath();
+  const hlGeo = new THREE.ExtrudeGeometry(hlShape, lumeExtrude);
+  hourLumeMat = new THREE.MeshStandardMaterial({
+    color: hex(c.lume), metalness: 0.1, roughness: 0.5,
+    emissive: hex(c.nightLume), emissiveIntensity: 0
+  });
+  const hlMesh = new THREE.Mesh(hlGeo, hourLumeMat);
+  hlMesh.position.z = handExtrude.depth + 0.5;
+  hourHandGroup.add(hlMesh);
+
+  hourHandGroup.position.z = R*0.025;
+  handsGroup.add(hourHandGroup);
+
+  // Minute hand
+  minuteHandGroup = new THREE.Group();
+  const mLen = R*0.72, mBase = R*0.022, mTip = R*0.005, mTail = R*0.08;
+  const mShape = taperedHandShape(mLen, mBase, mTip, mTail);
+  const mGeo = new THREE.ExtrudeGeometry(mShape, { ...handExtrude, depth: R*0.008 });
+  minHandMat = new THREE.MeshStandardMaterial({ color: hex(c.hand), metalness: 0.8, roughness: 0.2 });
+  const mMesh = new THREE.Mesh(mGeo, minHandMat);
+  mMesh.castShadow = true;
+  minuteHandGroup.add(mMesh);
+
+  // Min lume strip
+  const mlW = mBase*0.45, mlH = mLen*0.6;
+  const mlShape = new THREE.Shape();
+  mlShape.moveTo(-mlW/2, mLen*0.05); mlShape.lineTo(mlW/2, mLen*0.05);
+  mlShape.lineTo(mlW/2, mLen*0.05+mlH); mlShape.lineTo(-mlW/2, mLen*0.05+mlH);
+  mlShape.closePath();
+  const mlGeo = new THREE.ExtrudeGeometry(mlShape, lumeExtrude);
+  minLumeMat = new THREE.MeshStandardMaterial({
+    color: hex(c.lume), metalness: 0.1, roughness: 0.5,
+    emissive: hex(c.nightLume), emissiveIntensity: 0
+  });
+  const mlMesh = new THREE.Mesh(mlGeo, minLumeMat);
+  mlMesh.position.z = R*0.008 + 0.5;
+  minuteHandGroup.add(mlMesh);
+
+  minuteHandGroup.position.z = R*0.04;
+  handsGroup.add(minuteHandGroup);
+
+  // Second hand
+  secondHandGroup = new THREE.Group();
+  const sLen = R*0.78, sTail = R*0.18;
+  const sShape = new THREE.Shape();
+  sShape.moveTo(-0.75, -sTail); sShape.lineTo(-0.4, sLen);
+  sShape.lineTo(0.4, sLen); sShape.lineTo(0.75, -sTail);
+  sShape.closePath();
+  const sGeo = new THREE.ExtrudeGeometry(sShape, { depth: R*0.004, bevelEnabled: false });
+  secHandMat = new THREE.MeshStandardMaterial({ color: hex(c.handStroke), metalness: 0.6, roughness: 0.3 });
+  const sMesh = new THREE.Mesh(sGeo, secHandMat);
+  sMesh.castShadow = true;
+  secondHandGroup.add(sMesh);
+
+  // Counterweight circle
+  const cwGeo = new THREE.CylinderGeometry(R*0.02, R*0.02, R*0.005, 32);
+  const cwMat = new THREE.MeshStandardMaterial({ color: hex(c.handStroke), metalness: 0.7, roughness: 0.3 });
+  const cw = new THREE.Mesh(cwGeo, cwMat);
+  cw.rotation.x = Math.PI/2;
+  cw.position.y = -sTail*0.6;
+  cw.position.z = R*0.002;
+  secondHandGroup.add(cw);
+
+  secondHandGroup.position.z = R*0.055;
+  handsGroup.add(secondHandGroup);
+}
+
+function buildCap(c) {
+  while(capGroup.children.length) capGroup.remove(capGroup.children[0]);
+
+  // Chrome dome — half sphere using LatheGeometry
+  const capR = R*0.04;
+  const points = [];
+  for (let i=0; i<=32; i++) {
+    const a = (i/32) * Math.PI/2;
+    points.push(new THREE.Vector2(Math.cos(a)*capR, Math.sin(a)*capR));
+  }
+  const domeGeo = new THREE.LatheGeometry(points, 64);
+  capMainMat = new THREE.MeshStandardMaterial({
+    color: hex(c.hand), metalness: 0.9, roughness: 0.1,
+    envMapIntensity: 1.5
+  });
+  const dome = new THREE.Mesh(domeGeo, capMainMat);
+  dome.rotation.x = -Math.PI/2;
+  dome.position.z = R*0.06;
+  dome.castShadow = true;
+  capGroup.add(dome);
+
+  // Inner accent ring
+  const ringGeo = new THREE.TorusGeometry(capR*0.5, capR*0.08, 8, 32);
+  capLumeMat = new THREE.MeshStandardMaterial({
+    color: hex(c.lume), metalness: 0.3, roughness: 0.4,
+    emissive: hex(c.nightLume), emissiveIntensity: 0
+  });
+  const ring = new THREE.Mesh(ringGeo, capLumeMat);
+  ring.position.z = R*0.06 + capR*0.85;
+  capGroup.add(ring);
+}
+
+function buildQibla(c) {
+  while(qiblaGroup.children.length) qiblaGroup.remove(qiblaGroup.children[0]);
+
+  const midR = (R - R*0.18 + R - R*0.03)/2;
+  const qr = R*0.118;
+
+  // Raised circle platform
+  const platGeo = new THREE.CylinderGeometry(qr, qr, R*0.008, 64);
+  qiblaBgMat = new THREE.MeshStandardMaterial({ color: hex(c.hand), metalness: 0.5, roughness: 0.4 });
+  const plat = new THREE.Mesh(platGeo, qiblaBgMat);
+  plat.rotation.x = Math.PI/2;
+  plat.position.set(0, midR, R*0.005);
+  plat.castShadow = true;
+  qiblaGroup.add(plat);
+
+  // Border ring
+  const borderGeo = new THREE.TorusGeometry(qr, qr*0.04, 8, 64);
+  const borderMat = new THREE.MeshStandardMaterial({ color: 0x333333, metalness: 0.6, roughness: 0.3, transparent: true, opacity: 0.5 });
+  const border = new THREE.Mesh(borderGeo, borderMat);
+  border.position.set(0, midR, R*0.01);
+  qiblaGroup.add(border);
+
+  // Needle (extruded triangle)
+  const nL = qr*0.7*1.326*1.15*1.3;
+  const tipDist = nL*0.55, tailDist = nL*0.45, halfBase = nL*0.361;
+  const needleShape = new THREE.Shape();
+  needleShape.moveTo(0, tipDist);
+  needleShape.lineTo(halfBase, -tailDist);
+  needleShape.lineTo(-halfBase, -tailDist);
+  needleShape.closePath();
+  const needleGeo = new THREE.ExtrudeGeometry(needleShape, { depth: R*0.006, bevelEnabled: false });
+  qiblaNeedleMat = new THREE.MeshStandardMaterial({ color: hex(c.bg), metalness: 0.3, roughness: 0.5 });
+  const needle = new THREE.Mesh(needleGeo, qiblaNeedleMat);
+  needle.position.set(0, midR, R*0.01);
+  qiblaGroup.add(needle);
+}
+
+function buildFlap(c) {
+  const cw = 512, ch = 192;
+  flapCanvas = document.createElement('canvas');
+  flapCanvas.width = cw; flapCanvas.height = ch;
+  flapTexture = new THREE.CanvasTexture(flapCanvas);
+  flapTexture.minFilter = THREE.LinearFilter;
+
+  const pw = R*0.7, ph = R*0.26;
+  // Slightly extruded plane
+  const flapShape = new THREE.Shape();
+  const fr = 4;
+  flapShape.moveTo(-pw/2+fr, -ph/2);
+  flapShape.lineTo(pw/2-fr, -ph/2);
+  flapShape.quadraticCurveTo(pw/2, -ph/2, pw/2, -ph/2+fr);
+  flapShape.lineTo(pw/2, ph/2-fr);
+  flapShape.quadraticCurveTo(pw/2, ph/2, pw/2-fr, ph/2);
+  flapShape.lineTo(-pw/2+fr, ph/2);
+  flapShape.quadraticCurveTo(-pw/2, ph/2, -pw/2, ph/2-fr);
+  flapShape.lineTo(-pw/2, -ph/2+fr);
+  flapShape.quadraticCurveTo(-pw/2, -ph/2, -pw/2+fr, -ph/2);
+  flapShape.closePath();
+
+  const flapGeo = new THREE.ExtrudeGeometry(flapShape, { depth: R*0.005, bevelEnabled: false });
+  const flapMat = new THREE.MeshStandardMaterial({
+    map: flapTexture, transparent: true, metalness: 0.05, roughness: 0.9
+  });
+  flapMesh = new THREE.Mesh(flapGeo, flapMat);
+  flapMesh.position.set(0, -R*0.38, R*0.015);
+  flapGroup.add(flapMesh);
+}
+
+function buildStars() {
+  while(starsGroup.children.length) starsGroup.remove(starsGroup.children[0]);
+  STARS.forEach(s => {
+    const geo = new THREE.SphereGeometry(s.r*1.2, 8, 8);
+    const mat = new THREE.MeshBasicMaterial({ color: 0xfffff0, transparent: true, opacity: 0 });
+    const mesh = new THREE.Mesh(geo, mat);
+    // Position in screen space — project into 3D far from watch
+    mesh.position.set((s.x-0.5)*R*5, (0.5-s.y)*R*4, -R*1.5);
+    mesh.userData = s;
+    mesh.layers.enable(BLOOM_LAYER);
+    starsGroup.add(mesh);
+  });
+}
+
+// ══════════════════════════════════════════
+// FASTING ARC — TubeGeometry
+// ══════════════════════════════════════════
+function updateFastingArc(c) {
+  while(arcGroup.children.length) arcGroup.remove(arcGroup.children[0]);
+  if (!PD) return;
+
+  const fajr = pM(PD.Fajr), mag = pM(PD.Maghrib), now = nM();
+  const startAng = -((fajr%720)/720)*Math.PI*2 + Math.PI/2;
+  const fastDur = mag - fajr;
+  const sweepAng = -(fastDur/720)*Math.PI*2;
+  const endAng = startAng + sweepAng;
+  const arcR = R * 1.12;
+  const isLight = currentDial==='white' || currentDial==='cream';
+  const arcColor = isLight ? 0x222222 : 0xeeeeee;
+
+  // Track tube
+  const trackPts = [];
+  for (let i=0; i<=128; i++) {
+    const a = startAng + (i/128)*sweepAng;
+    trackPts.push(new THREE.Vector3(Math.cos(a)*arcR, Math.sin(a)*arcR, 0));
+  }
+  const trackCurve = new THREE.CatmullRomCurve3(trackPts);
+  const trackGeo = new THREE.TubeGeometry(trackCurve, 128, R*0.006, 8, false);
+  const trackMat = new THREE.MeshStandardMaterial({
+    color: arcColor, metalness: 0.3, roughness: 0.5, transparent: true, opacity: 0.35
+  });
+  arcGroup.add(new THREE.Mesh(trackGeo, trackMat));
+
+  // Progress
+  if (now >= fajr && now <= mag) {
+    const elapsed = now - fajr;
+    const progSweep = -(elapsed/720)*Math.PI*2;
+    const progPts = [];
+    const steps = Math.max(8, Math.round(Math.abs(progSweep/sweepAng)*128));
+    for (let i=0; i<=steps; i++) {
+      const a = startAng + (i/steps)*progSweep;
+      progPts.push(new THREE.Vector3(Math.cos(a)*arcR, Math.sin(a)*arcR, 0));
+    }
+    if (progPts.length >= 2) {
+      const progCurve = new THREE.CatmullRomCurve3(progPts);
+      const progGeo = new THREE.TubeGeometry(progCurve, steps, R*0.008, 8, false);
+      const progMat = new THREE.MeshStandardMaterial({ color: arcColor, metalness: 0.3, roughness: 0.5, opacity: 0.85, transparent: true });
+      arcGroup.add(new THREE.Mesh(progGeo, progMat));
+
+      // Red tip sphere
+      const tipAng = startAng + progSweep;
+      const tipGeo = new THREE.SphereGeometry(R*0.025, 32, 32);
+      const tipMat = new THREE.MeshStandardMaterial({ color: 0xe53e3e, metalness: 0.4, roughness: 0.3 });
+      const tip = new THREE.Mesh(tipGeo, tipMat);
+      tip.position.set(Math.cos(tipAng)*arcR, Math.sin(tipAng)*arcR, 0);
+      tip.castShadow = true;
+      arcGroup.add(tip);
+    }
+  }
+}
+
+// ══════════════════════════════════════════
+// SPLIT-FLAP RENDERING
+// ══════════════════════════════════════════
+function updateFlap(c) {
+  if (!flapCanvas) return;
+  const ctx = flapCanvas.getContext('2d');
+  const cw = flapCanvas.width, ch = flapCanvas.height;
+  ctx.clearRect(0,0,cw,ch);
+
+  const now = new Date();
+  const nowMin = now.getHours()*60 + now.getMinutes() + now.getSeconds()/60;
+  let label = 'UNTIL MAGHRIB', mins = 0;
+
+  if (PD) {
+    // Cycle through labels every 5 seconds
+    const cycleTime = Math.floor(Date.now()/5000) % 3;
+    const fajr=pM(PD.Fajr), mag=pM(PD.Maghrib), isha=pM(PD.Isha);
+    
+    if (cycleTime === 0) {
+      if (nowMin>=fajr && nowMin<mag) { mins=mag-nowMin; label='UNTIL IFTAR'; }
+      else if (nowMin<fajr) { mins=fajr-nowMin; label='UNTIL FAJR'; }
+      else { mins=0; label='ALHAMDULILLAH'; }
+    } else if (cycleTime === 1) {
+      if (nowMin<isha) { mins=isha-nowMin; label='UNTIL ISHA'; }
+      else { mins=0; label='ISHA PASSED'; }
+    } else {
+      // Next prayer
+      const times = PN.map(n=>({name:n, m:pM(PD[n])})).filter(p=>p.m>nowMin);
+      if (times.length) { mins=times[0].m-nowMin; label='UNTIL '+times[0].name.toUpperCase(); }
+      else { mins=0; label='ALL PRAYERS DONE'; }
+    }
+  } else {
+    mins = Math.max(0, (18*60+15) - nowMin);
+  }
+
+  const hh = Math.floor(mins/60), mm = Math.floor(mins%60);
+  const ss = Math.floor((mins%1)*60);
+  const chars = [
+    String(Math.floor(hh/10)), String(hh%10), ':',
+    String(Math.floor(mm/10)), String(mm%10)
+  ];
+
+  const nowMs = performance.now();
+  while(flapPrevChars.length<chars.length) flapPrevChars.push('');
+  while(flapCharAnims.length<chars.length) flapCharAnims.push({start:0,prev:''});
+  for (let i=0;i<chars.length;i++) {
+    if (chars[i]!==flapPrevChars[i]) {
+      flapCharAnims[i] = { start: nowMs+i*FLAP_STAGGER, prev: flapPrevChars[i]||chars[i] };
+    }
+  }
+  flapPrevChars = chars.slice();
+
+  const digitW = cw*0.17, colonW = cw*0.06, cellH = ch*0.65;
+  const charWidths = chars.map(ch2 => ch2===':'?colonW:digitW);
+  const totalW = charWidths.reduce((a,w)=>a+w,0) + (chars.length-1)*4;
+  let curX = (cw-totalW)/2;
+  const cellY = ch*0.15;
+  const fontSize = cellH*0.7;
+
+  // Determine lume color for text
+  const lumeCol = c.lume || '#c0c0ca';
+
+  for (let i=0;i<chars.length;i++) {
+    const ch2 = chars[i], charW = charWidths[i];
+    const cellCx = curX+charW/2;
+    const anim = flapCharAnims[i];
+    const elapsed = nowMs-(anim.start||0);
+    const t = Math.min(Math.max(elapsed/FLAP_DUR,0),1);
+
+    if (ch2===':') {
+      ctx.fillStyle = lumeCol; ctx.globalAlpha = 0.5;
+      ctx.beginPath(); ctx.arc(cellCx, cellY+cellH*0.3, 4, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(cellCx, cellY+cellH*0.7, 4, 0, Math.PI*2); ctx.fill();
+      ctx.globalAlpha = 1;
+      curX += charW+4; continue;
+    }
+
+    ctx.fillStyle = 'rgba(0,0,0,0.4)';
+    roundRect(ctx, curX, cellY, charW, cellH, 4); ctx.fill();
+    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+    ctx.fillRect(curX, cellY+cellH/2-0.5, charW, 1);
+
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.font = `600 ${fontSize}px Inter,system-ui,sans-serif`;
+    ctx.fillStyle = lumeCol; ctx.globalAlpha = 0.9;
+
+    if (t<1 && anim.prev) {
+      const ease = t<0.5 ? 2*t*t : 1-Math.pow(-2*t+2,2)/2;
+      ctx.save(); ctx.beginPath(); ctx.rect(curX,cellY+cellH/2,charW,cellH/2); ctx.clip();
+      ctx.fillText(ch2, cellCx, cellY+cellH/2); ctx.restore();
+      ctx.save(); ctx.beginPath(); ctx.rect(curX,cellY,charW,cellH/2); ctx.clip();
+      ctx.fillText(ease<0.5?anim.prev:ch2, cellCx, cellY+cellH/2); ctx.restore();
+    } else {
+      ctx.fillText(ch2, cellCx, cellY+cellH/2);
+    }
+    ctx.globalAlpha = 1;
+
+    ctx.strokeStyle = 'rgba(255,255,255,0.05)'; ctx.lineWidth = 0.5;
+    roundRect(ctx, curX, cellY, charW, cellH, 4); ctx.stroke();
+    curX += charW+4;
+  }
+
+  if (label) {
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.font = `500 ${ch*0.12}px Inter,system-ui,sans-serif`;
+    ctx.fillStyle = lumeCol; ctx.globalAlpha = 0.7;
+    ctx.fillText(label, cw/2, cellY+cellH+ch*0.12);
+    ctx.globalAlpha = 1;
+  }
+
+  flapTexture.needsUpdate = true;
+}
+
+function roundRect(ctx,x,y,w,h,r) {
+  ctx.beginPath(); ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y);
+  ctx.quadraticCurveTo(x+w,y,x+w,y+r); ctx.lineTo(x+w,y+h-r);
+  ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h); ctx.lineTo(x+r,y+h);
+  ctx.quadraticCurveTo(x,y+h,x,y+h-r); ctx.lineTo(x,y+r);
+  ctx.quadraticCurveTo(x,y,x+r,y); ctx.closePath();
+}
+
+// ══════════════════════════════════════════
+// UPDATE LOOP
+// ══════════════════════════════════════════
+function updateColors() {
+  const c = getColors();
+  const nightLumeHex = c.nightLume;
+
+  // Dial
+  if (dialDiscMat) dialDiscMat.color.set(c.bg);
+  scene.background.set(modeBlend > 0.01 ? lerpHex(DIALS[currentDial].bg, '#000000', modeBlend) : c.bg);
+
+  // Hour casings
+  hourMarkerCasings.forEach(m => m.material.color.set(c.hand));
+  // Lume inserts with emissive
+  hourLumeInserts.forEach(m => {
+    m.material.color.set(c.lume);
+    m.material.emissive.set(nightLumeHex);
+    m.material.emissiveIntensity = modeBlend * 0.8;
+    if (modeBlend > 0.3) { m.layers.enable(BLOOM_LAYER); } else { m.layers.disable(BLOOM_LAYER); }
+  });
+  minuteTicks.forEach(m => m.material.color.set(c.lume));
+
+  // Hands
+  if (hourHandMat) hourHandMat.color.set(c.hand);
+  if (hourLumeMat) {
+    hourLumeMat.color.set(c.lume);
+    hourLumeMat.emissive.set(nightLumeHex);
+    hourLumeMat.emissiveIntensity = modeBlend * 0.9;
+  }
+  if (minHandMat) minHandMat.color.set(c.hand);
+  if (minLumeMat) {
+    minLumeMat.color.set(c.lume);
+    minLumeMat.emissive.set(nightLumeHex);
+    minLumeMat.emissiveIntensity = modeBlend * 0.9;
+  }
+  if (secHandMat) secHandMat.color.set(c.handStroke);
+
+  // Cap
+  if (capMainMat) capMainMat.color.set(c.hand);
+  if (capLumeMat) {
+    capLumeMat.color.set(c.lume);
+    capLumeMat.emissive.set(nightLumeHex);
+    capLumeMat.emissiveIntensity = modeBlend;
+  }
+
+  // Qibla
+  if (qiblaBgMat) qiblaBgMat.color.set(c.hand);
+  if (qiblaNeedleMat) qiblaNeedleMat.color.set(c.bg);
+
+  // Lighting — dim in night mode
+  ambientLight.intensity = THREE.MathUtils.lerp(0.35, 0.08, modeBlend);
+  dirLight.intensity = THREE.MathUtils.lerp(1.2, 0.15, modeBlend);
+  rimLight.intensity = THREE.MathUtils.lerp(0.3, 0.05, modeBlend);
+
+  // Bloom
+  bloomPass.strength = modeBlend * 0.5;
+  bloomPass2.strength = modeBlend * 0.6;
+
+  // Stars
+  starsGroup.children.forEach(mesh => {
+    const s = mesh.userData; if (!s) return;
+    const twinkle = Math.sin(Date.now()*s.speed+s.offset)*0.3+0.7;
+    mesh.material.opacity = modeBlend * s.bright * twinkle * 0.7;
+  });
+
+  // Theme color
+  document.querySelector('meta[name="theme-color"]').content = c.bg;
+
+  return c;
+}
+
+function updateHands() {
+  const now = new Date();
+  const h = now.getHours()%12, m = now.getMinutes(), s = now.getSeconds(), ms = now.getMilliseconds();
+  const sec = s + ms/1000;
+  const min = m + sec/60;
+  const hour = h + min/60;
+
+  if (hourHandGroup) hourHandGroup.rotation.z = -(hour/12)*Math.PI*2;
+  if (minuteHandGroup) minuteHandGroup.rotation.z = -(min/60)*Math.PI*2;
+  if (secondHandGroup) secondHandGroup.rotation.z = -(sec/60)*Math.PI*2;
+}
+
+// ══════════════════════════════════════════
+// GYROSCOPE PARALLAX
+// ══════════════════════════════════════════
+let gyroX = 0, gyroY = 0;
+const MAX_GYRO = THREE.MathUtils.degToRad(3);
+
+if (window.DeviceOrientationEvent) {
+  window.addEventListener('deviceorientation', e => {
+    if (e.beta !== null && e.gamma !== null) {
+      // beta = front-back tilt, gamma = left-right
+      gyroX = THREE.MathUtils.clamp(THREE.MathUtils.degToRad(e.gamma), -MAX_GYRO, MAX_GYRO);
+      gyroY = THREE.MathUtils.clamp(THREE.MathUtils.degToRad(e.beta - 45), -MAX_GYRO, MAX_GYRO); // 45° = holding phone naturally
+    }
+  }, true);
+}
+
+// ══════════════════════════════════════════
+// INTERACTIONS
+// ══════════════════════════════════════════
+let infoVisible = false, infoTimer = null;
+function showInfo() {
+  const info = document.getElementById('info');
+  const bar = document.getElementById('dialBar');
+  info.classList.add('visible'); bar.classList.add('visible');
+  infoVisible = true;
+  clearTimeout(infoTimer);
+  infoTimer = setTimeout(() => {
+    info.classList.remove('visible'); bar.classList.remove('visible');
+    infoVisible = false;
+  }, 4000);
+}
+
+renderer.domElement.addEventListener('click', showInfo);
+
+let lastTap = 0;
+renderer.domElement.addEventListener('dblclick', () => {
+  modeTarget = modeTarget > 0.5 ? 0 : 1;
+});
+
+let touchStartX = 0, touchStartY = 0;
+renderer.domElement.addEventListener('touchstart', e => {
+  touchStartX = e.touches[0].clientX;
+  touchStartY = e.touches[0].clientY;
+});
+renderer.domElement.addEventListener('touchend', e => {
+  const dx = e.changedTouches[0].clientX - touchStartX;
+  const dy = e.changedTouches[0].clientY - touchStartY;
+  if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) {
+    const idx = DIAL_NAMES.indexOf(currentDial);
+    const newIdx = dx>0 ? (idx-1+DIAL_NAMES.length)%DIAL_NAMES.length : (idx+1)%DIAL_NAMES.length;
+    currentDial = DIAL_NAMES[newIdx];
+    buildNumerals(getColors());
+    updateDialDots();
+  }
+});
+
+document.querySelectorAll('.dial-dot').forEach(dot => {
+  dot.addEventListener('click', e => {
+    e.stopPropagation();
+    currentDial = dot.dataset.dial;
+    buildNumerals(getColors());
+    updateDialDots();
+  });
+});
+
+function updateDialDots() {
+  document.querySelectorAll('.dial-dot').forEach(d => {
+    d.classList.toggle('active', d.dataset.dial === currentDial);
+  });
+}
+
+// ══════════════════════════════════════════
+// PRAYER FETCH
+// ══════════════════════════════════════════
+async function fetchPrayer() {
+  try {
+    const r = await fetch('https://api.aladhan.com/v1/timings/'+Math.floor(Date.now()/1000));
+    const j = await r.json();
+    if (j.code===200) { PD=j.data.timings; updateInfoPanel(); }
+  } catch(e) { console.warn('Prayer fetch failed',e); }
+}
+fetchPrayer();
+
+function updateInfoPanel() {
+  if (!PD) return;
+  const c = getColors();
+  document.getElementById('hijri').textContent = `Fajr ${PD.Fajr} · Maghrib ${PD.Maghrib}`;
+  document.getElementById('hijri').style.color = c.text;
+  document.getElementById('greg').textContent = new Date().toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  document.getElementById('greg').style.color = c.text;
+}
+
+// ══════════════════════════════════════════
+// RESIZE
+// ══════════════════════════════════════════
+function onResize() {
+  W = window.innerWidth; H = window.innerHeight;
+  R = Math.min(W,H) * 0.42;
+
+  renderer.setSize(W, H);
+  cam.aspect = W/H;
+  cam.updateProjectionMatrix();
+
+  const newDist = R * 3.2;
+  cam.position.set(0, -newDist*Math.sin(THREE.MathUtils.degToRad(5)), newDist*Math.cos(THREE.MathUtils.degToRad(5)));
+  cam.lookAt(0,0,0);
+
+  composer.setSize(W, H);
+  bloomComposer.setSize(W, H);
+  bloomPass.resolution.set(W, H);
+  bloomPass2.resolution.set(W, H);
+
+  buildClock();
+}
+window.addEventListener('resize', onResize);
+
+// ══════════════════════════════════════════
+// SELECTIVE BLOOM RENDER
+// ══════════════════════════════════════════
+function darkenNonBloom(obj) {
+  if (obj.isMesh && !obj.layers.test(new THREE.Layers().set(BLOOM_LAYER) || 0)) {
+    // Only darken non-bloom
+    if (obj.layers.mask === 1) { // default layer only
+      materialCache.set(obj.uuid, obj.material);
+      obj.material = darkMaterial;
+    }
+  }
+  obj.children.forEach(c => darkenNonBloom(c));
+}
+
+function restoreMaterial(obj) {
+  if (materialCache.has(obj.uuid)) {
+    obj.material = materialCache.get(obj.uuid);
+    materialCache.delete(obj.uuid);
+  }
+  obj.children.forEach(c => restoreMaterial(c));
+}
+
+// ══════════════════════════════════════════
+// RENDER LOOP
+// ══════════════════════════════════════════
+function animate() {
+  requestAnimationFrame(animate);
+
+  const c = updateColors();
+  updateHands();
+  updateFlap(c);
+  updateFastingArc(c);
+
+  // Gyroscope parallax — smooth interpolation
+  watchGroup.rotation.y += (gyroX - watchGroup.rotation.y) * 0.08;
+  watchGroup.rotation.x += (gyroY - watchGroup.rotation.x) * 0.08;
+
+  // Make numerals face camera
+  numeralMeshes.forEach(m => m.quaternion.copy(cam.quaternion));
+  minLabelMeshes.forEach(m => m.quaternion.copy(cam.quaternion));
+
+  if (modeBlend > 0.05) {
+    // Selective bloom render
+    // 1. Render bloom objects only
+    scene.traverse(darkenNonBloom);
+    bloomComposer.render();
+    scene.traverse(restoreMaterial);
+
+    // 2. Normal render with bloom composite
+    finalPass.uniforms.bloomTexture.value = bloomComposer.renderTarget2.texture;
+    composer.render();
+  } else {
+    // Day mode — skip bloom entirely for performance
+    renderer.render(scene, cam);
+  }
+}
+
+// ══════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════
+buildClock();
+animate();
+showInfo();
+
+</script>
+</body>
+</html>
