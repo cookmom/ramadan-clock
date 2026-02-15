@@ -912,6 +912,48 @@ function buildQibla() {
   
   qiblaGroup.add(qiblaRotor);
   
+  // ── Concentric rotating rings ──
+  const ringDefs = [
+    { r: rotorR * 0.85, width: 1.8, speed: 0.3,  dir: 1  },  // outer ring — slow CW
+    { r: rotorR * 0.65, width: 1.2, speed: 0.5,  dir: -1 },  // mid ring — medium CCW
+    { r: rotorR * 0.48, width: 1.0, speed: 0.8,  dir: 1  },  // inner ring — faster CW
+  ];
+  
+  window._subdialRings = []; // store for animation
+  ringDefs.forEach(rd => {
+    const ringGroup = new THREE.Group();
+    const ringGeo = new THREE.RingGeometry(rd.r - rd.width, rd.r, 64);
+    const ringMat = new THREE.MeshPhysicalMaterial({
+      color: new THREE.Color(d.lume || 0xe8e0c8).multiplyScalar(0.35),
+      roughness: 0.25, metalness: 0.4,
+      transparent: true, opacity: 0.5,
+      side: THREE.DoubleSide,
+      envMapIntensity: 0
+    });
+    const ringMesh = new THREE.Mesh(ringGeo, ringMat);
+    ringGroup.add(ringMesh);
+    
+    // Add tick marks on each ring for visible rotation
+    const tickCount = Math.round(rd.r * 0.8);
+    for(let t = 0; t < tickCount; t++) {
+      const ang = (t / tickCount) * Math.PI * 2;
+      const tGeo = new THREE.BoxGeometry(0.3, rd.width * 0.6, 0.15);
+      const tMat = new THREE.MeshPhysicalMaterial({
+        color: new THREE.Color(d.lume || 0xe8e0c8).multiplyScalar(0.6),
+        roughness: 0.3, metalness: 0.3, envMapIntensity: 0
+      });
+      const tMesh = new THREE.Mesh(tGeo, tMat);
+      const tr = rd.r - rd.width * 0.5;
+      tMesh.position.set(Math.sin(ang) * tr, Math.cos(ang) * tr, 0.1);
+      tMesh.rotation.z = -ang;
+      ringGroup.add(tMesh);
+    }
+    
+    ringGroup.position.z = 0.3;
+    qiblaGroup.add(ringGroup);
+    window._subdialRings.push({ group: ringGroup, speed: rd.speed, dir: rd.dir });
+  });
+  
   // Inner rotor — smaller orbiting disc (Ressence double-orbit)
   qiblaInnerRotor = new THREE.Group();
   qiblaInnerRotor.position.z = 1;
@@ -1391,6 +1433,12 @@ function animate(){
   updateHands();
   updateFlap();
   updateQibla();
+  // Spin subdial rings
+  if(window._subdialRings) {
+    window._subdialRings.forEach(r => {
+      r.group.rotation.z += r.speed * r.dir * 0.003;
+    });
+  }
   
   if(scene.background) document.querySelector('meta[name="theme-color"]').content='#'+scene.background.getHexString();
   
