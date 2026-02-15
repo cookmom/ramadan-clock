@@ -69,7 +69,7 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 3));
 renderer.setSize(W, H);
 renderer.shadowMap.enabled = false;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.8;
+renderer.toneMappingExposure = 1.5;
 document.body.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
@@ -100,8 +100,8 @@ rectLight.lookAt(0, 0, 0);
 scene.add(rectLight);
 
 // Key light — large rect for soft wrap, no shadow artifacts
-const keyLight = new THREE.RectAreaLight(0xfff5e8, 3, 300, 300);
-keyLight.position.set(-60, 160, 220);
+const keyLight = new THREE.RectAreaLight(0xfff5e8, 3.5, 250, 250);
+keyLight.position.set(-50, 140, 250);
 keyLight.lookAt(0, 0, 0);
 scene.add(keyLight);
 
