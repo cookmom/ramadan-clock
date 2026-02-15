@@ -26,17 +26,17 @@ canvas{display:block;width:100%;height:100%}
 <div id="vignette"></div>
 <div id="info"><div class="hijri" id="hijri"></div><div class="greg" id="greg"></div><div class="surah" id="surah"></div></div>
 <div id="dialBar">
-  <div class="dial-dot" data-dial="tennis" style="border-color:#2e8b57"></div>
+  <div class="dial-dot" data-dial="tennis" style="border-color:#68b890"></div>
   <div class="dial-dot" data-dial="white" style="border-color:#e8e4dc"></div>
-  <div class="dial-dot" data-dial="salmon" style="border-color:#c47a60"></div>
+  <div class="dial-dot" data-dial="salmon" style="border-color:#d8988c"></div>
   <div class="dial-dot active" data-dial="slate" style="border-color:#6a6a74"></div>
-  <div class="dial-dot" data-dial="sky" style="border-color:#5a9ac0"></div>
+  <div class="dial-dot" data-dial="sky" style="border-color:#82b8d8"></div>
   <div class="dial-dot" data-dial="kawthar" style="border-color:#f2dce0"></div>
-  <div class="dial-dot" data-dial="dhuha" style="border-color:#e8c878"></div>
+  <div class="dial-dot" data-dial="dhuha" style="border-color:#e8b870"></div>
   <div class="dial-dot" data-dial="najm" style="border-color:#1a2a48"></div>
   <div class="dial-dot" data-dial="qamar" style="border-color:#c0c4cc"></div>
-  <div class="dial-dot" data-dial="ward" style="border-color:#c87088"></div>
-  <div class="dial-dot" data-dial="lilas" style="border-color:#6a5088"></div>
+  <div class="dial-dot" data-dial="ward" style="border-color:#d89098"></div>
+  <div class="dial-dot" data-dial="lilas" style="border-color:#8878a8"></div>
 </div>
 
 <script type="importmap">
@@ -53,17 +53,17 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 // CONFIG
 // ══════════════════════════════════════════
 const DIALS = {
-  tennis: {bg:0x2e8b57, lume:0xd4e8a0, hand:0xf0ece0, sec:0xffffff, text:'#f0ece0', surah:'Ar-Raḥmān'},       // green + cream — 2 tones
+  tennis: {bg:0x68b890, lume:0xf0f0e8, hand:0xf0f0e8, sec:0xffffff, text:'#f0f0e8', surah:'Ar-Raḥmān'},       // pistachio sorbet
   white:  {bg:0xe8e4dc, lume:0x2a3a5a, hand:0x111111, sec:0xc41e3a, text:'#1a1a1a', surah:'An-Nūr'},           // white + black + red sec — classic
-  salmon: {bg:0xc47a60, lume:0xf0e0d0, hand:0xf0e0d0, sec:0xffffff, text:'#f0e0d0', surah:'Ash-Shams'},        // coral + cream — 2 tones
-  slate:  {bg:0x585860, lume:0xe8e0c8, hand:0xd0d0d4, sec:0xff6633, text:'#e8e0c8', surah:'Al-Layl'},          // grey + cream + orange sec — the reference
-  sky:    {bg:0x5a9ac0, lume:0xf0f0f0, hand:0xf0f0f0, sec:0xffffff, text:'#f0f0f0', surah:'Al-Burūj'},         // blue + white — clean
-  kawthar:{bg:0xf2dce0, lume:0xc88898, hand:0xc88898, sec:0xc88898, text:'#9a6878', surah:'Al-Kawthar'},        // pink + rose gold — 2 tones
-  dhuha:  {bg:0xc8963c, lume:0xf0e8d8, hand:0xf0e8d8, sec:0xffffff, text:'#f0e8d8', surah:'Aḍ-Ḍuḥā'},          // deeper amber + cream — like honey
-  najm:   {bg:0x1a2a48, lume:0xc8d8f0, hand:0xc8d8f0, sec:0xffffff, text:'#c8d8f0', surah:'An-Najm'},          // midnight + silver — 2 tones
-  qamar:  {bg:0xc0c4cc, lume:0x2a2a30, hand:0x1a1a20, sec:0x2a2a30, text:'#2a2a30', surah:'Al-Qamar'},         // silver + charcoal — 2 tones
-  ward:   {bg:0xc87088, lume:0xf0e0e4, hand:0xf0e0e4, sec:0xffffff, text:'#f0e0e4', surah:'Al-Wāqiʿah'},       // dusty rose + cream-pink — 2 tones
-  lilas:  {bg:0x6a5088, lume:0xe0d0f0, hand:0xe0d0f0, sec:0xffffff, text:'#e0d0f0', surah:'Al-Mulk'},           // purple + lavender — 2 tones
+  salmon: {bg:0xd8988c, lume:0xf8f0ec, hand:0xf8f0ec, sec:0xffffff, text:'#f8f0ec', surah:'Ash-Shams'},        // peach sorbet
+  slate:  {bg:0x585860, lume:0xe8e0c8, hand:0xd0d0d4, sec:0xff6633, text:'#e8e0c8', surah:'Al-Layl'},          // grey + cream + orange sec — the anchor
+  sky:    {bg:0x82b8d8, lume:0xf0f4f8, hand:0xf0f4f8, sec:0xffffff, text:'#f0f4f8', surah:'Al-Burūj'},         // blueberry sorbet
+  kawthar:{bg:0xf2dce0, lume:0xc88898, hand:0xc88898, sec:0xc88898, text:'#9a6878', surah:'Al-Kawthar'},        // strawberry + rose gold
+  dhuha:  {bg:0xe8b870, lume:0xfcf4ec, hand:0xfcf4ec, sec:0xffffff, text:'#5a4030', surah:'Aḍ-Ḍuḥā'},          // mango sorbet
+  najm:   {bg:0x1a2a48, lume:0xc8d8f0, hand:0xc8d8f0, sec:0xffffff, text:'#c8d8f0', surah:'An-Najm'},          // midnight — the dark anchor
+  qamar:  {bg:0xc0c4cc, lume:0x2a2a30, hand:0x1a1a20, sec:0x2a2a30, text:'#2a2a30', surah:'Al-Qamar'},         // silver — the neutral
+  ward:   {bg:0xd89098, lume:0xf8f0f0, hand:0xf8f0f0, sec:0xffffff, text:'#f8f0f0', surah:'Al-Wāqiʿah'},       // raspberry sorbet
+  lilas:  {bg:0x8878a8, lume:0xf0ecf4, hand:0xf0ecf4, sec:0xffffff, text:'#f0ecf4', surah:'Al-Mulk'},           // lavender sorbet
 };
 // Night lume palettes — modeled after real SuperLuminova variants
 // Each matches the daytime lume character but amplified for glow
