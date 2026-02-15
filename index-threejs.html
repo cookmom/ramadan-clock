@@ -73,141 +73,96 @@ const DIAL_DEFAULT_LUME = {tennis:3,white:2,salmon:4,slate:0,sky:7,cream:6};
 const DIAL_NAMES = ['tennis','white','salmon','slate','sky','cream'];
 
 let currentDial = 'slate';
-let modeBlend = 0; // 0=day, 1=night
+let modeBlend = 0;
 let modeTarget = 0;
-let devMode = false;
 
 // ── Arabic numerals ──
 const ARABIC = ['١٢','١','٢','٣','٤','٥','٦','٧','٨','٩','١٠','١١'];
-const MIN_LABELS = ['60','','','','','05','','','','','10','','','','','15','','','','','20','','','','','25','','','','','30','','','','','35','','','','','40','','','','','45','','','','','50','','','','','55','','','',''];
 
-// ── Stars (Surah Yusuf) ──
+// ── Stars (Surah Yusuf 12:4) ──
 const STARS = [];
 for (let i = 0; i < 11; i++) {
   const t = i / 10;
-  const x = 0.08 + t * 0.84;
   const dip = 4 * t * (1 - t);
-  const y = 0.03 + dip * 0.12;
-  STARS.push({ x, y, r: 0.8 + Math.sin(i * 1.7) * 0.5 + 0.3, speed: 0.0009 + i * 0.00008, offset: i * 0.57, bright: 0.7 + Math.sin(i * 2.3) * 0.2 });
+  STARS.push({ x: 0.08 + t * 0.84, y: 0.03 + dip * 0.12, r: 0.8 + Math.sin(i * 1.7) * 0.5 + 0.3, speed: 0.0009 + i * 0.00008, offset: i * 0.57, bright: 0.7 + Math.sin(i * 2.3) * 0.2 });
 }
 
-// ── Fasting data (hardcoded for now) ──
+// ── Prayer data ──
 let PD = null;
 const PN = ['Fajr','Sunrise','Dhuhr','Asr','Maghrib','Isha'];
 function pM(s) { if (!s) return 0; const [h, m] = s.split(':').map(Number); return h * 60 + m; }
 function nM() { const d = new Date(); return d.getHours() * 60 + d.getMinutes() + d.getSeconds() / 60; }
 
 // ── Three.js Setup ──
-const BLOOM_LAYER = 1;
-const bloomLayer = new THREE.Layers();
-bloomLayer.set(BLOOM_LAYER);
-
-const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
-renderer.setPixelRatio(window.devicePixelRatio);
-renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.toneMapping = THREE.NoToneMapping;
-document.body.appendChild(renderer.domElement);
-
-const scene = new THREE.Scene();
-const bloomScene = new THREE.Scene(); // separate scene for bloom elements
-
 let W = window.innerWidth, H = window.innerHeight;
 let R = Math.min(W, H) * 0.42;
 
-const cam = new THREE.OrthographicCamera(-W/2, W/2, H/2, -H/2, -1000, 1000);
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(W, H);
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+const bloomScene = new THREE.Scene();
+
+const cam = new THREE.OrthographicCamera(-W/2, W/2, H/2, -H/2, -100, 100);
 cam.position.z = 100;
 
-// ── Selective Bloom Setup ──
-const renderTarget = new THREE.WebGLRenderTarget(W, H, {
-  type: THREE.HalfFloatType,
-  format: THREE.RGBAFormat
-});
-
+// ── Selective Bloom ──
+const renderTarget = new THREE.WebGLRenderTarget(W, H, { type: THREE.HalfFloatType, format: THREE.RGBAFormat, samples: 4 });
 const composer = new EffectComposer(renderer, renderTarget);
-const renderPass = new RenderPass(scene, cam);
-composer.addPass(renderPass);
+composer.addPass(new RenderPass(scene, cam));
 
-const bloomPass = new UnrealBloomPass(
-  new THREE.Vector2(W, H),
-  0.8,   // strength
-  0.6,   // radius
-  0.1    // threshold
-);
+const bloomPass = new UnrealBloomPass(new THREE.Vector2(W, H), 0.0, 0.4, 0.85);
 composer.addPass(bloomPass);
 
-// Bloom composer for selective bloom
 const bloomComposer = new EffectComposer(renderer, renderTarget.clone());
-const bloomRenderPass = new RenderPass(bloomScene, cam);
-bloomComposer.addPass(bloomRenderPass);
+bloomComposer.addPass(new RenderPass(bloomScene, cam));
 const bloomPass2 = new UnrealBloomPass(new THREE.Vector2(W, H), 1.5, 0.8, 0.0);
 bloomComposer.addPass(bloomPass2);
 
-// Final compositing shader
+// Final compositing
 const finalShader = {
-  uniforms: {
-    baseTexture: { value: null },
-    bloomTexture: { value: null },
-  },
-  vertexShader: `varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
-  fragmentShader: `
-    uniform sampler2D baseTexture;
-    uniform sampler2D bloomTexture;
-    varying vec2 vUv;
-    void main(){
-      vec4 base=texture2D(baseTexture,vUv);
-      vec4 bloom=texture2D(bloomTexture,vUv);
-      gl_FragColor=base+bloom;
-    }
-  `
+  uniforms: { baseTexture: { value: null }, bloomTexture: { value: null } },
+  vertexShader: `varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+  fragmentShader: `uniform sampler2D baseTexture; uniform sampler2D bloomTexture; varying vec2 vUv; void main() { gl_FragColor = texture2D(baseTexture, vUv) + vec4(texture2D(bloomTexture, vUv).rgb, 0.0); }`
 };
+const finalPass = new ShaderPass(new THREE.ShaderMaterial(finalShader), 'baseTexture');
+finalPass.uniforms.bloomTexture.value = bloomComposer.renderTarget2.texture;
+finalPass.needsSwap = true;
+composer.addPass(finalPass);
 
-// ── Helper functions ──
+// ── Helpers ──
 function hexToVec3(hex) {
-  const r = parseInt(hex.slice(1, 3), 16) / 255;
-  const g = parseInt(hex.slice(3, 5), 16) / 255;
-  const b = parseInt(hex.slice(5, 7), 16) / 255;
-  return new THREE.Color(r, g, b);
+  const c = new THREE.Color(hex);
+  return c;
+}
+
+function hexToRGB(hex) {
+  return { r: parseInt(hex.slice(1,3),16), g: parseInt(hex.slice(3,5),16), b: parseInt(hex.slice(5,7),16) };
 }
 
 function lerpHex(a, b, t) {
-  const ca = hexToVec3(a), cb = hexToVec3(b);
-  return ca.lerp(cb, t);
+  const ca = new THREE.Color(a), cb = new THREE.Color(b);
+  return '#' + ca.lerp(cb, t).getHexString();
 }
 
 function getColors() {
-  modeBlend += (modeTarget - modeBlend) * 0.04;
-  if (Math.abs(modeBlend - modeTarget) < 0.001) modeBlend = modeTarget;
-  
   const day = DIALS[currentDial];
-  if (modeBlend < 0.001) return day;
-  
-  const lc = LUME_COLORS[DIAL_DEFAULT_LUME[currentDial] || 0];
-  const lr = parseInt(lc.slice(1, 3), 16), lg = parseInt(lc.slice(3, 5), 16), lb = parseInt(lc.slice(5, 7), 16);
-  const dim = '#' + [lr, lg, lb].map(v => Math.floor(v * 0.4).toString(16).padStart(2, '0')).join('');
-  
-  const night = {
-    bg: '#000000', lume: lc, lumeDim: dim, hand: lc, handStroke: lc,
-    shadow: '#000000', minNum: lc, text: lc, accent: lc
-  };
-  
-  if (modeBlend > 0.999) return night;
-  
-  // Interpolate
-  const t = modeBlend;
-  const lerp = (a, b) => {
-    const ca = hexToVec3(a), cb = hexToVec3(b);
-    return '#' + ca.lerp(cb, t).getHexString();
-  };
+  if (modeBlend < 0.01) return day;
+  const effectiveLume = DIAL_DEFAULT_LUME[currentDial] || 0;
+  const lc = LUME_COLORS[effectiveLume];
+  const night = { bg: '#0a0a0f', lume: lc, lumeDim: lc, hand: lc, handStroke: lc, shadow: '#000000', minNum: lc, text: lc, accent: lc };
+  const lerp = (a, b) => lerpHex(a, b, modeBlend);
   return {
-    bg: lerp(day.bg, night.bg), lume: lerp(day.lume, night.lume),
-    lumeDim: lerp(day.lumeDim, night.lumeDim), hand: lerp(day.hand, night.hand),
-    handStroke: lerp(day.handStroke, night.handStroke), shadow: lerp(day.shadow, night.shadow),
-    minNum: lerp(day.minNum, night.minNum), text: lerp(day.text, night.text),
-    accent: lerp(day.accent, night.accent)
+    bg: lerp(day.bg, night.bg), lume: lerp(day.lume, night.lume), lumeDim: lerp(day.lumeDim, night.lumeDim),
+    hand: lerp(day.hand, night.hand), handStroke: lerp(day.handStroke, night.handStroke),
+    shadow: lerp(day.shadow, night.shadow), minNum: lerp(day.minNum, night.minNum),
+    text: lerp(day.text, night.text), accent: lerp(day.accent, night.accent)
   };
 }
 
-// ── Mesh factory helpers ──
+// ── Mesh helpers ──
 function makeCircle(radius, color, z = 0) {
   const geo = new THREE.CircleGeometry(radius, 128);
   const mat = new THREE.MeshBasicMaterial({ color: hexToVec3(color) });
@@ -216,34 +171,35 @@ function makeCircle(radius, color, z = 0) {
   return mesh;
 }
 
-function makeRing(innerR, outerR, color, z = 0, segments = 256) {
-  const geo = new THREE.RingGeometry(innerR, outerR, segments);
+function makeRing(innerR, outerR, color, z = 0) {
+  const geo = new THREE.RingGeometry(innerR, outerR, 256);
   const mat = new THREE.MeshBasicMaterial({ color: hexToVec3(color), side: THREE.DoubleSide });
   const mesh = new THREE.Mesh(geo, mat);
   mesh.position.z = z;
   return mesh;
 }
 
-function makeArc(radius, startAngle, endAngle, lineWidth, color, z = 0) {
-  const curve = new THREE.EllipseCurve(0, 0, radius, radius, startAngle, endAngle, false, 0);
-  const points = curve.getPoints(128);
-  const geo = new THREE.BufferGeometry().setFromPoints(points);
-  const mat = new THREE.LineBasicMaterial({ color: hexToVec3(color), linewidth: lineWidth });
-  const line = new THREE.Line(geo, mat);
-  line.position.z = z;
-  return line;
+// NOMOS-style flat applied marker (thin rectangle, flush with dial)
+function makeAppliedMarker(width, height, color, z = 0) {
+  const geo = new THREE.PlaneGeometry(width, height);
+  const mat = new THREE.MeshBasicMaterial({ color: hexToVec3(color) });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.position.z = z;
+  return mesh;
 }
 
-function makePill(width, height, color, z = 0) {
+// Leaf/dauphine hand shape (NOMOS-style — wider base, tapers to fine point)
+function makeLeafHand(length, maxWidth, tailLen, color, z = 0) {
   const shape = new THREE.Shape();
-  const r = width;
-  const h2 = height / 2;
-  shape.moveTo(-r, -h2 + r);
-  shape.quadraticCurveTo(-r, -h2, 0, -h2);
-  shape.quadraticCurveTo(r, -h2, r, -h2 + r);
-  shape.lineTo(r, h2 - r);
-  shape.quadraticCurveTo(r, h2, 0, h2);
-  shape.quadraticCurveTo(-r, h2, -r, h2 - r);
+  const hw = maxWidth / 2;
+  // Tail
+  shape.moveTo(-hw * 0.6, -tailLen);
+  // Widen to max at ~30% up
+  shape.quadraticCurveTo(-hw, length * 0.1, -hw, length * 0.3);
+  // Taper to point
+  shape.quadraticCurveTo(-hw * 0.3, length * 0.7, 0, length);
+  shape.quadraticCurveTo(hw * 0.3, length * 0.7, hw, length * 0.3);
+  shape.quadraticCurveTo(hw, length * 0.1, hw * 0.6, -tailLen);
   shape.closePath();
   const geo = new THREE.ShapeGeometry(shape, 32);
   const mat = new THREE.MeshBasicMaterial({ color: hexToVec3(color) });
@@ -252,21 +208,6 @@ function makePill(width, height, color, z = 0) {
   return mesh;
 }
 
-function makeTaperedHand(length, baseWidth, tipWidth, tailLen, color, z = 0) {
-  const shape = new THREE.Shape();
-  shape.moveTo(-baseWidth, -tailLen);
-  shape.lineTo(-tipWidth, length);
-  shape.lineTo(tipWidth, length);
-  shape.lineTo(baseWidth, -tailLen);
-  shape.closePath();
-  const geo = new THREE.ShapeGeometry(shape);
-  const mat = new THREE.MeshBasicMaterial({ color: hexToVec3(color) });
-  const mesh = new THREE.Mesh(geo, mat);
-  mesh.position.z = z;
-  return mesh;
-}
-
-// ── Create text textures ──
 function createTextTexture(text, font, size, color, width, height) {
   const canvas = document.createElement('canvas');
   canvas.width = width * 2;
@@ -295,107 +236,127 @@ function makeTextSprite(text, font, size, color, z = 0) {
   return sprite;
 }
 
-// ── Scene Groups ──
-const bgGroup = new THREE.Group();       // background
-const faceGroup = new THREE.Group();     // dial face
-const indicesGroup = new THREE.Group();  // hour/minute markers
-const numeralsGroup = new THREE.Group(); // arabic numerals + minute labels
-const arcGroup = new THREE.Group();      // fasting arc
-const handsGroup = new THREE.Group();    // clock hands
-const capGroup = new THREE.Group();      // center cap
-const qiblaGroup = new THREE.Group();    // qibla compass
-const flapGroup = new THREE.Group();     // split-flap countdown
-const starsGroup = new THREE.Group();    // 11 stars
-const bloomGroup = new THREE.Group();    // elements that glow (added to bloomScene)
+// ── Sunburst dial texture ──
+function createDialTexture(bgColor) {
+  const size = 1024;
+  const cv = document.createElement('canvas');
+  cv.width = size; cv.height = size;
+  const ctx = cv.getContext('2d');
+  const cx = size / 2, cy = size / 2, r = size / 2;
+  
+  // Base color fill
+  ctx.fillStyle = bgColor;
+  ctx.fillRect(0, 0, size, size);
+  
+  // Sunburst gradient — slightly lighter at edges (like NOMOS)
+  const grad = ctx.createRadialGradient(cx, cy, r * 0.1, cx, cy, r);
+  const rgb = hexToRGB(bgColor);
+  // Darken center slightly, lighten edges
+  grad.addColorStop(0, `rgba(0,0,0,0.06)`);
+  grad.addColorStop(0.5, `rgba(0,0,0,0.02)`);
+  grad.addColorStop(0.85, `rgba(255,255,255,0.03)`);
+  grad.addColorStop(1, `rgba(255,255,255,0.06)`);
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, size, size);
+  
+  // Subtle stipple noise (surface texture)
+  for (let i = 0; i < 4000; i++) {
+    const x = Math.random() * size, y = Math.random() * size;
+    ctx.fillStyle = Math.random() > 0.5 ? 'rgba(255,255,255,0.008)' : 'rgba(0,0,0,0.008)';
+    ctx.fillRect(x, y, 1, 1);
+  }
+  
+  // Radial brushed lines (sunburst effect — very subtle)
+  ctx.save();
+  ctx.translate(cx, cy);
+  for (let a = 0; a < 360; a += 0.5) {
+    const rad = a * Math.PI / 180;
+    ctx.strokeStyle = `rgba(${Math.random() > 0.5 ? '255,255,255' : '0,0,0'},${0.003 + Math.random() * 0.004})`;
+    ctx.lineWidth = 0.5;
+    ctx.beginPath();
+    ctx.moveTo(Math.cos(rad) * r * 0.05, Math.sin(rad) * r * 0.05);
+    ctx.lineTo(Math.cos(rad) * r, Math.sin(rad) * r);
+    ctx.stroke();
+  }
+  ctx.restore();
+  
+  const tex = new THREE.CanvasTexture(cv);
+  tex.minFilter = THREE.LinearFilter;
+  tex.magFilter = THREE.LinearFilter;
+  return tex;
+}
 
-scene.add(bgGroup, faceGroup, indicesGroup, numeralsGroup, arcGroup, handsGroup, capGroup, qiblaGroup, flapGroup, starsGroup);
+// ── Scene Groups ──
+const bgGroup = new THREE.Group();
+const faceGroup = new THREE.Group();
+const indicesGroup = new THREE.Group();
+const numeralsGroup = new THREE.Group();
+const arcGroup = new THREE.Group();
+const shadowGroup = new THREE.Group();    // hand shadows
+const handsGroup = new THREE.Group();
+const capGroup = new THREE.Group();
+const qiblaGroup = new THREE.Group();
+const flapGroup = new THREE.Group();
+const starsGroup = new THREE.Group();
+const bloomGroup = new THREE.Group();
+
+scene.add(bgGroup, faceGroup, indicesGroup, numeralsGroup, arcGroup, shadowGroup, handsGroup, capGroup, qiblaGroup, flapGroup, starsGroup);
 bloomScene.add(bloomGroup);
 
-// ── Build static elements ──
-// Background quad
+// Background
 const bgGeo = new THREE.PlaneGeometry(W * 2, H * 2);
 const bgMat = new THREE.MeshBasicMaterial({ color: hexToVec3('#3a3a44') });
 const bgMesh = new THREE.Mesh(bgGeo, bgMat);
 bgMesh.position.z = -10;
 bgGroup.add(bgMesh);
 
-// Bloom background (black)
+// Bloom bg
 const bloomBgGeo = new THREE.PlaneGeometry(W * 2, H * 2);
 const bloomBgMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
 const bloomBgMesh = new THREE.Mesh(bloomBgGeo, bloomBgMat);
 bloomBgMesh.position.z = -10;
 bloomGroup.add(bloomBgMesh);
 
-// ── Dial face (flat surface with subtle texture) ──
+// Dial face mesh (sunburst textured circle)
 let dialFaceMesh = null;
 let dialFaceTexture = null;
 
-function createStippleTexture() {
-  // Full-screen stipple overlay — no circle mask, no color (just noise)
-  const size = 512;
-  const cv = document.createElement('canvas');
-  cv.width = size; cv.height = size;
-  const ctx = cv.getContext('2d');
-  
-  // Transparent base
-  ctx.clearRect(0, 0, size, size);
-  
-  // Subtle stipple noise dots
-  for (let i = 0; i < 3000; i++) {
-    const x = Math.random() * size, y = Math.random() * size;
-    ctx.fillStyle = Math.random() > 0.5 ? 'rgba(255,255,255,0.015)' : 'rgba(0,0,0,0.015)';
-    ctx.fillRect(x, y, 1, 1);
-  }
-  
-  const tex = new THREE.CanvasTexture(cv);
-  tex.minFilter = THREE.LinearFilter;
-  tex.magFilter = THREE.LinearFilter;
-  tex.wrapS = THREE.RepeatWrapping;
-  tex.wrapT = THREE.RepeatWrapping;
-  return tex;
-}
-
-function buildDialFace() {
+function buildDialFace(bgColor) {
   if (dialFaceMesh) faceGroup.remove(dialFaceMesh);
-  // Stipple overlay covers full viewport — transparent with noise dots
-  dialFaceTexture = createStippleTexture();
+  dialFaceTexture = createDialTexture(bgColor);
+  // Full viewport plane — no circle edge
   const geo = new THREE.PlaneGeometry(W * 2, H * 2);
-  const mat = new THREE.MeshBasicMaterial({ map: dialFaceTexture, transparent: true, depthTest: false });
+  const mat = new THREE.MeshBasicMaterial({ map: dialFaceTexture });
   dialFaceMesh = new THREE.Mesh(geo, mat);
-  dialFaceMesh.position.z = -1;
+  dialFaceMesh.position.z = -5;
   faceGroup.add(dialFaceMesh);
 }
 
-// ── Dynamic elements storage ──
+// ── Dynamic elements ──
 let hourMarkers = [];
-let hourLumeInserts = [];
 let minuteMarkers = [];
 let numeralSprites = [];
-let minLabelSprites = [];
 let hourHandGroup, minuteHandGroup, secondHandGroup;
-let hourHandMesh, hourLumeMesh, minHandMesh, minLumeMesh, secHandMesh;
+let hourShadowGroup, minuteShadowGroup, secondShadowGroup;
+let hourHandMesh, minHandMesh, secHandMesh;
+let hourLumeMesh, minLumeMesh;
 let capMeshes = [];
-let fastingArcLine = null, fastingProgressLine = null, fastingTipMesh = null;
 let qiblaBg = null, qiblaNeedle = null;
 let bloomLumeMarkers = [];
 let bloomHandLumes = [];
 let flapCanvas, flapTexture, flapSprite;
 
-// Split-flap state
 let flapPrevChars = [], flapCharAnims = [];
 const FLAP_DUR = 350, FLAP_STAGGER = 60;
 
 // ── Build clock ──
 function buildClock() {
-  // Clear groups
-  [indicesGroup, numeralsGroup, handsGroup, capGroup, qiblaGroup, arcGroup, bloomGroup, starsGroup].forEach(g => {
+  [indicesGroup, numeralsGroup, handsGroup, shadowGroup, capGroup, qiblaGroup, arcGroup, bloomGroup, starsGroup].forEach(g => {
     while (g.children.length) g.remove(g.children[0]);
   });
-  // Re-add bloom bg
   bloomGroup.add(bloomBgMesh);
   
   hourMarkers = [];
-  hourLumeInserts = [];
   minuteMarkers = [];
   numeralSprites = [];
   bloomLumeMarkers = [];
@@ -403,124 +364,93 @@ function buildClock() {
   
   const c = getColors();
   
-  // Stipple texture overlay (flat, full-screen noise — no circle edge)
-  buildDialFace();
+  // Sunburst dial face
+  buildDialFace(c.bg);
   
-  // Hour indices (pill shapes with lume)
+  // ── NOMOS-style flat applied markers ──
   for (let i = 0; i < 60; i++) {
     const ang = (i / 60) * Math.PI * 2 - Math.PI / 2;
     const isHour = i % 5 === 0;
     
     if (isHour) {
-      const inner = R - R * 0.18, outer = R - R * 0.03;
-      const midR = (inner + outer) / 2;
-      const capW = R * 0.035;
-      const capH = outer - inner;
+      // Applied hour marker — flat rectangle with lume fill
+      const markerH = R * 0.12;
+      const markerW = R * 0.028;
+      const outerR = R - R * 0.04;
+      const midR = outerR - markerH / 2;
       
-      // Metal casing
-      const pill = makePill(capW, capH, c.hand, 2);
-      pill.position.x = Math.cos(ang) * midR;
-      pill.position.y = Math.sin(ang) * midR;
-      pill.rotation.z = ang + Math.PI / 2;
-      indicesGroup.add(pill);
-      hourMarkers.push(pill);
+      const marker = makeAppliedMarker(markerW, markerH, c.hand, 2);
+      marker.position.x = Math.cos(ang) * midR;
+      marker.position.y = Math.sin(ang) * midR;
+      marker.rotation.z = ang + Math.PI / 2;
+      indicesGroup.add(marker);
+      hourMarkers.push(marker);
       
-      // Lume insert
-      const insetW = capW * 0.55, insetH = capH * 0.75;
-      const lume = makePill(insetW, insetH, c.lume, 3);
+      // Lume fill — slightly smaller, centered on marker
+      const lumeH = markerH * 0.75;
+      const lumeW = markerW * 0.6;
+      const lume = makeAppliedMarker(lumeW, lumeH, c.lume, 2.5);
       lume.position.x = Math.cos(ang) * midR;
       lume.position.y = Math.sin(ang) * midR;
       lume.rotation.z = ang + Math.PI / 2;
       indicesGroup.add(lume);
-      hourLumeInserts.push(lume);
       
-      // Bloom layer lume copy
-      const bloomLume = makePill(insetW, insetH, c.lume, 3);
+      // Bloom copy
+      const bloomLume = makeAppliedMarker(lumeW, lumeH, c.lume, 2.5);
       bloomLume.position.copy(lume.position);
       bloomLume.rotation.copy(lume.rotation);
       bloomGroup.add(bloomLume);
-      bloomLumeMarkers.push(bloomLume);
+      bloomLumeMarkers.push({ main: lume, bloom: bloomLume });
     } else {
-      // Minute tick
-      const inner = R - R * 0.07, outer = R - R * 0.03;
-      const tickLen = outer - inner;
-      const tickGeo = new THREE.PlaneGeometry(1.5, tickLen);
-      const tickMat = new THREE.MeshBasicMaterial({ color: hexToVec3(c.lume), transparent: true, opacity: 0.45 });
-      const tick = new THREE.Mesh(tickGeo, tickMat);
-      const mr = (inner + outer) / 2;
-      tick.position.x = Math.cos(ang) * mr;
-      tick.position.y = Math.sin(ang) * mr;
-      tick.position.z = 1;
+      // Minute tick — hair-thin line at rim
+      const tickH = R * 0.03;
+      const tickW = 1;
+      const outerR = R - R * 0.04;
+      const midR = outerR - tickH / 2;
+      
+      const tick = makeAppliedMarker(tickW, tickH, c.lume, 1);
+      tick.material.transparent = true;
+      tick.material.opacity = 0.3;
+      tick.position.x = Math.cos(ang) * midR;
+      tick.position.y = Math.sin(ang) * midR;
       tick.rotation.z = ang + Math.PI / 2;
       indicesGroup.add(tick);
       minuteMarkers.push(tick);
     }
   }
   
-  // Arabic numerals
+  // ── Arabic numerals ──
   for (let i = 0; i < 12; i++) {
     const ang = (i / 12) * Math.PI * 2 - Math.PI / 2;
-    const r = R - R * 0.32;
-    const fontSize = R * 0.14;
-    const sprite = makeTextSprite(ARABIC[i], `700 ${fontSize}px Lateef,system-ui,sans-serif`, fontSize, c.lume, 4);
+    const r = R - R * 0.28;
+    const fontSize = R * 0.12;
+    const sprite = makeTextSprite(ARABIC[i], `700 ${fontSize}px Lateef,system-ui,sans-serif`, fontSize, c.text, 4);
     sprite.position.x = Math.cos(ang) * r;
     sprite.position.y = Math.sin(ang) * r;
     numeralsGroup.add(sprite);
     numeralSprites.push(sprite);
   }
   
-  // Minute labels (05, 10, 15...)
-  for (let i = 0; i < 60; i += 5) {
-    const ang = (i / 60) * Math.PI * 2 - Math.PI / 2;
-    const r = R + R * 0.06;
-    const label = MIN_LABELS[i];
-    if (!label) continue;
-    const fontSize = R * 0.045;
-    const sprite = makeTextSprite(label, `500 ${fontSize}px Inter,system-ui,sans-serif`, fontSize, c.minNum, 1);
-    sprite.material.opacity = 0.3;
-    sprite.position.x = Math.cos(ang) * r;
-    sprite.position.y = Math.sin(ang) * r;
-    numeralsGroup.add(sprite);
-    minLabelSprites.push(sprite);
-  }
-  
-  // ── Hands ──
+  // ── Hands with shadows ──
   buildHands(c);
   
-  // ── Center cap ──
+  // ── Center cap (simple, clean) ──
   capMeshes = [];
-  // Shadow
-  const capShadow = makeCircle(R * 0.042, '#000000', 8);
-  capShadow.material.transparent = true;
-  capShadow.material.opacity = 0.3;
-  capShadow.position.x = 2;
-  capShadow.position.y = -2;
-  capGroup.add(capShadow);
-  // Main cap
-  const capMain = makeCircle(R * 0.04, c.hand, 9);
+  const capR = R * 0.03;
+  const capMain = makeCircle(capR, c.hand, 10);
   capGroup.add(capMain);
   capMeshes.push(capMain);
-  // Lume center
-  const capLume = makeCircle(R * 0.032, c.lume, 10);
-  capLume.material.transparent = true;
-  capLume.material.opacity = 0.3;
-  capGroup.add(capLume);
-  capMeshes.push(capLume);
-  // Highlight
-  const capHighlight = makeCircle(R * 0.015, '#fffff5', 11);
-  capHighlight.material.transparent = true;
-  capHighlight.material.opacity = 0.3;
-  capHighlight.position.x = -1;
-  capHighlight.position.y = 1;
-  capGroup.add(capHighlight);
-  // Inner dot
-  const capDot = makeCircle(R * 0.012, '#444444', 12);
+  // Small lume dot
+  const capDot = makeCircle(capR * 0.5, c.lume, 11);
+  capDot.material.transparent = true;
+  capDot.material.opacity = 0.5;
   capGroup.add(capDot);
+  capMeshes.push(capDot);
   
-  // ── Qibla compass ──
+  // ── Qibla ──
   buildQibla(c);
   
-  // ── Split-flap display (canvas texture) ──
+  // ── Split-flap ──
   buildFlap();
   
   // ── Stars ──
@@ -528,124 +458,143 @@ function buildClock() {
 }
 
 function buildHands(c) {
-  // Hour hand
+  const SHADOW_OFFSET = 3;
+  const SHADOW_OPACITY = 0.2;
+  
+  // ── Hour hand ──
   hourHandGroup = new THREE.Group();
-  hourHandGroup.position.z = 5;
-  
-  const hLen = R * 0.52, hBase = R * 0.028, hTip = R * 0.008, hTail = R * 0.06;
-  hourHandMesh = makeTaperedHand(hLen, hBase, hTip, hTail, c.hand, 0);
+  hourHandGroup.position.z = 6;
+  const hLen = R * 0.48, hWidth = R * 0.05, hTail = R * 0.06;
+  hourHandMesh = makeLeafHand(hLen, hWidth, hTail, c.hand, 0);
   hourHandGroup.add(hourHandMesh);
-  
-  // Hour hand lume strip
-  const hLumeGeo = new THREE.PlaneGeometry(hBase * 0.5, hLen * 0.7);
-  const hLumeMat = new THREE.MeshBasicMaterial({ color: hexToVec3(c.lume), transparent: true, opacity: 0.8 });
-  hourLumeMesh = new THREE.Mesh(hLumeGeo, hLumeMat);
-  hourLumeMesh.position.y = hLen * 0.3;
+  // Lume strip
+  const hLumeW = hWidth * 0.35, hLumeH = hLen * 0.55;
+  const hLumeGeo = new THREE.PlaneGeometry(hLumeW, hLumeH);
+  hourLumeMesh = new THREE.Mesh(hLumeGeo, new THREE.MeshBasicMaterial({ color: hexToVec3(c.lume), transparent: true, opacity: 0.7 }));
+  hourLumeMesh.position.y = hLen * 0.32;
+  hourLumeMesh.position.z = 0.5;
   hourHandGroup.add(hourLumeMesh);
+  handsGroup.add(hourHandGroup);
   
-  // Bloom copy of hour lume
+  // Hour shadow
+  hourShadowGroup = new THREE.Group();
+  hourShadowGroup.position.z = 5.5;
+  const hShadow = makeLeafHand(hLen, hWidth * 1.1, hTail, '#000000', 0);
+  hShadow.material.transparent = true;
+  hShadow.material.opacity = SHADOW_OPACITY;
+  hShadow.position.x = SHADOW_OFFSET;
+  hShadow.position.y = -SHADOW_OFFSET;
+  hourShadowGroup.add(hShadow);
+  shadowGroup.add(hourShadowGroup);
+  
+  // Bloom lume
   const hBloomLume = new THREE.Mesh(hLumeGeo.clone(), new THREE.MeshBasicMaterial({ color: hexToVec3(c.lume) }));
-  hBloomLume.position.y = hLen * 0.3;
+  hBloomLume.position.y = hLen * 0.32;
   const hBloomGroup = new THREE.Group();
+  hBloomGroup.position.z = 6;
   hBloomGroup.add(hBloomLume);
-  hBloomGroup.position.z = 5;
   bloomGroup.add(hBloomGroup);
   bloomHandLumes.push({ group: hBloomGroup, parent: hourHandGroup });
   
-  handsGroup.add(hourHandGroup);
-  
-  // Minute hand
+  // ── Minute hand ──
   minuteHandGroup = new THREE.Group();
-  minuteHandGroup.position.z = 6;
-  
-  const mLen = R * 0.72, mBase = R * 0.022, mTip = R * 0.005, mTail = R * 0.08;
-  minHandMesh = makeTaperedHand(mLen, mBase, mTip, mTail, c.hand, 0);
+  minuteHandGroup.position.z = 7;
+  const mLen = R * 0.68, mWidth = R * 0.038, mTail = R * 0.08;
+  minHandMesh = makeLeafHand(mLen, mWidth, mTail, c.hand, 0);
   minuteHandGroup.add(minHandMesh);
-  
-  // Minute hand lume strip
-  const mLumeGeo = new THREE.PlaneGeometry(mBase * 0.5, mLen * 0.7);
-  const mLumeMat = new THREE.MeshBasicMaterial({ color: hexToVec3(c.lume), transparent: true, opacity: 0.8 });
-  minLumeMesh = new THREE.Mesh(mLumeGeo, mLumeMat);
-  minLumeMesh.position.y = mLen * 0.3;
+  // Lume strip
+  const mLumeW = mWidth * 0.35, mLumeH = mLen * 0.55;
+  const mLumeGeo = new THREE.PlaneGeometry(mLumeW, mLumeH);
+  minLumeMesh = new THREE.Mesh(mLumeGeo, new THREE.MeshBasicMaterial({ color: hexToVec3(c.lume), transparent: true, opacity: 0.7 }));
+  minLumeMesh.position.y = mLen * 0.32;
+  minLumeMesh.position.z = 0.5;
   minuteHandGroup.add(minLumeMesh);
+  handsGroup.add(minuteHandGroup);
   
-  // Bloom copy
+  // Minute shadow
+  minuteShadowGroup = new THREE.Group();
+  minuteShadowGroup.position.z = 6.5;
+  const mShadow = makeLeafHand(mLen, mWidth * 1.1, mTail, '#000000', 0);
+  mShadow.material.transparent = true;
+  mShadow.material.opacity = SHADOW_OPACITY;
+  mShadow.position.x = SHADOW_OFFSET;
+  mShadow.position.y = -SHADOW_OFFSET;
+  minuteShadowGroup.add(mShadow);
+  shadowGroup.add(minuteShadowGroup);
+  
+  // Bloom lume
   const mBloomLume = new THREE.Mesh(mLumeGeo.clone(), new THREE.MeshBasicMaterial({ color: hexToVec3(c.lume) }));
-  mBloomLume.position.y = mLen * 0.3;
+  mBloomLume.position.y = mLen * 0.32;
   const mBloomGroup = new THREE.Group();
+  mBloomGroup.position.z = 7;
   mBloomGroup.add(mBloomLume);
-  mBloomGroup.position.z = 6;
   bloomGroup.add(mBloomGroup);
   bloomHandLumes.push({ group: mBloomGroup, parent: minuteHandGroup });
   
-  handsGroup.add(minuteHandGroup);
-  
-  // Second hand
+  // ── Second hand (thin, red/accent tip) ──
   secondHandGroup = new THREE.Group();
-  secondHandGroup.position.z = 7;
-  
-  const sLen = R * 0.78, sTail = R * 0.18;
+  secondHandGroup.position.z = 8;
+  const sLen = R * 0.75, sTail = R * 0.18;
   const secShape = new THREE.Shape();
-  secShape.moveTo(-0.75, -sTail);
-  secShape.lineTo(-0.5, sLen);
-  secShape.lineTo(0.5, sLen);
-  secShape.lineTo(0.75, -sTail);
+  secShape.moveTo(-0.5, -sTail);
+  secShape.lineTo(-0.3, sLen);
+  secShape.lineTo(0.3, sLen);
+  secShape.lineTo(0.5, -sTail);
   secShape.closePath();
-  const secGeo = new THREE.ShapeGeometry(secShape);
-  const secMat = new THREE.MeshBasicMaterial({ color: hexToVec3(c.handStroke) });
-  secHandMesh = new THREE.Mesh(secGeo, secMat);
+  secHandMesh = new THREE.Mesh(new THREE.ShapeGeometry(secShape), new THREE.MeshBasicMaterial({ color: hexToVec3(c.handStroke) }));
   secondHandGroup.add(secHandMesh);
-  
-  // Counterweight circle
-  const cwGeo = new THREE.CircleGeometry(R * 0.02, 32);
-  const cwMat = new THREE.MeshBasicMaterial({ color: hexToVec3(c.handStroke) });
-  const cw = new THREE.Mesh(cwGeo, cwMat);
+  // Counterweight
+  const cw = makeCircle(R * 0.015, c.handStroke, 0);
   cw.position.y = -sTail * 0.6;
   secondHandGroup.add(cw);
-  
   handsGroup.add(secondHandGroup);
+  
+  // Second shadow
+  secondShadowGroup = new THREE.Group();
+  secondShadowGroup.position.z = 7.5;
+  const sShadow = new THREE.Mesh(new THREE.ShapeGeometry(secShape.clone()), new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: SHADOW_OPACITY * 0.7 }));
+  sShadow.position.x = SHADOW_OFFSET * 0.7;
+  sShadow.position.y = -SHADOW_OFFSET * 0.7;
+  secondShadowGroup.add(sShadow);
+  shadowGroup.add(secondShadowGroup);
 }
 
 function buildQibla(c) {
   while (qiblaGroup.children.length) qiblaGroup.remove(qiblaGroup.children[0]);
   
-  const midR = (R - R * 0.18 + R - R * 0.03) / 2;
-  const qr = R * 0.118;
+  const outerR = R - R * 0.04;
+  const markerH = R * 0.12;
+  const midR = outerR - markerH / 2;
+  const qr = R * 0.1;
   
-  // Circle bg
   qiblaBg = makeCircle(qr, c.hand, 4);
   qiblaBg.position.y = midR;
   qiblaGroup.add(qiblaBg);
   
-  // Border
-  const borderGeo = new THREE.RingGeometry(qr - 0.5, qr, 64);
-  const borderMat = new THREE.MeshBasicMaterial({ color: hexToVec3(c.shadow), transparent: true, opacity: 0.3 });
-  const border = new THREE.Mesh(borderGeo, borderMat);
+  // Thin border
+  const border = makeRing(qr - 0.5, qr, c.shadow, 5);
+  border.material.transparent = true;
+  border.material.opacity = 0.25;
   border.position.y = midR;
-  border.position.z = 5;
   qiblaGroup.add(border);
   
-  // Needle (triangle pointing up = toward qibla)
-  const nL = qr * 0.7 * 1.326 * 1.15 * 1.3;
+  // Needle triangle
+  const nL = qr * 0.85;
   const tipDist = nL * 0.55;
   const tailDist = nL * 0.45;
-  const halfBase = nL * 0.361;
-  
+  const halfBase = nL * 0.35;
   const needleShape = new THREE.Shape();
   needleShape.moveTo(0, tipDist);
   needleShape.lineTo(halfBase, -tailDist);
   needleShape.lineTo(-halfBase, -tailDist);
   needleShape.closePath();
-  const needleGeo = new THREE.ShapeGeometry(needleShape);
-  const needleMat = new THREE.MeshBasicMaterial({ color: hexToVec3(c.bg) });
-  qiblaNeedle = new THREE.Mesh(needleGeo, needleMat);
+  qiblaNeedle = new THREE.Mesh(new THREE.ShapeGeometry(needleShape), new THREE.MeshBasicMaterial({ color: hexToVec3(c.bg) }));
   qiblaNeedle.position.y = midR;
   qiblaNeedle.position.z = 5;
   qiblaGroup.add(qiblaNeedle);
 }
 
 function buildFlap() {
-  // Render split-flap as a canvas texture
   const cw = 512, ch = 192;
   flapCanvas = document.createElement('canvas');
   flapCanvas.width = cw;
@@ -653,16 +602,14 @@ function buildFlap() {
   flapTexture = new THREE.CanvasTexture(flapCanvas);
   flapTexture.minFilter = THREE.LinearFilter;
   
-  const geo = new THREE.PlaneGeometry(R * 0.7, R * 0.26);
+  const geo = new THREE.PlaneGeometry(R * 0.65, R * 0.24);
   const mat = new THREE.MeshBasicMaterial({ map: flapTexture, transparent: true, depthTest: false });
   flapSprite = new THREE.Mesh(geo, mat);
   flapSprite.position.y = -R * 0.38;
-  flapSprite.position.z = 8;
+  flapSprite.position.z = 9;
   flapGroup.add(flapSprite);
   
-  // Bloom copy for flap digits
-  const bloomFlapMat = new THREE.MeshBasicMaterial({ map: flapTexture, transparent: true, depthTest: false });
-  const bloomFlap = new THREE.Mesh(geo.clone(), bloomFlapMat);
+  const bloomFlap = new THREE.Mesh(geo.clone(), new THREE.MeshBasicMaterial({ map: flapTexture, transparent: true, depthTest: false }));
   bloomFlap.position.copy(flapSprite.position);
   bloomGroup.add(bloomFlap);
 }
@@ -681,20 +628,24 @@ function buildStars() {
   });
 }
 
-// ── Update functions ──
+// ── Update ──
+let lastDialForTexture = '';
 function updateColors() {
   const c = getColors();
-  
-  // Background
   bgMat.color = hexToVec3(c.bg);
   
-  // (stipple texture is color-independent, no regeneration needed)
+  // Regenerate dial texture when dial changes
+  if (currentDial !== lastDialForTexture || modeBlend !== updateColors._lastBlend) {
+    buildDialFace(c.bg);
+    lastDialForTexture = currentDial;
+    updateColors._lastBlend = modeBlend;
+  }
   
-  // Hour markers
+  // Markers
   hourMarkers.forEach(m => m.material.color = hexToVec3(c.hand));
-  hourLumeInserts.forEach((m, i) => {
-    m.material.color = hexToVec3(c.lume);
-    if (bloomLumeMarkers[i]) bloomLumeMarkers[i].material.color = hexToVec3(c.lume);
+  bloomLumeMarkers.forEach(({ main, bloom }) => {
+    main.material.color = hexToVec3(c.lume);
+    bloom.material.color = hexToVec3(c.lume);
   });
   minuteMarkers.forEach(m => m.material.color = hexToVec3(c.lume));
   
@@ -713,11 +664,11 @@ function updateColors() {
   if (qiblaBg) qiblaBg.material.color = hexToVec3(c.hand);
   if (qiblaNeedle) qiblaNeedle.material.color = hexToVec3(c.bg);
   
-  // Bloom intensity based on night mode
-  bloomPass.strength = 0.3 + modeBlend * 1.2;
-  bloomPass2.strength = modeBlend * 2.0;
+  // Bloom
+  bloomPass.strength = 0.15 + modeBlend * 1.0;
+  bloomPass2.strength = modeBlend * 1.8;
   
-  // Stars visibility
+  // Stars
   starsGroup.children.forEach(mesh => {
     const s = mesh.userData;
     if (!s) return;
@@ -725,22 +676,18 @@ function updateColors() {
     mesh.material.opacity = modeBlend * s.bright * twinkle * 0.7;
   });
   
-  // Update theme color
   document.querySelector('meta[name="theme-color"]').content = c.bg;
-  
   return c;
 }
+updateColors._lastBlend = -1;
 
 function updateHands() {
   const now = new Date();
   const h = now.getHours() % 12, m = now.getMinutes(), s = now.getSeconds(), ms = now.getMilliseconds();
-  
-  const sec = s + ms / 1000; // smooth sweep
+  const sec = s + ms / 1000;
   const min = m + sec / 60;
   const hour = h + min / 60;
   
-  // Convert to rotation (Three.js: +Z rotation = CCW, clock goes CW)
-  // 12 o'clock = +Y axis = PI/2 from +X
   const hourAng = -(hour / 12) * Math.PI * 2;
   const minAng = -(min / 60) * Math.PI * 2;
   const secAng = -(sec / 60) * Math.PI * 2;
@@ -749,10 +696,13 @@ function updateHands() {
   if (minuteHandGroup) minuteHandGroup.rotation.z = minAng;
   if (secondHandGroup) secondHandGroup.rotation.z = secAng;
   
-  // Sync bloom hand lumes
-  bloomHandLumes.forEach(({ group, parent }) => {
-    group.rotation.z = parent.rotation.z;
-  });
+  // Shadows follow hands
+  if (hourShadowGroup) hourShadowGroup.rotation.z = hourAng;
+  if (minuteShadowGroup) minuteShadowGroup.rotation.z = minAng;
+  if (secondShadowGroup) secondShadowGroup.rotation.z = secAng;
+  
+  // Bloom syncs
+  bloomHandLumes.forEach(({ group, parent }) => { group.rotation.z = parent.rotation.z; });
 }
 
 function updateFlap(c) {
@@ -761,12 +711,10 @@ function updateFlap(c) {
   const cw = flapCanvas.width, ch = flapCanvas.height;
   ctx.clearRect(0, 0, cw, ch);
   
-  // Compute countdown
   const now = new Date();
   const h = now.getHours(), m = now.getMinutes();
   const nowMin = h * 60 + m + now.getSeconds() / 60;
   
-  // Default: show current time as countdown placeholder
   let label = 'UNTIL MAGHRIB';
   let mins = 0;
   
@@ -776,19 +724,13 @@ function updateFlap(c) {
     else if (nowMin < fajr) { mins = fajr - nowMin; label = 'UNTIL FAJR'; }
     else { mins = 0; label = 'IFTAR'; }
   } else {
-    // No prayer data — show time
-    mins = (18 * 60 + 15) - nowMin; // placeholder maghrib
+    mins = (18 * 60 + 15) - nowMin;
     if (mins < 0) mins = 0;
   }
   
   const hh = Math.floor(mins / 60), mm = Math.floor(mins % 60);
-  const chars = [
-    String(Math.floor(hh / 10)), String(hh % 10),
-    ':',
-    String(Math.floor(mm / 10)), String(mm % 10)
-  ];
+  const chars = [String(Math.floor(hh / 10)), String(hh % 10), ':', String(Math.floor(mm / 10)), String(mm % 10)];
   
-  // Animation state
   const nowMs = performance.now();
   while (flapPrevChars.length < chars.length) flapPrevChars.push('');
   while (flapCharAnims.length < chars.length) flapCharAnims.push({ start: 0, prev: '' });
@@ -800,17 +742,12 @@ function updateFlap(c) {
   }
   flapPrevChars = chars.slice();
   
-  // Draw
-  const digitW = cw * 0.17;
-  const colonW = cw * 0.06;
-  const cellH = ch * 0.65;
-  const gap = 1;
+  const digitW = cw * 0.17, colonW = cw * 0.06, cellH = ch * 0.65;
   const charWidths = chars.map(ch => ch === ':' ? colonW : digitW);
   const totalW = charWidths.reduce((a, w) => a + w, 0) + (chars.length - 1) * 4;
   let startX = (cw - totalW) / 2;
   const cellY = ch * 0.15;
   const fontSize = cellH * 0.7;
-  
   const lumeCol = c.lume;
   
   let curX = startX;
@@ -823,64 +760,45 @@ function updateFlap(c) {
     const t = Math.min(Math.max(elapsed / FLAP_DUR, 0), 1);
     
     if (ch2 === ':') {
-      const dotR = 4;
       ctx.fillStyle = lumeCol;
-      ctx.globalAlpha = 0.5;
-      ctx.beginPath(); ctx.arc(cellCx, cellY + cellH * 0.3, dotR, 0, Math.PI * 2); ctx.fill();
-      ctx.beginPath(); ctx.arc(cellCx, cellY + cellH * 0.7, dotR, 0, Math.PI * 2); ctx.fill();
+      ctx.globalAlpha = 0.4;
+      ctx.beginPath(); ctx.arc(cellCx, cellY + cellH * 0.3, 3, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(cellCx, cellY + cellH * 0.7, 3, 0, Math.PI * 2); ctx.fill();
       ctx.globalAlpha = 1;
       curX += charW + 4;
       continue;
     }
     
     // Cell bg
-    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
     roundRect(ctx, curX, cellY, charW, cellH, 4);
     ctx.fill();
     
     // Split line
-    ctx.fillStyle = 'rgba(0,0,0,0.5)';
-    ctx.fillRect(curX, cellY + cellH / 2 - gap / 2, charW, gap);
+    ctx.fillStyle = 'rgba(0,0,0,0.4)';
+    ctx.fillRect(curX, cellY + cellH / 2 - 0.5, charW, 1);
     
     // Digit
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.font = `600 ${fontSize}px Inter,system-ui,sans-serif`;
+    ctx.font = `500 ${fontSize}px Inter,system-ui,sans-serif`;
     ctx.fillStyle = lumeCol;
-    ctx.globalAlpha = 0.9;
+    ctx.globalAlpha = 0.85;
     
-    // Flip animation
     if (t < 1 && anim.prev) {
-      const ease = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
-      // Bottom half: new char
+      const ease = t < 0.5 ? 2*t*t : 1-Math.pow(-2*t+2,2)/2;
       ctx.save();
-      ctx.beginPath();
-      ctx.rect(curX, cellY + cellH / 2, charW, cellH / 2);
-      ctx.clip();
-      ctx.fillText(ch2, cellCx, cellY + cellH / 2);
+      ctx.beginPath(); ctx.rect(curX, cellY + cellH/2, charW, cellH/2); ctx.clip();
+      ctx.fillText(ch2, cellCx, cellY + cellH/2);
       ctx.restore();
-      // Top half: flipping old → new
       ctx.save();
-      ctx.beginPath();
-      ctx.rect(curX, cellY, charW, cellH / 2);
-      ctx.clip();
-      if (ease < 0.5) {
-        ctx.fillText(anim.prev, cellCx, cellY + cellH / 2);
-      } else {
-        ctx.fillText(ch2, cellCx, cellY + cellH / 2);
-      }
+      ctx.beginPath(); ctx.rect(curX, cellY, charW, cellH/2); ctx.clip();
+      ctx.fillText(ease < 0.5 ? anim.prev : ch2, cellCx, cellY + cellH/2);
       ctx.restore();
     } else {
-      ctx.fillText(ch2, cellCx, cellY + cellH / 2);
+      ctx.fillText(ch2, cellCx, cellY + cellH/2);
     }
     ctx.globalAlpha = 1;
-    
-    // Border
-    ctx.strokeStyle = 'rgba(255,255,255,0.05)';
-    ctx.lineWidth = 0.5;
-    roundRect(ctx, curX, cellY, charW, cellH, 4);
-    ctx.stroke();
-    
     curX += charW + 4;
   }
   
@@ -888,11 +806,10 @@ function updateFlap(c) {
   if (label) {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.font = `500 ${ch * 0.12}px Inter,system-ui,sans-serif`;
+    ctx.font = `500 ${ch * 0.11}px Inter,system-ui,sans-serif`;
     ctx.fillStyle = lumeCol;
-    ctx.globalAlpha = 0.7;
-    ctx.letterSpacing = '1px';
-    ctx.fillText(label, cw / 2, cellY + cellH + ch * 0.12);
+    ctx.globalAlpha = 0.6;
+    ctx.fillText(label, cw/2, cellY + cellH + ch * 0.12);
     ctx.globalAlpha = 1;
   }
   
@@ -901,140 +818,101 @@ function updateFlap(c) {
 
 function roundRect(ctx, x, y, w, h, r) {
   ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.lineTo(x + w - r, y);
-  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-  ctx.lineTo(x + w, y + h - r);
-  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-  ctx.lineTo(x + r, y + h);
-  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-  ctx.lineTo(x, y + r);
-  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.moveTo(x+r, y); ctx.lineTo(x+w-r, y);
+  ctx.quadraticCurveTo(x+w, y, x+w, y+r); ctx.lineTo(x+w, y+h-r);
+  ctx.quadraticCurveTo(x+w, y+h, x+w-r, y+h); ctx.lineTo(x+r, y+h);
+  ctx.quadraticCurveTo(x, y+h, x, y+h-r); ctx.lineTo(x, y+r);
+  ctx.quadraticCurveTo(x, y, x+r, y);
   ctx.closePath();
 }
 
 function updateFastingArc(c) {
-  // Remove old arc elements
   while (arcGroup.children.length) arcGroup.remove(arcGroup.children[0]);
-  
   if (!PD) return;
   
   const fajr = pM(PD.Fajr), mag = pM(PD.Maghrib), now = nM();
-  const startAng = ((fajr % 720) / 720) * Math.PI * 2 + Math.PI / 2; // +PI/2 because Three.js 0 is at 3 o'clock
-  const fastDur = mag - fajr;
-  const sweepAng = (fastDur / 720) * Math.PI * 2;
+  const startAng = ((fajr % 720) / 720) * Math.PI * 2 + Math.PI / 2;
+  const sweepAng = ((mag - fajr) / 720) * Math.PI * 2;
   const endAng = startAng + sweepAng;
-  const arcR = R + R * 0.14;
+  const arcR = R + R * 0.12;
+  const isLight = currentDial === 'white' || currentDial === 'cream';
   
-  const isLightDial = currentDial === 'white' || currentDial === 'cream';
-  
-  // Track line
-  const trackCurve = new THREE.EllipseCurve(0, 0, arcR, arcR, startAng, endAng, false, 0);
-  const trackPoints = trackCurve.getPoints(128);
-  const trackGeo = new THREE.BufferGeometry().setFromPoints(trackPoints);
-  const trackMat = new THREE.LineBasicMaterial({
-    color: isLightDial ? 0x000000 : 0xffffff,
-    transparent: true,
-    opacity: isLightDial ? 0.25 : 0.35
-  });
-  const track = new THREE.Line(trackGeo, trackMat);
+  // Track
+  const trackCurve = new THREE.EllipseCurve(0,0, arcR, arcR, startAng, endAng, false, 0);
+  const track = new THREE.Line(
+    new THREE.BufferGeometry().setFromPoints(trackCurve.getPoints(128)),
+    new THREE.LineBasicMaterial({ color: isLight ? 0x000000 : 0xffffff, transparent: true, opacity: isLight ? 0.2 : 0.3 })
+  );
   track.position.z = 1;
   arcGroup.add(track);
   
   // Progress
   if (now >= fajr && now <= mag) {
-    const elapsed = now - fajr;
-    const nowAng = startAng + (elapsed / 720) * Math.PI * 2;
-    
-    const progCurve = new THREE.EllipseCurve(0, 0, arcR, arcR, startAng, nowAng, false, 0);
-    const progPoints = progCurve.getPoints(128);
-    const progGeo = new THREE.BufferGeometry().setFromPoints(progPoints);
-    const progMat = new THREE.LineBasicMaterial({
-      color: isLightDial ? 0x000000 : 0xffffff,
-      transparent: true,
-      opacity: isLightDial ? 0.7 : 0.85
-    });
-    const prog = new THREE.Line(progGeo, progMat);
+    const nowAng = startAng + ((now - fajr) / 720) * Math.PI * 2;
+    const progCurve = new THREE.EllipseCurve(0,0, arcR, arcR, startAng, nowAng, false, 0);
+    const prog = new THREE.Line(
+      new THREE.BufferGeometry().setFromPoints(progCurve.getPoints(128)),
+      new THREE.LineBasicMaterial({ color: isLight ? 0x000000 : 0xffffff, transparent: true, opacity: isLight ? 0.6 : 0.8 })
+    );
     prog.position.z = 1;
     arcGroup.add(prog);
     
-    // Red sphere tip
-    const tipGeo = new THREE.CircleGeometry(5, 32);
-    const tipMat = new THREE.MeshBasicMaterial({ color: 0xe53e3e });
-    const tip = new THREE.Mesh(tipGeo, tipMat);
+    // Red tip
+    const tip = makeCircle(4, '#e53e3e', 2);
     tip.position.x = Math.cos(nowAng) * arcR;
     tip.position.y = Math.sin(nowAng) * arcR;
-    tip.position.z = 2;
     arcGroup.add(tip);
   }
 }
 
-// ── Fetch prayer times ──
+// ── Prayer times ──
 async function fetchPrayer() {
   try {
-    const r = await fetch('https://api.aladhan.com/v1/timings/' + Math.floor(Date.now() / 1000));
+    const r = await fetch('https://api.aladhan.com/v1/timings/' + Math.floor(Date.now()/1000));
     const j = await r.json();
-    if (j.code === 200) {
-      PD = j.data.timings;
-      updateInfoPanel();
-    }
-  } catch (e) { console.warn('Prayer fetch failed', e); }
+    if (j.code === 200) { PD = j.data.timings; updateInfoPanel(); }
+  } catch(e) { console.warn('Prayer fetch failed', e); }
 }
 fetchPrayer();
 
 function updateInfoPanel() {
   if (!PD) return;
   const c = getColors();
-  const info = document.getElementById('info');
-  // Simple display
-  const fajr = PD.Fajr, mag = PD.Maghrib;
-  document.getElementById('hijri').textContent = `Fajr ${fajr} · Maghrib ${mag}`;
+  document.getElementById('hijri').textContent = `Fajr ${PD.Fajr} · Maghrib ${PD.Maghrib}`;
   document.getElementById('hijri').style.color = c.text;
-  document.getElementById('greg').textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  document.getElementById('greg').textContent = new Date().toLocaleDateString('en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
   document.getElementById('greg').style.color = c.text;
 }
 
 // ── Interactions ──
 let infoVisible = false, infoTimer = null;
 function showInfo() {
-  const info = document.getElementById('info');
-  const bar = document.getElementById('dialBar');
-  info.classList.add('visible');
-  bar.classList.add('visible');
+  document.getElementById('info').classList.add('visible');
+  document.getElementById('dialBar').classList.add('visible');
   infoVisible = true;
   clearTimeout(infoTimer);
   infoTimer = setTimeout(() => {
-    info.classList.remove('visible');
-    bar.classList.remove('visible');
+    document.getElementById('info').classList.remove('visible');
+    document.getElementById('dialBar').classList.remove('visible');
     infoVisible = false;
   }, 4000);
 }
 
-// Tap to show info
 renderer.domElement.addEventListener('click', showInfo);
+renderer.domElement.addEventListener('dblclick', () => { modeTarget = modeTarget > 0.5 ? 0 : 1; });
 
-// Double tap for dev mode (night toggle)
-let lastTap = 0;
-renderer.domElement.addEventListener('dblclick', () => {
-  modeTarget = modeTarget > 0.5 ? 0 : 1;
-});
-
-// Swipe to change dials
 let touchStartX = 0;
 renderer.domElement.addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX; });
 renderer.domElement.addEventListener('touchend', e => {
   const dx = e.changedTouches[0].clientX - touchStartX;
   if (Math.abs(dx) > 50) {
     const idx = DIAL_NAMES.indexOf(currentDial);
-    const newIdx = dx > 0 ? (idx - 1 + DIAL_NAMES.length) % DIAL_NAMES.length : (idx + 1) % DIAL_NAMES.length;
-    currentDial = DIAL_NAMES[newIdx];
-    // Rebuild numerals (they use canvas textures with colors baked in)
+    currentDial = DIAL_NAMES[dx > 0 ? (idx-1+DIAL_NAMES.length)%DIAL_NAMES.length : (idx+1)%DIAL_NAMES.length];
     rebuildNumerals();
     updateDialDots();
   }
 });
 
-// Dial bar clicks
 document.querySelectorAll('.dial-dot').forEach(dot => {
   dot.addEventListener('click', e => {
     e.stopPropagation();
@@ -1045,41 +923,22 @@ document.querySelectorAll('.dial-dot').forEach(dot => {
 });
 
 function updateDialDots() {
-  document.querySelectorAll('.dial-dot').forEach(d => {
-    d.classList.toggle('active', d.dataset.dial === currentDial);
-  });
+  document.querySelectorAll('.dial-dot').forEach(d => d.classList.toggle('active', d.dataset.dial === currentDial));
 }
 
 function rebuildNumerals() {
-  // Re-create numeral sprites with new colors
   while (numeralsGroup.children.length) numeralsGroup.remove(numeralsGroup.children[0]);
   numeralSprites = [];
-  minLabelSprites = [];
-  
   const c = getColors();
   for (let i = 0; i < 12; i++) {
     const ang = (i / 12) * Math.PI * 2 - Math.PI / 2;
-    const r = R - R * 0.32;
-    const fontSize = R * 0.14;
-    const sprite = makeTextSprite(ARABIC[i], `700 ${fontSize}px Lateef,system-ui,sans-serif`, fontSize, c.lume, 4);
+    const r = R - R * 0.28;
+    const fontSize = R * 0.12;
+    const sprite = makeTextSprite(ARABIC[i], `700 ${fontSize}px Lateef,system-ui,sans-serif`, fontSize, c.text, 4);
     sprite.position.x = Math.cos(ang) * r;
     sprite.position.y = Math.sin(ang) * r;
     numeralsGroup.add(sprite);
     numeralSprites.push(sprite);
-  }
-  
-  for (let i = 0; i < 60; i += 5) {
-    const ang = (i / 60) * Math.PI * 2 - Math.PI / 2;
-    const r = R + R * 0.06;
-    const label = MIN_LABELS[i];
-    if (!label) continue;
-    const fontSize = R * 0.045;
-    const sprite = makeTextSprite(label, `500 ${fontSize}px Inter,system-ui,sans-serif`, fontSize, c.minNum, 1);
-    sprite.material.opacity = 0.3;
-    sprite.position.x = Math.cos(ang) * r;
-    sprite.position.y = Math.sin(ang) * r;
-    numeralsGroup.add(sprite);
-    minLabelSprites.push(sprite);
   }
 }
 
@@ -1090,10 +949,7 @@ function onResize() {
   R = Math.min(W, H) * 0.42;
   
   renderer.setSize(W, H);
-  cam.left = -W / 2;
-  cam.right = W / 2;
-  cam.top = H / 2;
-  cam.bottom = -H / 2;
+  cam.left = -W/2; cam.right = W/2; cam.top = H/2; cam.bottom = -H/2;
   cam.updateProjectionMatrix();
   
   composer.setSize(W, H);
@@ -1101,32 +957,37 @@ function onResize() {
   bloomPass.resolution.set(W, H);
   bloomPass2.resolution.set(W, H);
   
-  bgMesh.scale.set(W * 2 / bgGeo.parameters.width, H * 2 / bgGeo.parameters.height, 1);
-  bloomBgMesh.scale.set(W * 2 / bloomBgGeo.parameters.width, H * 2 / bloomBgGeo.parameters.height, 1);
+  bgMesh.scale.set(W*2/bgGeo.parameters.width, H*2/bgGeo.parameters.height, 1);
+  bloomBgMesh.scale.set(W*2/bloomBgGeo.parameters.width, H*2/bloomBgGeo.parameters.height, 1);
   
   buildClock();
 }
-
 window.addEventListener('resize', onResize);
 
-// ── Render loop ──
+// ── Night mode blend ──
+function updateMode() {
+  if (Math.abs(modeBlend - modeTarget) > 0.001) {
+    modeBlend += (modeTarget - modeBlend) * 0.05;
+  } else {
+    modeBlend = modeTarget;
+  }
+}
+
+// ── Render ──
 function animate() {
   requestAnimationFrame(animate);
   
+  updateMode();
   const c = updateColors();
   updateHands();
   updateFlap(c);
   updateFastingArc(c);
   
-  // Render bloom scene
   renderer.autoClear = false;
   renderer.clear();
-  
-  // Render main scene with bloom
   composer.render();
 }
 
-// ── Init ──
 buildClock();
 animate();
 showInfo();
