@@ -100,7 +100,7 @@ pmrem.compileEquirectangularShader();
 new RGBELoader().load('https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/studio_small_03_1k.hdr', (tex) => {
   const envMap = pmrem.fromEquirectangular(tex).texture;
   scene.environment = envMap;
-  scene.environmentIntensity = 0.4;
+  scene.environmentIntensity = 0.6;
   tex.dispose();
   pmrem.dispose();
 });
@@ -110,7 +110,7 @@ rectLight.lookAt(0, 0, 0);
 scene.add(rectLight);
 
 const dirLight = new THREE.DirectionalLight(0xffffff, 1.0);
-dirLight.position.set(-60, 170, 250);
+dirLight.position.set(-40, 200, 200);
 dirLight.castShadow = true;
 dirLight.shadow.mapSize.set(2048, 2048);
 dirLight.shadow.radius = 3;
