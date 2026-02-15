@@ -155,17 +155,16 @@ function extrudedLeaf(len, maxW, tailLen, depth, baseScale=1.0) {
 function nomosHand(len, baseW, tailLen, depth) {
   const s = new THREE.Shape();
   const hw = baseW / 2;
-  const tipW = hw * 0.15; // narrow point
+  const triH = baseW; // equilateral: height ≈ width
+  const triStart = len - triH;
   // Start at tail bottom-left
   s.moveTo(-hw * 0.6, -tailLen);
-  // Straight parallel sides up to ~70%
+  // Straight parallel sides up to triangle start
   s.lineTo(-hw, 0);
-  s.lineTo(-hw, len * 0.7);
-  // Taper to point
-  s.lineTo(-tipW, len * 0.95);
+  s.lineTo(-hw, triStart);
+  // Short equilateral triangle tip
   s.lineTo(0, len);
-  s.lineTo(tipW, len * 0.95);
-  s.lineTo(hw, len * 0.7);
+  s.lineTo(hw, triStart);
   // Back down
   s.lineTo(hw, 0);
   s.lineTo(hw * 0.6, -tailLen);
