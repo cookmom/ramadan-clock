@@ -259,7 +259,7 @@ if(!EMBED) scene.add(bgPlane);
 if(EMBED) { renderer.setClearColor(0x000000, 0); }
 
 const clockGroup = new THREE.Group(); // everything lives here for parallax
-clockGroup.scale.setScalar(0.50);
+clockGroup.scale.setScalar(EMBED ? 0.65 : 0.50);
 scene.add(clockGroup);
 
 // Dial face
