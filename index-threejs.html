@@ -202,7 +202,7 @@ function buildDial() {
   if(dialMesh) clockGroup.remove(dialMesh);
   if(dialLowerMesh) clockGroup.remove(dialLowerMesh);
   
-  const subY = -R*0.32, cutoutR = R*0.19;
+  const subY = -R*0.5, cutoutR = R*0.38;
   
   // Lower disc — solid, darker, recessed
   const lowerGeo = new THREE.CylinderGeometry(caseR, caseR, DIAL_THICKNESS, 128);
