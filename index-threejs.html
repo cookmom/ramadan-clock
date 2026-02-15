@@ -294,15 +294,12 @@ function buildNumerals() {
     ctx.fillText(ARABIC[i], cv.width/2, cv.height/2);
     const tex = new THREE.CanvasTexture(cv);
     tex.minFilter = THREE.LinearFilter;
-    // Extruded numeral plate — sits proud of dial
-    const nDepth = 4;
-    const geo = new THREE.BoxGeometry(tw, th, nDepth);
-    const faceMat = new THREE.MeshStandardMaterial({map:tex, transparent:true, metalness:0.3, roughness:0.4, color:0xffffff});
+    const geo = new THREE.PlaneGeometry(tw, th);
+    const faceMat = new THREE.MeshStandardMaterial({map:tex, transparent:true, metalness:0.3, roughness:0.4, color:0xffffff, depthWrite:false});
     const mesh = new THREE.Mesh(geo, faceMat);
-    mesh.castShadow = true;
     mesh.position.x = Math.cos(ang)*r;
     mesh.position.y = Math.sin(ang)*r;
-    mesh.position.z = nDepth/2;
+    mesh.position.z = 3;
     clockGroup.add(mesh);
     numeralSprites.push(mesh);
   }
