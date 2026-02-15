@@ -998,13 +998,14 @@ function updateQibla() {
   // sits on the 12-6 centerline (triangle tip → 12, base → 6)
   const compassRad = -(compassHeading * Math.PI/180);
   const targetOuterRot = aligned ? 0 : compassRad;
-  qiblaRotor.rotation.z += (targetOuterRot - qiblaRotor.rotation.z) * 0.5;
+  const snapSpeed = aligned ? 0.12 : 0.5;
+  qiblaRotor.rotation.z += (targetOuterRot - qiblaRotor.rotation.z) * snapSpeed;
   
   // Inner rotor: triangle points toward Qibla relative to user
   // When aligned + outer eased to 0: inner rotation = 0 → triangle at exact 12
   const desiredWorld = aligned ? 0 : -(qiblaBearing - compassHeading) * Math.PI / 180;
   const targetInnerRot = desiredWorld - qiblaRotor.rotation.z;
-  qiblaInnerRotor.rotation.z += (targetInnerRot - qiblaInnerRotor.rotation.z) * 0.5;
+  qiblaInnerRotor.rotation.z += (targetInnerRot - qiblaInnerRotor.rotation.z) * snapSpeed;
 }
 
 // Split-flap at 12 o'clock
