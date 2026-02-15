@@ -31,11 +31,9 @@ canvas{display:block;width:100%;height:100%}
   <div class="dial-dot" data-dial="salmon" style="border-color:#c47a60"></div>
   <div class="dial-dot active" data-dial="slate" style="border-color:#6a6a74"></div>
   <div class="dial-dot" data-dial="sky" style="border-color:#5a9ac0"></div>
-  <div class="dial-dot" data-dial="cream" style="border-color:#d8ccb4"></div>
   <div class="dial-dot" data-dial="kawthar" style="border-color:#f2dce0"></div>
   <div class="dial-dot" data-dial="dhuha" style="border-color:#e8c878"></div>
   <div class="dial-dot" data-dial="najm" style="border-color:#1a2a48"></div>
-  <div class="dial-dot" data-dial="fajr" style="border-color:#b8a0c8"></div>
   <div class="dial-dot" data-dial="qamar" style="border-color:#c0c4cc"></div>
   <div class="dial-dot" data-dial="ward" style="border-color:#c87088"></div>
   <div class="dial-dot" data-dial="lilas" style="border-color:#6a5088"></div>
@@ -55,19 +53,17 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 // CONFIG
 // ══════════════════════════════════════════
 const DIALS = {
-  tennis: {bg:0x2e8b57, lume:0xd4e8a0, hand:0xf4f0e0, sec:0xffffff, text:'#fffff0', surah:'Ar-Raḥmān'},       // cream-green — gardens of paradise
-  white:  {bg:0xe8e4dc, lume:0x2a3a5a, hand:0x111111, sec:0xc41e3a, text:'#1a1a1a', surah:'An-Nūr'},           // blued steel indices — light upon light
-  salmon: {bg:0xc47a60, lume:0xf0dcc0, hand:0xf8f4ec, sec:0xffffff, text:'#fff0e0', surah:'Ash-Shams'},        // warm ivory — the sun
-  slate:  {bg:0x585860, lume:0xe8e0c8, hand:0xd0d0d4, sec:0xff6633, text:'#e8e0c8', surah:'Al-Layl'},          // classic SuperLuminova cream — the night
-  sky:    {bg:0x5a9ac0, lume:0xe0f0ff, hand:0xf4f0e8, sec:0xffffff, text:'#f0f8ff', surah:'Al-Burūj'},         // ice white — the constellations
-  cream:  {bg:0xd8ccb4, lume:0x4a3828, hand:0x2a2520, sec:0x3a3530, text:'#3a3530', surah:'At-Tīn'},           // dark chocolate — the fig
-  kawthar:{bg:0xf2dce0, lume:0xd4a0b0, hand:0xc88898, sec:0xe0a0b0, text:'#9a6878', surah:'Al-Kawthar'},      // soft rose pink, rose gold — for Kawthar
-  dhuha:  {bg:0xe8c878, lume:0x5a3a20, hand:0x3a2810, sec:0x8a4a20, text:'#3a2810', surah:'Aḍ-Ḍuḥā'},         // warm gold — the morning brightness
-  najm:   {bg:0x1a2a48, lume:0xc8d8f0, hand:0xc0c8d8, sec:0xe8d050, text:'#c8d8f0', surah:'An-Najm'},          // deep midnight blue — the star
-  fajr:   {bg:0xb8a0c8, lume:0xf0e8f8, hand:0xf0e8f0, sec:0xffffff, text:'#f0e8f8', surah:'Al-Fajr'},          // soft lavender — the dawn
-  qamar:  {bg:0xc0c4cc, lume:0x2a2a30, hand:0x1a1a20, sec:0x2a2a30, text:'#2a2a30', surah:'Al-Qamar'},         // cool silver — the moon
-  ward:   {bg:0xc87088, lume:0xf0d8e0, hand:0xf0e4e8, sec:0xffffff, text:'#f0d8e0', surah:'Al-Wāqiʿah'},      // dusty rose — the inevitable
-  lilas:  {bg:0x6a5088, lume:0xe0d0f0, hand:0xe8ddf0, sec:0xf0d0ff, text:'#e0d0f0', surah:'Al-Mulk'},          // deep purple — the sovereignty
+  tennis: {bg:0x2e8b57, lume:0xd4e8a0, hand:0xf0ece0, sec:0xffffff, text:'#f0ece0', surah:'Ar-Raḥmān'},       // green + cream — 2 tones
+  white:  {bg:0xe8e4dc, lume:0x2a3a5a, hand:0x111111, sec:0xc41e3a, text:'#1a1a1a', surah:'An-Nūr'},           // white + black + red sec — classic
+  salmon: {bg:0xc47a60, lume:0xf0e0d0, hand:0xf0e0d0, sec:0xffffff, text:'#f0e0d0', surah:'Ash-Shams'},        // coral + cream — 2 tones
+  slate:  {bg:0x585860, lume:0xe8e0c8, hand:0xd0d0d4, sec:0xff6633, text:'#e8e0c8', surah:'Al-Layl'},          // grey + cream + orange sec — the reference
+  sky:    {bg:0x5a9ac0, lume:0xf0f0f0, hand:0xf0f0f0, sec:0xffffff, text:'#f0f0f0', surah:'Al-Burūj'},         // blue + white — clean
+  kawthar:{bg:0xf2dce0, lume:0xc88898, hand:0xc88898, sec:0xc88898, text:'#9a6878', surah:'Al-Kawthar'},        // pink + rose gold — 2 tones
+  dhuha:  {bg:0xe8c878, lume:0x4a3018, hand:0x4a3018, sec:0x4a3018, text:'#4a3018', surah:'Aḍ-Ḍuḥā'},          // gold + dark brown — 2 tones
+  najm:   {bg:0x1a2a48, lume:0xc8d8f0, hand:0xc8d8f0, sec:0xffffff, text:'#c8d8f0', surah:'An-Najm'},          // midnight + silver — 2 tones
+  qamar:  {bg:0xc0c4cc, lume:0x2a2a30, hand:0x1a1a20, sec:0x2a2a30, text:'#2a2a30', surah:'Al-Qamar'},         // silver + charcoal — 2 tones
+  ward:   {bg:0xc87088, lume:0xf0e0e4, hand:0xf0e0e4, sec:0xffffff, text:'#f0e0e4', surah:'Al-Wāqiʿah'},       // dusty rose + cream-pink — 2 tones
+  lilas:  {bg:0x6a5088, lume:0xe0d0f0, hand:0xe0d0f0, sec:0xffffff, text:'#e0d0f0', surah:'Al-Mulk'},           // purple + lavender — 2 tones
 };
 // Night lume palettes — modeled after real SuperLuminova variants
 // Each matches the daytime lume character but amplified for glow
@@ -77,11 +73,9 @@ const NIGHT_LUME = {
   salmon: { emissive: 0xffc070 },  // Old radium — warm amber, sunset afterglow
   slate:  { emissive: 0xc8e8a0 },  // C3 — classic green-cream, the iconic lume
   sky:    { emissive: 0x80d0ff },  // BGW9 — ice blue constellations
-  cream:  { emissive: 0xe0c878 },  // Tritium — warm gold, aged patina
-  kawthar:{ emissive: 0xffa0c0 },  // Soft pink glow — rose petals in moonlight
+  kawthar:{ emissive: 0xffa0c0 },  // Soft pink glow
   dhuha:  { emissive: 0xffc040 },  // Warm golden sunrise
   najm:   { emissive: 0x90b8ff },  // Cool stellar blue
-  fajr:   { emissive: 0xd0a0ff },  // Soft violet dawn light
   qamar:  { emissive: 0xd0d8e8 },  // Cool silver moonlight
   ward:   { emissive: 0xff80a8 },  // Warm rose glow
   lilas:  { emissive: 0xc090ff },  // Purple lume
@@ -195,7 +189,6 @@ function dialMat(color) {
     najm:    { roughness:0.4, metalness:0.3, sheen:0.5, sheenColor:0x3050a0, sheenRoughness:0.2, clearcoat:0.7, clearcoatRoughness:0.1 }, // deep lacquer
     dhuha:   { roughness:0.65, metalness:0.1, sheen:0.6, sheenColor:0xd4a040, sheenRoughness:0.4, clearcoat:0.3, clearcoatRoughness:0.2 }, // warm sunlit
     qamar:   { roughness:0.5, metalness:0.25, sheen:0.4, sheenColor:0x8890a0, sheenRoughness:0.3, clearcoat:0.5, clearcoatRoughness:0.15 }, // cool lunar
-    fajr:    { roughness:0.7, metalness:0.05, sheen:0.5, sheenColor:0x9878b0, sheenRoughness:0.4, clearcoat:0.2, clearcoatRoughness:0.3 }, // soft dawn
     ward:    { roughness:0.75, metalness:0.05, sheen:0.4, sheenColor:0xd06080, sheenRoughness:0.4, clearcoat:0.15, clearcoatRoughness:0.3 }, // dusty rose warmth
     lilas:   { roughness:0.5, metalness:0.2, sheen:0.6, sheenColor:0x8060c0, sheenRoughness:0.25, clearcoat:0.5, clearcoatRoughness:0.15 }, // rich purple lacquer
   };
