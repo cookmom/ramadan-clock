@@ -20,10 +20,14 @@ canvas{display:block;width:100%;height:100%}
 #dialBar.visible{opacity:1;pointer-events:auto}
 .dial-dot{width:7px;height:7px;border-radius:50%;border:1.5px solid rgba(255,255,255,.3);cursor:pointer;transition:all .3s}
 .dial-dot.active{border-color:rgba(255,255,255,.8);background:rgba(255,255,255,.5)}
+#modeToggle{position:fixed;top:calc(env(safe-area-inset-top,12px) + 12px);right:16px;z-index:10;opacity:0;transition:opacity .4s;pointer-events:none;cursor:pointer;background:none;border:none;padding:8px}
+#modeToggle.visible{opacity:1;pointer-events:auto}
+#modeToggle svg{width:22px;height:22px;stroke-width:1;fill:none;stroke:currentColor;transition:color .4s}
 </style>
 </head>
 <body>
 <div id="vignette"></div>
+<button id="modeToggle" aria-label="Toggle day/night"><svg id="modeIcon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5" /><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg></button>
 <div id="info"><div class="hijri" id="hijri"></div><div class="greg" id="greg"></div><div class="surah" id="surah"></div></div>
 <div id="dialBar">
   <div class="dial-dot" data-dial="tennis" style="border-color:#68b890"></div>
@@ -1065,6 +1069,9 @@ function updateSurah() {
     el.textContent = d.surah || '';
     el.style.color = d.text || '#ffffff';
   }
+  const toggle = document.getElementById('modeToggle');
+  if(toggle) toggle.style.color = DIALS[currentDial].text || '#ffffff';
+  updateModeIcon();
 }
 // ══════════════════════════════════════════
 // RAINBOW BEZEL — Rolex Daytona Rainbow tribute
@@ -1258,11 +1265,23 @@ fetchPrayer();
 // INTERACTIONS
 // ══════════════════════════════════════════
 let infoTimer;
+const SUN_SVG='<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
+const MOON_SVG='<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
+function updateModeIcon(){
+  const icon=document.getElementById('modeIcon');
+  if(icon) icon.innerHTML=modeTarget>0.5?SUN_SVG:MOON_SVG;
+}
+document.getElementById('modeToggle').addEventListener('click',(e)=>{
+  e.stopPropagation();
+  modeTarget=modeTarget>0.5?0:1;
+  updateModeIcon();
+});
 function showInfo(){
   document.getElementById('info').classList.add('visible');
   document.getElementById('dialBar').classList.add('visible');
+  document.getElementById('modeToggle').classList.add('visible');
   clearTimeout(infoTimer);
-  infoTimer=setTimeout(()=>{document.getElementById('info').classList.remove('visible');document.getElementById('dialBar').classList.remove('visible');},4000);
+  infoTimer=setTimeout(()=>{document.getElementById('info').classList.remove('visible');document.getElementById('dialBar').classList.remove('visible');document.getElementById('modeToggle').classList.remove('visible');},4000);
 }
 renderer.domElement.addEventListener('click',showInfo);
 renderer.domElement.addEventListener('dblclick',()=>{modeTarget=modeTarget>0.5?0:1;});
