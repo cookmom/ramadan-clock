@@ -447,6 +447,11 @@ function buildClock() {
     const ang = (i/60)*Math.PI*2 - Math.PI/2;
     const isHour = i%5===0;
     
+    // Skip 12 o'clock zone (flap) and 6 o'clock zone (qibla sub-dial)
+    const atTop = (i===0 || i===59 || i===1);
+    const atBottom = (i===29 || i===30 || i===31);
+    if (atTop || atBottom) continue;
+    
     if (isHour) {
       const mH = R*0.11, mW = R*0.026;
       const outerR = R - R*0.04;
@@ -494,8 +499,9 @@ function buildClock() {
     }
   }
   
-  // ── Arabic numerals ──
+  // ── Arabic numerals (skip 12 and 6 — occupied by flap and qibla) ──
   for (let i=0; i<12; i++) {
+    if (i===0 || i===6) continue; // 12 o'clock = flap, 6 o'clock = qibla
     const ang = (i/12)*Math.PI*2 - Math.PI/2;
     const r = R - R*0.26;
     const fs = R*0.11;
@@ -614,29 +620,87 @@ function buildHands(c) {
 
 function buildQibla(c) {
   while(qiblaGroup.children.length) qiblaGroup.remove(qiblaGroup.children[0]);
-  const outerR=R-R*0.04, mH=R*0.11, midR=outerR-mH/2, qr=R*0.09;
   
-  qiblaBg = makeCircle(qr, c.hand, 4);
-  qiblaBg.position.y = midR;
+  // Sub-dial at 6 o'clock — recessed compass style
+  const subY = -R * 0.34;  // center of sub-dial
+  const qr = R * 0.16;     // sub-dial radius (bigger, proper sub-dial)
+  
+  // Recessed background (slightly darker than dial)
+  const bgCol = DIALS[currentDial].bg;
+  const rgb = hexRGB(bgCol);
+  const recessCol = `rgb(${Math.max(0,rgb.r-15)},${Math.max(0,rgb.g-15)},${Math.max(0,rgb.b-15)})`;
+  qiblaBg = makeCircle(qr, recessCol, 1);
+  qiblaBg.position.y = subY;
   qiblaGroup.add(qiblaBg);
   
-  // Shadow under qibla
-  const qSh = makeCircle(qr*1.05, '#000000', 3.5);
-  qSh.material.transparent=true; qSh.material.opacity=0.1;
-  qSh.position.y=midR; qSh.position.x=1.5; qSh.position.y=midR-1.5;
-  qiblaGroup.add(qSh);
+  // Inner shadow ring (recessed depth effect)
+  const innerShadow = makeRing(qr*0.92, qr, '#000000', 1.5);
+  innerShadow.material.transparent=true; innerShadow.material.opacity=0.08;
+  innerShadow.position.y = subY;
+  qiblaGroup.add(innerShadow);
   
-  const border = makeRing(qr-0.5, qr, c.shadow, 5);
-  border.material.transparent=true; border.material.opacity=0.2;
-  border.position.y = midR;
+  // Outer border
+  const border = makeRing(qr, qr+1, c.shadow, 2);
+  border.material.transparent=true; border.material.opacity=0.15;
+  border.position.y = subY;
   qiblaGroup.add(border);
   
-  const nL=qr*0.8, td=nL*0.55, tl=nL*0.45, hb=nL*0.32;
+  // Compass tick marks (8 cardinal + intercardinal)
+  for (let i = 0; i < 8; i++) {
+    const ang = (i/8) * Math.PI * 2 - Math.PI/2;
+    const isCardinal = i % 2 === 0;
+    const tH = isCardinal ? qr*0.12 : qr*0.07;
+    const tW = isCardinal ? 1.2 : 0.6;
+    const tr = qr - tH/2 - 1;
+    const tick = makePlane(tW, tH, c.lume, 2);
+    tick.material.transparent=true; tick.material.opacity = isCardinal ? 0.5 : 0.25;
+    tick.position.x = Math.cos(ang)*tr;
+    tick.position.y = subY + Math.sin(ang)*tr;
+    tick.rotation.z = ang + Math.PI/2;
+    qiblaGroup.add(tick);
+  }
+  
+  // Fine minute ticks (32 divisions)
+  for (let i = 0; i < 32; i++) {
+    if (i % 4 === 0) continue; // skip cardinal positions
+    const ang = (i/32) * Math.PI * 2 - Math.PI/2;
+    const tH = qr*0.04, tW = 0.4;
+    const tr = qr - tH/2 - 1;
+    const tick = makePlane(tW, tH, c.lume, 2);
+    tick.material.transparent=true; tick.material.opacity=0.12;
+    tick.position.x = Math.cos(ang)*tr;
+    tick.position.y = subY + Math.sin(ang)*tr;
+    tick.rotation.z = ang + Math.PI/2;
+    qiblaGroup.add(tick);
+  }
+  
+  // Needle — elongated diamond/lozenge shape pointing to qibla
+  const nL = qr * 0.7;
   const ns = new THREE.Shape();
-  ns.moveTo(0,td); ns.lineTo(hb,-tl); ns.lineTo(-hb,-tl); ns.closePath();
-  qiblaNeedle = new THREE.Mesh(new THREE.ShapeGeometry(ns), new THREE.MeshBasicMaterial({color:hx(c.bg)}));
-  qiblaNeedle.position.y=midR; qiblaNeedle.position.z=5;
+  ns.moveTo(0, nL*0.55);          // tip (toward qibla)
+  ns.lineTo(nL*0.12, 0);          // right waist
+  ns.lineTo(0, -nL*0.45);         // tail
+  ns.lineTo(-nL*0.12, 0);         // left waist
+  ns.closePath();
+  qiblaNeedle = new THREE.Mesh(new THREE.ShapeGeometry(ns), new THREE.MeshBasicMaterial({color:hx(c.hand)}));
+  qiblaNeedle.position.y = subY;
+  qiblaNeedle.position.z = 3;
   qiblaGroup.add(qiblaNeedle);
+  
+  // Needle center pivot
+  const pivot = makeCircle(qr*0.08, c.hand, 4);
+  pivot.position.y = subY;
+  qiblaGroup.add(pivot);
+  
+  // Tiny lume dot on needle tip
+  const tipDot = makeCircle(1, c.lume, 4);
+  tipDot.position.y = subY + nL*0.45;
+  qiblaGroup.add(tipDot);
+  
+  // Bloom copy of tip
+  const bTip = makeCircle(1, c.lume, 4);
+  bTip.position.y = subY + nL*0.45;
+  bloomGroup.add(bTip);
 }
 
 function buildFlap() {
@@ -646,9 +710,10 @@ function buildFlap() {
   flapTexture = new THREE.CanvasTexture(flapCanvas);
   flapTexture.minFilter = THREE.LinearFilter;
   
-  const geo = new THREE.PlaneGeometry(R*0.6, R*0.22);
+  // Positioned at 12 o'clock (top)
+  const geo = new THREE.PlaneGeometry(R*0.55, R*0.2);
   flapSprite = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({map:flapTexture,transparent:true,depthTest:false}));
-  flapSprite.position.y = -R*0.36;
+  flapSprite.position.y = R*0.34;
   flapSprite.position.z = 9;
   flapGroup.add(flapSprite);
   
@@ -691,8 +756,12 @@ function updateColors() {
   
   if(capMeshes[0]) capMeshes[0].material.color=hx(c.hand);
   if(capMeshes[1]) capMeshes[1].material.color=hx(c.lume);
-  if(qiblaBg) qiblaBg.material.color=hx(c.hand);
-  if(qiblaNeedle) qiblaNeedle.material.color=hx(c.bg);
+  // Qibla sub-dial: recessed bg (slightly darker than dial), needle = hand color
+  if(qiblaBg) {
+    const rgb=hexRGB(c.bg);
+    qiblaBg.material.color.setRGB(Math.max(0,(rgb.r-15))/255, Math.max(0,(rgb.g-15))/255, Math.max(0,(rgb.b-15))/255);
+  }
+  if(qiblaNeedle) qiblaNeedle.material.color=hx(c.hand);
   
   bloomPass.strength = 0.12 + modeBlend * 0.8;
   bloomPass2.strength = modeBlend * 1.5;
@@ -922,6 +991,7 @@ function rebuildNumerals(){
   numeralSprites=[];
   const c=getColors();
   for(let i=0;i<12;i++){
+    if(i===0||i===6) continue;
     const ang=(i/12)*Math.PI*2-Math.PI/2;
     const r=R-R*0.26, fs=R*0.11;
     const sp=makeText(ARABIC[i],`700 ${fs}px Lateef,system-ui,sans-serif`,fs,c.text,4);
