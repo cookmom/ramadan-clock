@@ -37,6 +37,9 @@ canvas{display:block;width:100%;height:100%}
 
 <script type="module">
 import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 
 // ══════════════════════════════════════════
 // CONFIG
@@ -49,6 +52,15 @@ const DIALS = {
   sky:    {bg:0x5a9ac0, lume:0xf0f8ff, hand:0xf4f0e8, sec:0xffffff, text:'#f0f8ff'},
   cream:  {bg:0xd8ccb4, lume:0x3a3530, hand:0x2a2520, sec:0x3a3530, text:'#3a3530'},
 };
+// Night lume palettes — what each dial's lume looks like in the dark
+const NIGHT_LUME = {
+  tennis: { emissive: 0xb8ff50, color: 0xd0ff70 },  // vivid green SuperLuminova
+  white:  { emissive: 0x80ffa0, color: 0xa0ffc0 },   // cool mint glow
+  salmon: { emissive: 0xffd080, color: 0xffe0a0 },   // warm amber
+  slate:  { emissive: 0xc8e8a0, color: 0xd8f0b8 },   // classic green-cream SuperLuminova
+  sky:    { emissive: 0x60d0ff, color: 0x90e0ff },    // ice blue — matching the dial
+  cream:  { emissive: 0xe0c080, color: 0xf0d8a0 },   // old radium warm gold
+};
 const DIAL_NAMES = Object.keys(DIALS);
 const ARABIC = ['١٢','١','٢','٣','٤','٥','٦','٧','٨','٩','١٠','١١'];
 
@@ -56,7 +68,8 @@ const ARABIC = ['١٢','١','٢','٣','٤','٥','٦','٧','٨','٩','١٠','١١
 const _P = new URLSearchParams(location.search);
 const EMBED = _P.has('embed');
 let currentDial = (_P.get('dial') && DIALS[_P.get('dial')]) ? _P.get('dial') : 'slate';
-let modeBlend = 0, modeTarget = 0;
+const NIGHT_START = _P.has('night');
+let modeBlend = NIGHT_START ? 1 : 0, modeTarget = NIGHT_START ? 1 : 0;
 let PD = null;
 function pM(s){if(!s)return 0;const[h,m]=s.split(':').map(Number);return h*60+m;}
 
@@ -73,6 +86,7 @@ renderer.setSize(W, H);
 renderer.shadowMap.enabled = false;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.5;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
 document.body.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
@@ -84,6 +98,19 @@ const camZ = 280;
 const cam = new THREE.PerspectiveCamera(32, aspect, 1, 2000);
 cam.position.set(0, -3, camZ);
 cam.lookAt(0, 0, 0);
+
+// ══════════════════════════════════════════
+// BLOOM POST-PROCESSING
+// ══════════════════════════════════════════
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, cam));
+const bloomPass = new UnrealBloomPass(
+  new THREE.Vector2(W, H),
+  0.0,   // strength — will animate with modeBlend
+  0.4,   // radius — soft spread
+  0.85   // threshold — only bright emissives bloom
+);
+composer.addPass(bloomPass);
 
 // ══════════════════════════════════════════
 // LIGHTING
@@ -141,7 +168,7 @@ function lumeMat(color) {
   const m = new THREE.MeshStandardMaterial({ color, roughness: 0.5, metalness: 0.1, emissive: color, emissiveIntensity: 0 }); m.envMapIntensity = 0; return m;
 }
 function secMat(color) {
-  const m = new THREE.MeshStandardMaterial({ color, roughness: 0.3, metalness: 0.15 }); m.envMapIntensity = 0; return m;
+  const m = new THREE.MeshStandardMaterial({ color, roughness: 0.3, metalness: 0.15, emissive: color, emissiveIntensity: 0 }); m.envMapIntensity = 0; return m;
 }
 
 // ══════════════════════════════════════════
@@ -364,9 +391,10 @@ function buildMarkers() {
 
 // Arabic numerals
 let numeralSprites = [];
+let numeralMats = [];
 function buildNumerals() {
   numeralSprites.forEach(s=>clockGroup.remove(s));
-  numeralSprites=[];
+  numeralSprites=[]; numeralMats=[];
   const c = DIALS[currentDial];
   const NUMERAL_POS = [0,2,4,8,10]; // 12, 2, 4, 8, 10 (no 6 — qibla)
   for(const i of NUMERAL_POS){
@@ -391,13 +419,14 @@ function buildNumerals() {
     const tex = new THREE.CanvasTexture(cv);
     tex.minFilter = THREE.LinearFilter;
     const geo = new THREE.PlaneGeometry(tw, th);
-    const faceMat = new THREE.MeshStandardMaterial({map:tex, transparent:true, metalness:0.3, roughness:0.4, color:0xffffff, depthWrite:false}); faceMat.envMapIntensity = 0;
+    const faceMat = new THREE.MeshStandardMaterial({map:tex, transparent:true, metalness:0.3, roughness:0.4, color:0xffffff, depthWrite:false, emissive: new THREE.Color(c.lume), emissiveIntensity: 0}); faceMat.envMapIntensity = 0;
     const mesh = new THREE.Mesh(geo, faceMat);
     mesh.position.x = Math.cos(ang)*r;
     mesh.position.y = Math.sin(ang)*r;
     mesh.position.z = 3;
     clockGroup.add(mesh);
     numeralSprites.push(mesh);
+    numeralMats.push(faceMat);
   }
 }
 
@@ -810,6 +839,8 @@ window.addEventListener('resize',()=>{
   cam.aspect=a;
   cam.position.z = 280;
   cam.updateProjectionMatrix();
+  composer.setSize(W, H);
+  bloomPass.resolution.set(W, H);
 });
 
 // ══════════════════════════════════════════
@@ -822,10 +853,47 @@ function animate(){
   if(Math.abs(modeBlend-modeTarget)>0.001) modeBlend+=(modeTarget-modeBlend)*0.04;
   else modeBlend=modeTarget;
   
-  // Night mode: boost lume emissive
-  lumeMeshes.forEach(m=>{m.material.emissiveIntensity=modeBlend*0.8;});
-  if(hLumeMat_) hLumeMat_.emissiveIntensity=modeBlend*0.8;
-  if(mLumeMat_) mLumeMat_.emissiveIntensity=modeBlend*0.8;
+  // Night mode: lume glow with per-dial color
+  const nightLume = NIGHT_LUME[currentDial] || NIGHT_LUME.slate;
+  const lumeEmCol = new THREE.Color(nightLume.emissive);
+  const lumeIntensity = modeBlend * 1.2;
+  lumeMeshes.forEach(m=>{
+    m.material.emissive.lerp(lumeEmCol, modeBlend);
+    m.material.emissiveIntensity = lumeIntensity;
+  });
+  if(hLumeMat_) { hLumeMat_.emissive.lerp(lumeEmCol, modeBlend); hLumeMat_.emissiveIntensity = lumeIntensity; }
+  if(mLumeMat_) { mLumeMat_.emissive.lerp(lumeEmCol, modeBlend); mLumeMat_.emissiveIntensity = lumeIntensity; }
+  
+  // Numerals glow
+  numeralMats.forEach(m=>{
+    m.emissive.lerp(lumeEmCol, modeBlend);
+    m.emissiveIntensity = lumeIntensity * 0.6;
+  });
+  
+  // Qibla triangle glows brighter at night
+  if(qiblaGroup) {
+    qiblaGroup.traverse(child => {
+      if(child.material && child.material.emissive) {
+        if(child.material.color.getHex() === 0x2a9d5c) { // qibla green triangle
+          child.material.emissiveIntensity = 0.15 + modeBlend * 0.8;
+        }
+      }
+    });
+  }
+  
+  // Bloom ramps up in night mode
+  bloomPass.strength = modeBlend * 0.6;
+  
+  // Dim scene lights for night — let lume own the scene
+  ambLight.intensity = 0.3 * (1 - modeBlend * 0.85);
+  keyLight.intensity = 3.5 * (1 - modeBlend * 0.8);
+  coolFill.intensity = 1.2 * (1 - modeBlend * 0.9);
+  spotLight.intensity = 1.5 * (1 - modeBlend * 0.7);
+  specPoint.intensity = 15 * (1 - modeBlend * 0.6);
+  renderer.toneMappingExposure = 1.5 - modeBlend * 0.5;
+  
+  // Second hand subtle glow at night
+  if(secMat_) secMat_.emissiveIntensity = modeBlend * 0.3;
   
   // Stars
   starMeshes.forEach(m=>{
@@ -834,7 +902,9 @@ function animate(){
   });
   
   // BG color blend
-  if(!EMBED) scene.background = new THREE.Color(modeBlend<0.01 ? DIALS[currentDial].bg : new THREE.Color(DIALS[currentDial].bg).lerp(new THREE.Color(0x0a0a0f),modeBlend));
+  const nightBg = new THREE.Color(DIALS[currentDial].bg).lerp(new THREE.Color(0x060608), modeBlend);
+  if(!EMBED) scene.background = nightBg;
+  bgPlaneMat.color.copy(nightBg);
   
   // Parallax
   gx+=(tgx-gx)*0.08; gy+=(tgy-gy)*0.08;
@@ -846,9 +916,14 @@ function animate(){
   updateFlap();
   updateQibla();
   
-  document.querySelector('meta[name="theme-color"]').content='#'+scene.background.getHexString();
+  if(scene.background) document.querySelector('meta[name="theme-color"]').content='#'+scene.background.getHexString();
   
-  renderer.render(scene, cam);
+  // Use composer for bloom, fallback to direct render if no bloom needed
+  if(modeBlend > 0.01) {
+    composer.render();
+  } else {
+    renderer.render(scene, cam);
+  }
 }
 animate();
 if(EMBED){
