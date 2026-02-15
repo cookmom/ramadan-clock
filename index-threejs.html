@@ -109,7 +109,7 @@ rectLight.position.set(0, 0, 300);
 rectLight.lookAt(0, 0, 0);
 scene.add(rectLight);
 
-const dirLight = new THREE.DirectionalLight(0xffffff, 1.0);
+const dirLight = new THREE.DirectionalLight(0xfff5e8, 1.1);
 dirLight.position.set(-40, 200, 200);
 dirLight.castShadow = true;
 dirLight.shadow.mapSize.set(2048, 2048);
@@ -120,10 +120,17 @@ sc.near = 1; sc.far = 600; sc.left = sc.bottom = -200; sc.right = sc.top = 200;
 scene.add(dirLight);
 
 // Subtle fill from bottom-right
-// Fill light disabled — was flattening shadows
-// const fillLight = new THREE.DirectionalLight(0xffffff, 0.45);
-// fillLight.position.set(60, -60, 200);
-// scene.add(fillLight);
+// Rim light — edge definition on hands from behind-left  
+const rimLight = new THREE.DirectionalLight(0xddeeff, 0.35);
+rimLight.position.set(80, 40, -100);
+scene.add(rimLight);
+
+// Accent spot — warm highlight on gauge disc area
+const spotLight = new THREE.SpotLight(0xffeedd, 1.5, 500, Math.PI*0.15, 0.6, 1);
+spotLight.position.set(40, -30, 250);
+spotLight.target.position.set(0, -R*0.5, 0);
+scene.add(spotLight);
+scene.add(spotLight.target);
 
 // ══════════════════════════════════════════
 // MATERIALS (PBR)
