@@ -183,11 +183,9 @@ initGyro();
 // ══════════════════════════════════════════
 // BUILD CLOCK
 // ══════════════════════════════════════════
-// Background plane (fills screen behind case ring)
-const bgPlane = new THREE.Mesh(
-  new THREE.PlaneGeometry(2000, 2000),
-  new THREE.MeshBasicMaterial({ color: 0x25252b })
-);
+// Background plane (fills screen, matches dial color)
+const bgPlaneMat = new THREE.MeshBasicMaterial({ color: DIALS[currentDial].bg });
+const bgPlane = new THREE.Mesh(new THREE.PlaneGeometry(2000, 2000), bgPlaneMat);
 bgPlane.position.z = -50;
 scene.add(bgPlane);
 
@@ -480,6 +478,7 @@ function buildStars(){
 function buildAll(){
   // Clear clockGroup
   while(clockGroup.children.length) clockGroup.remove(clockGroup.children[0]);
+  bgPlaneMat.color.set(DIALS[currentDial].bg);
   buildDial();
   buildMarkers();
   buildNumerals();
