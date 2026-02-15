@@ -280,7 +280,7 @@ function buildMarkers() {
       const geo = new THREE.BoxGeometry(tW, tH, depth);
       const mat = new THREE.MeshStandardMaterial({color:c.lume, roughness:0.5, metalness:0.2, transparent:true, opacity:0.4});
       const mesh = new THREE.Mesh(geo, mat);
-      const midR = (R - R*0.04 - tH/2) * 0.9;
+      const midR = R - R*0.04 - tH/2;
       mesh.position.x = Math.cos(ang)*midR;
       mesh.position.y = Math.sin(ang)*midR;
       mesh.position.z = depth/2;
