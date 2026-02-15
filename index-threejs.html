@@ -363,7 +363,7 @@ function buildHands() {
   hlMesh.position.y = hL*0.28;
   hlMesh.position.z = 0.5;
   hourGroup.add(hlMesh);
-  hourGroup.position.z = 6;
+  hourGroup.position.z = 5;
   clockGroup.add(hourGroup);
   
   // Minute
@@ -380,7 +380,7 @@ function buildHands() {
   mlMesh.position.y = mL*0.28;
   mlMesh.position.z = 0.5;
   minGroup.add(mlMesh);
-  minGroup.position.z = 8;
+  minGroup.position.z = 7;
   clockGroup.add(minGroup);
   
   // Second hand
@@ -399,14 +399,14 @@ function buildHands() {
   cwMesh.rotation.x = Math.PI/2;
   cwMesh.position.y = -sT*0.55;
   secGroup.add(cwMesh);
-  secGroup.position.z = 12;
+  secGroup.position.z = 11;
   clockGroup.add(secGroup);
   
   // Center cap (3D cylinder)
   const capGeo = new THREE.CylinderGeometry(R*0.035, R*0.035, 8, 32);
   const capMesh = new THREE.Mesh(capGeo, metalMat(c.hand));
   capMesh.rotation.x = Math.PI/2;
-  capMesh.position.z = 14;
+  capMesh.position.z = 13;
   capMesh.castShadow = true;
   clockGroup.add(capMesh);
   markerMeshes.push(capMesh); // for cleanup
