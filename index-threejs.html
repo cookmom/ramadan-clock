@@ -287,12 +287,24 @@ function makeTextSprite(text, font, size, color) {
 // GYROSCOPE PARALLAX
 // ══════════════════════════════════════════
 let gx=0, gy=0, tgx=0, tgy=0;
+let gyroGranted = false;
 function initGyro(){
   if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission==='function'){
-    document.addEventListener('click',()=>{
-      DeviceOrientationEvent.requestPermission().then(s=>{if(s==='granted')window.addEventListener('deviceorientation',onG);}).catch(()=>{});
-    },{once:true});
-  } else { window.addEventListener('deviceorientation',onG); }
+    // iOS: need user gesture to request permission — retry on every tap until granted
+    function requestGyro(){
+      if(gyroGranted) return;
+      DeviceOrientationEvent.requestPermission().then(s=>{
+        if(s==='granted'){
+          gyroGranted=true;
+          window.addEventListener('deviceorientation',onG);
+        }
+      }).catch(()=>{});
+    }
+    document.addEventListener('click', requestGyro);
+    document.addEventListener('touchend', requestGyro);
+  } else { 
+    window.addEventListener('deviceorientation',onG); 
+  }
   window.addEventListener('mousemove',e=>{tgx=((e.clientX/W)-0.5)*2;tgy=((e.clientY/H)-0.5)*2;});
 }
 function onG(e){
