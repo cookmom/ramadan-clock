@@ -380,95 +380,55 @@ function buildMarkers() {
     const isNumeralPos = isHour && [0,2,4,6,8,10].includes(hourIdx);
     
     if(isKawthar) {
-      // ── KAWTHAR: playful design for his daughter ──
+      // ── KAWTHAR: playful — chunky pastel circles, each hour its own color ──
+      const HOUR_COLORS = [
+        0xf0a0b8, // 12 — rose
+        0xf0c090, // 1 — peach
+        0xf0d880, // 2 — golden
+        0xb8e8a0, // 3 — mint
+        0xa0d8c0, // 4 — sage
+        0xa0c8e8, // 5 — sky
+        // 6 = qibla cutout
+        0xb0a8e0, // 7 — lavender
+        0xd0a0d8, // 8 — lilac
+        0xe0a0c0, // 9 — pink
+        0xf0b0a0, // 10 — coral
+        0xe8c8a0, // 11 — honey
+      ];
       if(isHour && hourIdx !== 6) {
+        // Map hourIdx to color (skip 6)
+        const colorIdx = hourIdx < 6 ? hourIdx : hourIdx - 1;
+        const hColor = HOUR_COLORS[colorIdx] || 0xf0a0b8;
+        const dotR = (hourIdx === 0) ? R*0.065 : R*0.05;
+        const depth = 3;
+        // Chunky extruded circle — like candy buttons
+        const geo = new THREE.CylinderGeometry(dotR, dotR, depth, 32);
+        const mat = new THREE.MeshPhysicalMaterial({
+          color: hColor, roughness: 0.35, metalness: 0.1,
+          clearcoat: 0.6, clearcoatRoughness: 0.15,
+          emissive: hColor, emissiveIntensity: 0
+        }); mat.envMapIntensity = 0;
+        const mesh = new THREE.Mesh(geo, mat);
         const midR = R * 0.85;
-        const px = Math.cos(ang)*midR;
-        const py = Math.sin(ang)*midR;
-        const depth = 2.5;
-        
-        if(hourIdx === 0) {
-          // 12 o'clock: 6-point star (special, larger)
-          const s = R*0.08;
-          const shape = new THREE.Shape();
-          for(let p=0; p<6; p++) {
-            const a1 = (p/6)*Math.PI*2 - Math.PI/2;
-            const a2 = ((p+0.5)/6)*Math.PI*2 - Math.PI/2;
-            const ro = s, ri = s*0.5;
-            if(p===0) shape.moveTo(Math.cos(a1)*ro, Math.sin(a1)*ro);
-            else shape.lineTo(Math.cos(a1)*ro, Math.sin(a1)*ro);
-            shape.lineTo(Math.cos(a2)*ri, Math.sin(a2)*ri);
-          }
-          shape.closePath();
-          const geo = new THREE.ExtrudeGeometry(shape, {depth, bevelEnabled:true, bevelThickness:0.3, bevelSize:0.2, bevelSegments:2});
-          const mesh = new THREE.Mesh(geo, metalMat(c.hand));
-          mesh.position.set(px, py, 1);
-          clockGroup.add(mesh); markerMeshes.push(mesh);
-          // Lume center
-          const lm = new THREE.Mesh(new THREE.CircleGeometry(s*0.3, 16), lumeMat(c.lume));
-          lm.position.set(px, py, depth+1.5); clockGroup.add(lm); lumeMeshes.push(lm);
-          
-        } else if(hourIdx % 3 === 0) {
-          // 3, 9 o'clock: crescent moons
-          const mr = R*0.045;
-          const outer = new THREE.Shape();
-          outer.absarc(0, 0, mr, 0, Math.PI*2, false);
-          const inner = new THREE.Path();
-          inner.absarc(mr*0.35, mr*0.2, mr*0.75, 0, Math.PI*2, true);
-          outer.holes.push(inner);
-          const geo = new THREE.ExtrudeGeometry(outer, {depth, bevelEnabled:true, bevelThickness:0.2, bevelSize:0.15, bevelSegments:2});
-          const mesh = new THREE.Mesh(geo, metalMat(c.hand));
-          mesh.position.set(px, py, 1);
-          clockGroup.add(mesh); markerMeshes.push(mesh);
-          const lm = new THREE.Mesh(new THREE.CircleGeometry(mr*0.25, 12), lumeMat(c.lume));
-          lm.position.set(px, py, depth+1.5); clockGroup.add(lm); lumeMeshes.push(lm);
-          
-        } else {
-          // Other hours: hearts
-          const hs = R*0.04;
-          const shape = new THREE.Shape();
-          shape.moveTo(0, -hs*1.1);  // bottom point
-          shape.bezierCurveTo(-hs*0.8, -hs*0.4, -hs*1.1, hs*0.4, 0, hs*0.7);  // left lobe
-          shape.bezierCurveTo(hs*1.1, hs*0.4, hs*0.8, -hs*0.4, 0, -hs*1.1);   // right lobe
-          const geo = new THREE.ExtrudeGeometry(shape, {depth, bevelEnabled:true, bevelThickness:0.2, bevelSize:0.15, bevelSegments:2});
-          const mesh = new THREE.Mesh(geo, metalMat(c.hand));
-          mesh.position.set(px, py, 1);
-          clockGroup.add(mesh); markerMeshes.push(mesh);
-          // Lume pip
-          const lm = new THREE.Mesh(new THREE.CircleGeometry(hs*0.3, 12), lumeMat(c.lume));
-          lm.position.set(px, py, depth+1.5); clockGroup.add(lm); lumeMeshes.push(lm);
-        }
+        mesh.position.x = Math.cos(ang)*midR;
+        mesh.position.y = Math.sin(ang)*midR;
+        mesh.position.z = depth/2;
+        mesh.rotation.x = Math.PI/2;
+        clockGroup.add(mesh); markerMeshes.push(mesh);
+        lumeMeshes.push(mesh); // they all glow at night
       } else if(!isHour) {
-        // Alternating stars and dots for minute track
+        // Simple small dots — rose gold
+        const geo = new THREE.CircleGeometry(0.6, 10);
+        const mat = new THREE.MeshStandardMaterial({
+          color: c.lume, roughness: 0.3, metalness: 0.3,
+          emissive: c.lume, emissiveIntensity: 0
+        }); mat.envMapIntensity = 0;
+        const mesh = new THREE.Mesh(geo, mat);
         const midR = R * 0.95;
-        const mx = Math.cos(ang)*midR;
-        const my = Math.sin(ang)*midR;
-        
-        if(i % 2 === 0) {
-          // Tiny 5-point star
-          const ss = 0.8;
-          const shape = new THREE.Shape();
-          for(let p=0; p<5; p++) {
-            const a1 = (p/5)*Math.PI*2 - Math.PI/2;
-            const a2 = ((p+0.5)/5)*Math.PI*2 - Math.PI/2;
-            if(p===0) shape.moveTo(Math.cos(a1)*ss, Math.sin(a1)*ss);
-            else shape.lineTo(Math.cos(a1)*ss, Math.sin(a1)*ss);
-            shape.lineTo(Math.cos(a2)*ss*0.4, Math.sin(a2)*ss*0.4);
-          }
-          shape.closePath();
-          const geo = new THREE.ExtrudeGeometry(shape, {depth:1, bevelEnabled:false});
-          const mat = new THREE.MeshStandardMaterial({color:c.lume, roughness:0.3, metalness:0.4}); mat.envMapIntensity=0;
-          const mesh = new THREE.Mesh(geo, mat);
-          mesh.position.set(mx, my, 1.5);
-          clockGroup.add(mesh); markerMeshes.push(mesh);
-        } else {
-          // Tiny dot
-          const geo = new THREE.CircleGeometry(0.5, 10);
-          const mat = new THREE.MeshStandardMaterial({color:c.lume, roughness:0.3, metalness:0.4}); mat.envMapIntensity=0;
-          const mesh = new THREE.Mesh(geo, mat);
-          mesh.position.set(mx, my, 1.5);
-          clockGroup.add(mesh); markerMeshes.push(mesh);
-        }
+        mesh.position.x = Math.cos(ang)*midR;
+        mesh.position.y = Math.sin(ang)*midR;
+        mesh.position.z = 1.5;
+        clockGroup.add(mesh); markerMeshes.push(mesh);
       }
     } else {
       // ── STANDARD: tick marks + rectangular hour markers ──
