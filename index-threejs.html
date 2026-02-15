@@ -1291,6 +1291,12 @@ document.querySelectorAll('.dial-dot').forEach(d=>{d.addEventListener('click',e=
 // ══════════════════════════════════════════
 // RESIZE
 // ══════════════════════════════════════════
+// Listen for dispose message from parent (landing page iframe management)
+window.addEventListener('message',(e)=>{
+  if(e.data&&e.data.type==='dispose'){
+    renderer.dispose();renderer.forceContextLoss();
+  }
+});
 window.addEventListener('resize',()=>{
   W=window.innerWidth;H=window.innerHeight;
   renderer.setSize(W,H);
