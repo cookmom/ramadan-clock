@@ -919,18 +919,18 @@ function buildQibla() {
     { r: rotorR * 0.48, width: 1.0, speed: 0.8,  dir: 1  },  // inner ring — faster CW
   ];
   
-  // Sorbet palette — soft pastel segments
+  // Dial palette — our own watch face colors as segments
   const sorbet = [
-    0xffb5b5, // strawberry
-    0xffd4a3, // peach
-    0xfff1a3, // lemon
-    0xb5f0c8, // pistachio
-    0xa3d8ff, // blueberry
-    0xd4b5ff, // lavender
-    0xffb5e0, // raspberry
-    0xb5ffe0, // mint
+    0x68b890, // tennis
+    0xd8988c, // salmon
+    0x82b8d8, // sky
+    0xf2dce0, // kawthar
+    0xf08040, // dhuha
+    0x384870, // najm
+    0xd89098, // ward
+    0x8878a8, // lilas
   ];
-  const segCount = 8; // segments per ring — matches sorbet palette
+  const segCount = 8;
   
   window._subdialRings = [];
   ringDefs.forEach((rd, ri) => {
