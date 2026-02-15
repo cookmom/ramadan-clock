@@ -106,15 +106,16 @@ keyLight.lookAt(0, 0, 0);
 scene.add(keyLight);
 
 // Subtle fill from bottom-right
-// Rim light — edge definition on hands from behind-left  
-const rimLight = new THREE.DirectionalLight(0xddeeff, 0.35);
-rimLight.position.set(80, 40, -100);
-scene.add(rimLight);
+// Cool fill rect from right — warm/cool split
+const coolFill = new THREE.RectAreaLight(0xc8d8f0, 1.2, 200, 200);
+coolFill.position.set(120, 40, 150);
+coolFill.lookAt(0, 0, 0);
+scene.add(coolFill);
 
-// Accent spot — warm highlight on gauge disc area
-const spotLight = new THREE.SpotLight(0xffeedd, 2.0, 500, Math.PI*0.15, 0.5, 1);
-spotLight.position.set(30, -50, 200);
-spotLight.target.position.set(0, -R*0.5, 0);
+// Accent spot — subtle warm pool on lower dial
+const spotLight = new THREE.SpotLight(0xffeedd, 1.5, 400, Math.PI*0.12, 0.7, 1.5);
+spotLight.position.set(20, -40, 250);
+spotLight.target.position.set(0, -R*0.3, 0);
 scene.add(spotLight);
 scene.add(spotLight.target);
 
@@ -128,7 +129,7 @@ scene.add(specPoint);
 // MATERIALS (PBR)
 // ══════════════════════════════════════════
 function dialMat(color) {
-  const m = new THREE.MeshStandardMaterial({ color, roughness: 0.9, metalness: 0.0 }); m.envMapIntensity = 0; return m;
+  const m = new THREE.MeshPhysicalMaterial({ color, roughness: 0.88, metalness: 0.0, sheen: 0.3, sheenColor: new THREE.Color(0x666680), sheenRoughness: 0.8 }); m.envMapIntensity = 0; return m;
 }
 function metalMat(color) {
   return new THREE.MeshPhysicalMaterial({ color, roughness: 0.15, metalness: 0.5, clearcoat: 1.0, clearcoatRoughness: 0.05, reflectivity: 0.9 });
@@ -242,7 +243,7 @@ initGyro();
 // BUILD CLOCK
 // ══════════════════════════════════════════
 // Background plane (fills screen, matches dial color)
-const bgPlaneMat = new THREE.MeshBasicMaterial({ color: DIALS[currentDial].bg });
+const bgPlaneMat = new THREE.MeshBasicMaterial({ color: 0x1a1a22 });
 const bgPlane = new THREE.Mesh(new THREE.PlaneGeometry(2000, 2000), bgPlaneMat);
 bgPlane.position.z = -50;
 scene.add(bgPlane);
@@ -470,8 +471,8 @@ function buildQibla() {
   const gaugeR = R*0.38 - 1;
   const gaugeGeo = new THREE.CircleGeometry(gaugeR, 64);
   const gaugeMat = new THREE.MeshPhysicalMaterial({ 
-    color: 0xb8b8b4, roughness: 0.35, metalness: 0.6, 
-    clearcoat: 0.4, clearcoatRoughness: 0.2, reflectivity: 0.5
+    color: 0xa8b0b8, roughness: 0.4, metalness: 0.5, 
+    clearcoat: 0.3, clearcoatRoughness: 0.2, reflectivity: 0.4
   });
   const gaugeMesh = new THREE.Mesh(gaugeGeo, gaugeMat);
   gaugeMesh.position.y = -R*0.5;
@@ -519,7 +520,7 @@ function buildStars(){
 function buildAll(){
   // Clear clockGroup
   while(clockGroup.children.length) clockGroup.remove(clockGroup.children[0]);
-  bgPlaneMat.color.set(DIALS[currentDial].bg);
+  bgPlaneMat.color.set(0x1a1a22);
   buildDial();
   buildMarkers();
   buildNumerals();
