@@ -695,6 +695,7 @@ function buildQibla() {
   const now = new Date();
   const dayOfRamadan = Math.max(0, Math.min(RAMADAN_DAYS, Math.floor((now - RAMADAN_START) / 86400000) + 1));
   const moonPhase = dayOfRamadan / RAMADAN_DAYS; // 0→1 over the month
+  window._hijriMoonPhase = moonPhase;
   
   // Moon disc — bright circle
   const moonR = gaugeR * 0.42;
@@ -1088,6 +1089,8 @@ function buildFlap() {
 const STARS=[];
 for(let i=0;i<11;i++){const t=i/10,dip=4*t*(1-t);STARS.push({x:0.08+t*0.84,y:0.03+dip*0.12,r:0.8+Math.sin(i*1.7)*0.5+0.3,speed:0.0009+i*0.00008,offset:i*0.57,bright:0.7+Math.sin(i*2.3)*0.2});}
 let starMeshes=[];
+let moonGroup, moonMesh, moonGlowMesh;
+
 function buildStars(){
   starMeshes.forEach(m=>scene.remove(m)); starMeshes=[];
   STARS.forEach(s=>{
@@ -1095,6 +1098,50 @@ function buildStars(){
     m.position.x=(s.x-0.5)*350; m.position.y=(0.5-s.y)*600;
     m.position.z=-20; m.userData=s; scene.add(m); starMeshes.push(m);
   });
+  
+  // 3D Moon — rises during night transition
+  if(moonGroup) scene.remove(moonGroup);
+  moonGroup = new THREE.Group();
+  
+  const moonR = 18;
+  // Moon sphere
+  const moonGeo = new THREE.SphereGeometry(moonR, 32, 32);
+  const moonMat = new THREE.MeshPhysicalMaterial({
+    color: 0xf4f0e0,
+    roughness: 0.8,
+    metalness: 0.0,
+    emissive: 0xf4f0e0,
+    emissiveIntensity: 0,
+  });
+  moonMesh = new THREE.Mesh(moonGeo, moonMat);
+  moonGroup.add(moonMesh);
+  
+  // Moon shadow disc — creates phase by covering part of moon
+  const shadowGeo = new THREE.SphereGeometry(moonR + 0.1, 32, 32);
+  const shadowMat = new THREE.MeshBasicMaterial({
+    color: 0x060608,
+    transparent: true,
+    opacity: 0,
+  });
+  const shadowMesh = new THREE.Mesh(shadowGeo, shadowMat);
+  shadowMesh.name = 'moonShadow';
+  moonGroup.add(shadowMesh);
+  
+  // Soft glow halo behind moon
+  const glowGeo = new THREE.CircleGeometry(moonR * 2.5, 32);
+  const glowMat = new THREE.MeshBasicMaterial({
+    color: 0xf4f0e0,
+    transparent: true,
+    opacity: 0,
+  });
+  moonGlowMesh = new THREE.Mesh(glowGeo, glowMat);
+  moonGlowMesh.position.z = -1;
+  moonGroup.add(moonGlowMesh);
+  
+  // Start position — below visible area
+  moonGroup.position.set(100, -250, -30);
+  moonGroup.visible = false;
+  scene.add(moonGroup);
 }
 
 // ══════════════════════════════════════════
@@ -1430,12 +1477,54 @@ function animate(){
   if(hourMat_) { hourMat_.emissive = hourMat_.emissive || new THREE.Color(0); hourMat_.emissive.copy(lumeEmCol).multiplyScalar(0.04); hourMat_.emissiveIntensity = modeBlend; }
   if(minMat_) { minMat_.emissive = minMat_.emissive || new THREE.Color(0); minMat_.emissive.copy(lumeEmCol).multiplyScalar(0.04); minMat_.emissiveIntensity = modeBlend; }
   
-  // Stars — tinted to match lume palette
-  starMeshes.forEach(m=>{
+  // Stars — staggered fade-in, tinted to lume palette
+  starMeshes.forEach((m,i)=>{
     const s=m.userData;if(!s)return;
-    m.material.opacity=modeBlend*s.bright*(Math.sin(Date.now()*s.speed+s.offset)*0.3+0.7)*0.7;
+    // Stagger: each star appears at a different modeBlend threshold
+    const starThreshold = 0.15 + (i / starMeshes.length) * 0.4; // 0.15 → 0.55
+    const starBlend = Math.max(0, Math.min(1, (modeBlend - starThreshold) / 0.15));
+    const twinkle = (Math.sin(Date.now()*s.speed+s.offset)*0.3+0.7);
+    m.material.opacity = starBlend * s.bright * twinkle * 0.8;
+    // Stars scale up as they appear
+    const sc = 0.3 + starBlend * 0.7;
+    m.scale.setScalar(sc);
     m.material.color.lerp(lumeEmCol, modeBlend * 0.3);
   });
+  
+  // Moon — rises from below, reaches position at full night
+  if(moonGroup) {
+    const moonThreshold = 0.3; // moon starts rising after stars begin
+    const moonBlend = Math.max(0, Math.min(1, (modeBlend - moonThreshold) / 0.5));
+    moonGroup.visible = modeBlend > 0.1;
+    
+    // Rise from below-right to upper-right
+    const startY = -250, endY = 180;
+    const startX = 120, endX = 100;
+    // Ease-out cubic for natural rise
+    const eased = 1 - Math.pow(1 - moonBlend, 3);
+    moonGroup.position.y = startY + (endY - startY) * eased;
+    moonGroup.position.x = startX + (endX - startX) * eased;
+    
+    // Moon glow and emissive
+    if(moonMesh) {
+      moonMesh.material.emissiveIntensity = moonBlend * 0.6;
+    }
+    if(moonGlowMesh) {
+      moonGlowMesh.material.opacity = moonBlend * 0.08;
+      moonGlowMesh.material.color.lerp(lumeEmCol, 0.3);
+    }
+    
+    // Moon phase shadow — use Hijri day if available
+    const shadow = moonGroup.children.find(c => c.name === 'moonShadow');
+    if(shadow) {
+      shadow.material.opacity = moonBlend * 0.95;
+      // Rotate shadow to show current phase (offset x to reveal crescent)
+      const phase = window._hijriMoonPhase || 0.1; // 0=new, 0.5=full, 1=new
+      const phaseAngle = phase * Math.PI * 2;
+      shadow.position.x = Math.cos(phaseAngle) * 12;
+      shadow.position.z = Math.sin(phaseAngle) > 0 ? 0.2 : -0.2;
+    }
+  }
   
   // BG color blend
   const nightBg = new THREE.Color(DIALS[currentDial].bg).lerp(new THREE.Color(0x060608), modeBlend);
