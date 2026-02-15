@@ -918,9 +918,11 @@ function drawSplitFlapChars(c,chars,sub){
 
   // Sub-label below
   ctx.textAlign='center';ctx.textBaseline='middle';
-  ctx.font=`300 ${R*0.067}px 'Inter',system-ui,sans-serif`;
-  ctx.fillStyle=c.lume;ctx.globalAlpha=1;
-  ctx.fillText(sub,cx,wy+cellH/2+R*0.045);
+  ctx.font=`500 ${R*0.038}px 'Inter',system-ui,sans-serif`;
+  ctx.letterSpacing=R*0.004+'px';
+  ctx.fillStyle=c.lume;ctx.globalAlpha=0.6;
+  ctx.fillText(sub,cx,wy+cellH/2+R*0.042);
+  ctx.letterSpacing='0px';
   ctx.globalAlpha=1;
 
   let curX=startX;
