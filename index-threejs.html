@@ -151,6 +151,45 @@ function extrudedLeaf(len, maxW, tailLen, depth, baseScale=1.0) {
   return new THREE.ExtrudeGeometry(s, { depth, bevelEnabled:true, bevelThickness:0.4, bevelSize:0.3, bevelSegments:3 });
 }
 
+// NOMOS Club Campus sword hands — flat baton tapering to point, lume channel recessed
+function nomosHand(len, baseW, tailLen, depth) {
+  const s = new THREE.Shape();
+  const hw = baseW / 2;
+  const tipW = hw * 0.15; // narrow point
+  // Start at tail bottom-left
+  s.moveTo(-hw * 0.6, -tailLen);
+  // Straight parallel sides up to ~70%
+  s.lineTo(-hw, 0);
+  s.lineTo(-hw, len * 0.7);
+  // Taper to point
+  s.lineTo(-tipW, len * 0.95);
+  s.lineTo(0, len);
+  s.lineTo(tipW, len * 0.95);
+  s.lineTo(hw, len * 0.7);
+  // Back down
+  s.lineTo(hw, 0);
+  s.lineTo(hw * 0.6, -tailLen);
+  s.closePath();
+  return new THREE.ExtrudeGeometry(s, { depth, bevelEnabled: true, bevelThickness: 0.3, bevelSize: 0.2, bevelSegments: 2 });
+}
+
+// Lume channel — recessed strip in center of NOMOS hand
+function nomosLume(len, baseW, depth) {
+  const cw = baseW * 0.3; // channel width = 30% of hand
+  const hw = cw / 2;
+  const startY = len * 0.08;
+  const endY = len * 0.65;
+  const s = new THREE.Shape();
+  s.moveTo(-hw, startY);
+  s.lineTo(-hw, endY);
+  s.lineTo(-hw * 0.5, endY + len * 0.05);
+  s.lineTo(hw * 0.5, endY + len * 0.05);
+  s.lineTo(hw, endY);
+  s.lineTo(hw, startY);
+  s.closePath();
+  return new THREE.ExtrudeGeometry(s, { depth: depth + 0.5, bevelEnabled: false });
+}
+
 function makeTextSprite(text, font, size, color) {
   const dpr = 3;
   const w = size*Math.max(text.length,1)*1.3, h = size*1.6;
@@ -337,7 +376,7 @@ function buildNumerals() {
   }
 }
 
-// Hands (extruded leaf shapes — real 3D with bevel)
+// Hands (NOMOS Club Campus sword style — real 3D with lume channel)
 let hourGroup, minGroup, secGroup;
 let hourMat_, minMat_, secMat_, hLumeMat_, mLumeMat_;
 
@@ -348,37 +387,35 @@ function buildHands() {
   
   const c = DIALS[currentDial];
   
-  // Hour
+  // Hour — NOMOS Club Campus sword hand
   hourGroup = new THREE.Group();
-  const hL=R*0.75, hW=R*0.05, hT=R*0.05, hD=4;
-  const hGeo = extrudedLeaf(hL, hW, hT, hD, 1.8);
+  const hL=R*0.75, hW=R*0.07, hT=R*0.05, hD=4;
+  const hGeo = nomosHand(hL, hW, hT, hD);
   hourMat_ = metalMat(c.hand);
   const hMesh = new THREE.Mesh(hGeo, hourMat_);
   hMesh.castShadow = true;
   hourGroup.add(hMesh);
-  // Lume strip
-  const hlGeo = new THREE.BoxGeometry(hW*0.3, hL*0.5, hD+1);
+  // Lume channel recessed into hand
+  const hlGeo = nomosLume(hL, hW, hD);
   hLumeMat_ = lumeMat(c.lume);
   const hlMesh = new THREE.Mesh(hlGeo, hLumeMat_);
-  hlMesh.position.y = hL*0.28;
-  hlMesh.position.z = 0.5;
+  hlMesh.position.z = -0.2;
   hourGroup.add(hlMesh);
   hourGroup.position.z = 5;
   clockGroup.add(hourGroup);
   
-  // Minute
+  // Minute — NOMOS Club Campus sword hand
   minGroup = new THREE.Group();
-  const mL=R*0.925, mW=R*0.038, mT=R*0.07, mD=5;
-  const mGeo = extrudedLeaf(mL, mW, mT, mD, 1.25);
+  const mL=R*0.925, mW=R*0.05, mT=R*0.07, mD=5;
+  const mGeo = nomosHand(mL, mW, mT, mD);
   minMat_ = metalMat(c.hand);
   const mMesh = new THREE.Mesh(mGeo, minMat_);
   mMesh.castShadow = true;
   minGroup.add(mMesh);
-  const mlGeo = new THREE.BoxGeometry(mW*0.3, mL*0.5, mD+1);
+  const mlGeo = nomosLume(mL, mW, mD);
   mLumeMat_ = lumeMat(c.lume);
   const mlMesh = new THREE.Mesh(mlGeo, mLumeMat_);
-  mlMesh.position.y = mL*0.28;
-  mlMesh.position.z = 0.5;
+  mlMesh.position.z = -0.2;
   minGroup.add(mlMesh);
   minGroup.position.z = 7;
   clockGroup.add(minGroup);
