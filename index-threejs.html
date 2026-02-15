@@ -32,6 +32,7 @@ canvas{display:block;width:100%;height:100%}
   <div class="dial-dot active" data-dial="slate" style="border-color:#6a6a74"></div>
   <div class="dial-dot" data-dial="sky" style="border-color:#5a9ac0"></div>
   <div class="dial-dot" data-dial="cream" style="border-color:#d8ccb4"></div>
+  <div class="dial-dot" data-dial="kawthar" style="border-color:#f0ece8"></div>
 </div>
 
 <script type="importmap">
@@ -54,6 +55,7 @@ const DIALS = {
   slate:  {bg:0x585860, lume:0xe8e0c8, hand:0xd0d0d4, sec:0xff6633, text:'#e8e0c8', surah:'Al-Layl'},          // classic SuperLuminova cream — the night
   sky:    {bg:0x5a9ac0, lume:0xe0f0ff, hand:0xf4f0e8, sec:0xffffff, text:'#f0f8ff', surah:'Al-Burūj'},         // ice white — the constellations
   cream:  {bg:0xd8ccb4, lume:0x4a3828, hand:0x2a2520, sec:0x3a3530, text:'#3a3530', surah:'At-Tīn'},           // dark chocolate — the fig
+  kawthar:{bg:0xf0ece8, lume:0xc8a870, hand:0xb8985c, sec:0xc8a870, text:'#8a7a5a', surah:'Al-Kawthar'},      // pearl white, gold accents — the river of paradise
 };
 // Night lume palettes — modeled after real SuperLuminova variants
 // Each matches the daytime lume character but amplified for glow
@@ -64,6 +66,7 @@ const NIGHT_LUME = {
   slate:  { emissive: 0xc8e8a0 },  // C3 — classic green-cream, the iconic lume
   sky:    { emissive: 0x80d0ff },  // BGW9 — ice blue constellations
   cream:  { emissive: 0xe0c878 },  // Tritium — warm gold, aged patina
+  kawthar:{ emissive: 0xf0e0c0 },  // Moonlit pearl — warm white-gold, otherworldly
 };
 const DIAL_NAMES = Object.keys(DIALS);
 const ARABIC = ['١٢','١','٢','٣','٤','٥','٦','٧','٨','٩','١٠','١١'];
@@ -163,10 +166,31 @@ scene.add(specPoint);
 // MATERIALS (PBR)
 // ══════════════════════════════════════════
 function dialMat(color) {
-  const m = new THREE.MeshPhysicalMaterial({ color, roughness: 0.88, metalness: 0.0, sheen: 0.25, sheenColor: new THREE.Color(0x706860), sheenRoughness: 0.8, emissive: 0x000000, emissiveIntensity: 0 }); m.envMapIntensity = 0; return m;
+  const isKawthar = currentDial === 'kawthar';
+  const m = new THREE.MeshPhysicalMaterial({
+    color,
+    roughness: isKawthar ? 0.6 : 0.88,
+    metalness: isKawthar ? 0.15 : 0.0,
+    sheen: isKawthar ? 0.8 : 0.25,
+    sheenColor: new THREE.Color(isKawthar ? 0xd4b880 : 0x706860),  // gold sheen for Kawthar
+    sheenRoughness: isKawthar ? 0.3 : 0.8,
+    clearcoat: isKawthar ? 0.4 : 0,
+    clearcoatRoughness: isKawthar ? 0.3 : 0,
+    emissive: 0x000000, emissiveIntensity: 0
+  });
+  m.envMapIntensity = 0;
+  return m;
 }
 function metalMat(color) {
-  return new THREE.MeshPhysicalMaterial({ color, roughness: 0.15, metalness: 0.5, clearcoat: 1.0, clearcoatRoughness: 0.05, reflectivity: 0.9 });
+  const isKawthar = currentDial === 'kawthar';
+  return new THREE.MeshPhysicalMaterial({
+    color,
+    roughness: isKawthar ? 0.1 : 0.15,
+    metalness: isKawthar ? 0.8 : 0.5,  // more metallic gold
+    clearcoat: 1.0,
+    clearcoatRoughness: 0.05,
+    reflectivity: isKawthar ? 1.0 : 0.9
+  });
 }
 function lumeMat(color) {
   const m = new THREE.MeshStandardMaterial({ color, roughness: 0.5, metalness: 0.1, emissive: color, emissiveIntensity: 0 }); m.envMapIntensity = 0; return m;
