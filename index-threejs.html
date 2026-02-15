@@ -297,11 +297,8 @@ function buildNumerals() {
     // Extruded numeral plate — sits proud of dial
     const nDepth = 4;
     const geo = new THREE.BoxGeometry(tw, th, nDepth);
-    const sideMat = metalMat(c.hand||'#c0c0c0');
-    const faceMat = new THREE.MeshStandardMaterial({map:tex, transparent:true, metalness:0.3, roughness:0.4});
-    const blankMat = new THREE.MeshStandardMaterial({transparent:true, opacity:0});
-    // Box faces: +x,-x,+y,-y,+z(front),-z(back)
-    const mesh = new THREE.Mesh(geo, [sideMat,sideMat,sideMat,sideMat,faceMat,blankMat]);
+    const faceMat = new THREE.MeshStandardMaterial({map:tex, transparent:true, metalness:0.3, roughness:0.4, color:0xffffff});
+    const mesh = new THREE.Mesh(geo, faceMat);
     mesh.castShadow = true;
     mesh.position.x = Math.cos(ang)*r;
     mesh.position.y = Math.sin(ang)*r;
