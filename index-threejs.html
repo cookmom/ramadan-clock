@@ -270,7 +270,7 @@ function buildNumerals() {
   numeralSprites.forEach(s=>clockGroup.remove(s));
   numeralSprites=[];
   const c = DIALS[currentDial];
-  const NUMERAL_POS = [0,2,4,8,10]; // NOMOS Campus layout + 12
+  const NUMERAL_POS = [2,4,8,10]; // NOMOS Campus — 12 occupied by flap
   for(const i of NUMERAL_POS){
     const ang = -(i/12)*Math.PI*2 + Math.PI/2; // clockwise from 12
     const r = R - R*0.18; // centered in marker gap
