@@ -410,41 +410,7 @@ let qiblaGroup;
 function buildQibla() {
   if(qiblaGroup) clockGroup.remove(qiblaGroup);
   qiblaGroup = new THREE.Group();
-  const c = DIALS[currentDial];
-  const subY = -R*0.32, qr = R*0.17;
-  
-  // Compass ticks
-  for(let i=0;i<8;i++){
-    const ang=Math.PI/2-(i/8)*Math.PI*2;
-    const isC=i%2===0;
-    const tH=isC?qr*0.13:qr*0.07, tW=isC?1.2:0.6, tD=1.5;
-    const geo=new THREE.BoxGeometry(tW,tH,tD);
-    const mesh=new THREE.Mesh(geo, metalMat(c.lume));
-    const tr=qr-tH/2-2;
-    mesh.position.x=Math.cos(ang)*tr;
-    mesh.position.y=subY+Math.sin(ang)*tr;
-    mesh.position.z=1;
-    mesh.rotation.z=ang+Math.PI/2;
-    qiblaGroup.add(mesh);
-  }
-  
-  // Needle (extruded diamond)
-  const nL=qr*0.65;
-  const ns=new THREE.Shape();
-  ns.moveTo(0,nL*0.55); ns.lineTo(nL*0.1,0); ns.lineTo(0,-nL*0.45); ns.lineTo(-nL*0.1,0); ns.closePath();
-  const nGeo=new THREE.ExtrudeGeometry(ns,{depth:2,bevelEnabled:true,bevelThickness:0.2,bevelSize:0.15,bevelSegments:1});
-  const nMesh=new THREE.Mesh(nGeo, metalMat(c.hand));
-  nMesh.position.y=subY; nMesh.position.z=2;
-  nMesh.castShadow=true;
-  qiblaGroup.add(nMesh);
-  
-  // Center pivot
-  const pivGeo=new THREE.CylinderGeometry(qr*0.06,qr*0.06,3,16);
-  const pivMesh=new THREE.Mesh(pivGeo, metalMat(c.hand));
-  pivMesh.rotation.x=Math.PI/2;
-  pivMesh.position.y=subY; pivMesh.position.z=3;
-  qiblaGroup.add(pivMesh);
-  
+  // Empty — cutout only, no elements inside
   clockGroup.add(qiblaGroup);
 }
 
