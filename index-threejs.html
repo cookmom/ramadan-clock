@@ -926,8 +926,8 @@ function buildQibla() {
   qiblaInnerRotor.add(innerDisc);
   
   // Qibla marker — small triangle on inner disc pointing to Mecca
-  const triH = innerR * 0.4;
-  const triW = innerR * 0.3;
+  const triH = innerR * 0.7;
+  const triW = innerR * 0.5;
   const triShape = new THREE.Shape();
   triShape.moveTo(0, triH/2);
   triShape.lineTo(-triW/2, -triH/2);
@@ -941,7 +941,7 @@ function buildQibla() {
     envMapIntensity: 0
   });
   const triMesh = new THREE.Mesh(triGeo, triMat);
-  triMesh.position.set(0, innerR*0.45, 0.3);
+  triMesh.position.set(0, innerR*0.35, 0.3);
   qiblaInnerRotor.add(triMesh);
   
   // Position inner rotor offset from center (orbiting)
