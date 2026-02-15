@@ -765,6 +765,7 @@ function drawQiblaWindow(c){
 
 // ── Split-Flap Countdown ──
 let flapPrevChars=[],flapCharAnims=[];
+let flapLabelPrev='',flapLabelAnim={start:0,prev:''};
 const FLAP_DUR=350; // ms per character flip
 const FLAP_STAGGER=60; // ms stagger between characters
 // Tawaf flap racing state
@@ -916,14 +917,74 @@ function drawSplitFlapChars(c,chars,sub){
 
   ctx.save();
 
-  // Sub-label below
-  ctx.textAlign='center';ctx.textBaseline='middle';
-  ctx.font=`500 ${R*0.046}px 'Inter',system-ui,sans-serif`;
-  ctx.letterSpacing=R*0.004+'px';
-  ctx.fillStyle=c.lume;ctx.globalAlpha=0.7;
-  ctx.fillText(sub,cx,wy+cellH/2+R*0.042);
-  ctx.letterSpacing='0px';
-  ctx.globalAlpha=1;
+  // Sub-label flap panel
+  if(sub){
+    const nowMs2=performance.now();
+    if(sub!==flapLabelPrev){
+      flapLabelAnim={start:nowMs2,prev:flapLabelPrev||sub};
+      flapLabelPrev=sub;
+    }
+    const labelH=cellH*0.52;
+    const labelW=totalW;
+    const labelY=wy+cellH/2+R*0.025;
+    const labelCx=cx;
+    const lgap=0.6*dpr;
+    const lHalfH=labelH/2-lgap/2;
+    const lwr=R*0.008;
+    const lFontSize=R*0.034;
+    const lt=Math.min(Math.max((nowMs2-(flapLabelAnim.start||0))/FLAP_DUR,0),1);
+
+    // Shadow
+    ctx.fillStyle=c.shadow;
+    roundRect(ctx,labelCx-labelW/2+0.5*dpr,labelY-labelH/2+1*dpr,labelW,labelH,lwr);ctx.fill();
+    // Background
+    ctx.fillStyle='rgba(0,0,0,0.35)';
+    roundRect(ctx,labelCx-labelW/2,labelY-labelH/2,labelW,labelH,lwr);ctx.fill();
+
+    // Bottom half — new text
+    ctx.save();
+    ctx.beginPath();ctx.rect(labelCx-labelW/2,labelY+lgap/2,labelW,lHalfH);ctx.clip();
+    ctx.fillStyle='rgba(0,0,0,0.06)';ctx.fillRect(labelCx-labelW/2,labelY+lgap/2,labelW,lHalfH);
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.font=`500 ${lFontSize}px 'Inter',system-ui,sans-serif`;
+    ctx.letterSpacing=R*0.003+'px';
+    ctx.fillStyle=c.lume;ctx.globalAlpha=0.8;
+    ctx.fillText(sub,labelCx,labelY);
+    ctx.restore();
+
+    // Top half — flip animation
+    ctx.save();
+    ctx.beginPath();ctx.rect(labelCx-labelW/2,labelY-labelH/2,labelW,lHalfH);ctx.clip();
+    if(lt<1){
+      // Show old text flipping away
+      const scaleY=Math.max(0,1-lt*2);
+      ctx.save();
+      ctx.translate(labelCx,labelY-lgap/2);
+      ctx.scale(1,scaleY);
+      ctx.translate(-labelCx,-(labelY-lgap/2));
+      ctx.fillStyle='rgba(0,0,0,0.4)';
+      roundRect(ctx,labelCx-labelW/2,labelY-labelH/2,labelW,lHalfH,lwr);ctx.fill();
+      ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.font=`500 ${lFontSize}px 'Inter',system-ui,sans-serif`;
+      ctx.letterSpacing=R*0.003+'px';
+      ctx.fillStyle=c.lume;ctx.globalAlpha=0.8;
+      ctx.fillText(flapLabelAnim.prev,labelCx,labelY);
+      ctx.restore();
+    }else{
+      ctx.fillStyle='rgba(0,0,0,0.06)';ctx.fillRect(labelCx-labelW/2,labelY-labelH/2,labelW,lHalfH);
+      ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.font=`500 ${lFontSize}px 'Inter',system-ui,sans-serif`;
+      ctx.letterSpacing=R*0.003+'px';
+      ctx.fillStyle=c.lume;ctx.globalAlpha=0.8;
+      ctx.fillText(sub,labelCx,labelY);
+    }
+    ctx.restore();
+
+    // Center split line
+    ctx.fillStyle='rgba(0,0,0,0.25)';
+    ctx.fillRect(labelCx-labelW/2,labelY-lgap/2,labelW,lgap);
+    ctx.globalAlpha=1;
+  }
 
   let curX=startX;
   for(let i=0;i<chars.length;i++){
@@ -1444,7 +1505,7 @@ function releaseWakeLock(){
 }
 
 // ── Adhan Debug Log ──
-const _ADHAN_VER='v59-labelsize';
+const _ADHAN_VER='v60-labelflap';
 const _adhanLog=[];
 // Auto-show debug panel on load
 requestAnimationFrame(()=>{adhanDbg('ready');});
