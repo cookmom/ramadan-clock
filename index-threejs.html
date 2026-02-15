@@ -130,7 +130,7 @@ function dialMat(color) {
   return new THREE.MeshStandardMaterial({ color, roughness: 0.85, metalness: 0.0 });
 }
 function metalMat(color) {
-  return new THREE.MeshStandardMaterial({ color, roughness: 0.15, metalness: 0.95 });
+  return new THREE.MeshStandardMaterial({ color, roughness: 0.26, metalness: 0.75 });
 }
 function lumeMat(color) {
   return new THREE.MeshStandardMaterial({ color, roughness: 0.5, metalness: 0.1, emissive: color, emissiveIntensity: 0 });
@@ -467,7 +467,7 @@ function buildQibla() {
   // Metal gauge disc in cutout
   const gaugeR = R*0.38 - 1;
   const gaugeGeo = new THREE.CylinderGeometry(gaugeR, gaugeR, 2, 64);
-  const gaugeMat = new THREE.MeshStandardMaterial({ color: DIALS[currentDial].hand, roughness: 0.15, metalness: 0.95 });
+  const gaugeMat = new THREE.MeshStandardMaterial({ color: DIALS[currentDial].hand, roughness: 0.26, metalness: 0.75 });
   const gaugeMesh = new THREE.Mesh(gaugeGeo, gaugeMat);
   gaugeMesh.rotation.x = Math.PI/2;
   gaugeMesh.position.y = -R*0.5;
