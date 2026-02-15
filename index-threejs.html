@@ -148,10 +148,10 @@ function metalMat(color) {
   return new THREE.MeshPhysicalMaterial({ color, roughness: 0.04, metalness: 0.95, clearcoat: 0.9, clearcoatRoughness: 0.05, reflectivity: 1.0 });
 }
 function lumeMat(color) {
-  return new THREE.MeshStandardMaterial({ color, roughness: 0.5, metalness: 0.1, emissive: color, emissiveIntensity: 0 });
+  const m = new THREE.MeshStandardMaterial({ color, roughness: 0.5, metalness: 0.1, emissive: color, emissiveIntensity: 0 }); m.envMapIntensity = 0; return m;
 }
 function secMat(color) {
-  return new THREE.MeshStandardMaterial({ color, roughness: 0.3, metalness: 0.7 });
+  const m = new THREE.MeshStandardMaterial({ color, roughness: 0.3, metalness: 0.7 }); m.envMapIntensity = 0.2; return m;
 }
 
 // ══════════════════════════════════════════
@@ -327,7 +327,7 @@ function buildMarkers() {
     {
       const tH=R*0.036, tW=0.675, depth=1.5;
       const geo = new THREE.BoxGeometry(tW, tH, depth);
-      const mat = new THREE.MeshStandardMaterial({color:c.lume, roughness:0.5, metalness:0.2});
+      const mat = new THREE.MeshStandardMaterial({color:c.lume, roughness:0.5, metalness:0.2}); mat.envMapIntensity = 0;
       const mesh = new THREE.Mesh(geo, mat);
       const midR = (R - R*0.04 - tH/2) * 1.03;
       mesh.position.x = Math.cos(ang)*midR;
@@ -392,7 +392,7 @@ function buildNumerals() {
     const tex = new THREE.CanvasTexture(cv);
     tex.minFilter = THREE.LinearFilter;
     const geo = new THREE.PlaneGeometry(tw, th);
-    const faceMat = new THREE.MeshStandardMaterial({map:tex, transparent:true, metalness:0.3, roughness:0.4, color:0xffffff, depthWrite:false});
+    const faceMat = new THREE.MeshStandardMaterial({map:tex, transparent:true, metalness:0.3, roughness:0.4, color:0xffffff, depthWrite:false}); faceMat.envMapIntensity = 0;
     const mesh = new THREE.Mesh(geo, faceMat);
     mesh.position.x = Math.cos(ang)*r;
     mesh.position.y = Math.sin(ang)*r;
