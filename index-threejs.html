@@ -52,7 +52,10 @@ const DIALS = {
 const DIAL_NAMES = Object.keys(DIALS);
 const ARABIC = ['١٢','١','٢','٣','٤','٥','٦','٧','٨','٩','١٠','١١'];
 
-let currentDial = 'slate';
+// URL params
+const _P = new URLSearchParams(location.search);
+const EMBED = _P.has('embed');
+let currentDial = (_P.get('dial') && DIALS[_P.get('dial')]) ? _P.get('dial') : 'slate';
 let modeBlend = 0, modeTarget = 0;
 let PD = null;
 function pM(s){if(!s)return 0;const[h,m]=s.split(':').map(Number);return h*60+m;}
@@ -847,7 +850,12 @@ function animate(){
   renderer.render(scene, cam);
 }
 animate();
-showInfo();
+if(EMBED){
+  document.getElementById('info').style.display='none';
+  document.getElementById('dialBar').style.display='none';
+} else {
+  showInfo();
+}
 
 </script>
 </body>
