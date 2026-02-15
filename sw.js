@@ -1,4 +1,4 @@
-// Ramadan Clock Service Worker
+// A Gift of Time — Service Worker
 const CACHE_NAME = 'rc-v1';
 const ASSETS = [
   '/ramadan-clock/',

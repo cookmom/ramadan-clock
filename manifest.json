@@ -1,6 +1,6 @@
 {
-  "name": "Ramadan Clock",
-  "short_name": "Ramadan Clock",
+  "name": "A Gift of Time",
+  "short_name": "A Gift of Time",
   "description": "Prayer-aware clock with fasting countdown, Qibla compass, and tawaf animation.",
   "start_url": "/ramadan-clock/",
   "display": "standalone",
