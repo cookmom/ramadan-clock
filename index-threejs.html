@@ -1319,6 +1319,8 @@ window.addEventListener('message',(e)=>{
     currentDial=e.data.dial;
     buildAll();
   }
+  if(e.data&&e.data.type==='nightOn'){modeTarget=1;}
+  if(e.data&&e.data.type==='nightOff'){modeTarget=0;}
 });
 window.addEventListener('resize',()=>{
   W=window.innerWidth;H=window.innerHeight;
