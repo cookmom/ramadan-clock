@@ -473,6 +473,7 @@ function buildFlap() {
   flapSprite=new THREE.Mesh(geo, new THREE.MeshBasicMaterial({map:flapTexture,transparent:true,depthTest:false}));
   flapSprite.position.y=R*0.32;
   flapSprite.position.z=5;
+  flapSprite.visible = false;
   clockGroup.add(flapSprite);
 }
 
