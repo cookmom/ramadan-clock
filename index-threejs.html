@@ -263,37 +263,19 @@ function createGlassTexture() {
   ctx.save();
   ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.clip();
   
-  // Very subtle edge darkening (dome curvature)
-  const edgeGrad = ctx.createRadialGradient(cx,cy,r*0.6, cx,cy,r);
+  // Very subtle edge darkening (dome curvature) — barely perceptible
+  const edgeGrad = ctx.createRadialGradient(cx,cy,r*0.7, cx,cy,r);
   edgeGrad.addColorStop(0, 'rgba(0,0,0,0)');
-  edgeGrad.addColorStop(0.85, 'rgba(0,0,0,0)');
-  edgeGrad.addColorStop(1, 'rgba(0,0,0,0.08)');
+  edgeGrad.addColorStop(1, 'rgba(0,0,0,0.04)');
   ctx.fillStyle = edgeGrad;
   ctx.fillRect(0,0,S,S);
   
-  // Highlight arc (top-left light catch — the signature of domed glass)
+  // Tiny highlight arc (barely there — just enough to hint at glass)
   ctx.beginPath();
-  const hlCx = cx - r*0.25, hlCy = cy - r*0.25;
-  const hlGrad = ctx.createRadialGradient(hlCx, hlCy, r*0.05, hlCx, hlCy, r*0.55);
-  hlGrad.addColorStop(0, 'rgba(255,255,255,0.12)');
-  hlGrad.addColorStop(0.3, 'rgba(255,255,255,0.04)');
-  hlGrad.addColorStop(1, 'rgba(255,255,255,0)');
-  ctx.fillStyle = hlGrad;
-  ctx.fillRect(0,0,S,S);
-  
-  // Sharp crescent highlight (like light hitting curved glass edge)
-  ctx.beginPath();
-  ctx.arc(cx - r*0.15, cy - r*0.35, r*0.45, -0.8, 0.3);
-  ctx.strokeStyle = 'rgba(255,255,255,0.07)';
-  ctx.lineWidth = r*0.03;
+  ctx.arc(cx - r*0.2, cy - r*0.38, r*0.35, -0.6, 0.15);
+  ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+  ctx.lineWidth = r*0.015;
   ctx.lineCap = 'round';
-  ctx.stroke();
-  
-  // Secondary smaller highlight
-  ctx.beginPath();
-  ctx.arc(cx + r*0.3, cy + r*0.35, r*0.25, 2.5, 3.5);
-  ctx.strokeStyle = 'rgba(255,255,255,0.03)';
-  ctx.lineWidth = r*0.02;
   ctx.stroke();
   
   ctx.restore();
@@ -622,8 +604,8 @@ function buildQibla(c) {
   while(qiblaGroup.children.length) qiblaGroup.remove(qiblaGroup.children[0]);
   
   // Sub-dial at 6 o'clock — recessed compass style
-  const subY = -R * 0.34;  // center of sub-dial
-  const qr = R * 0.16;     // sub-dial radius (bigger, proper sub-dial)
+  const subY = -R * 0.32;  // center of sub-dial
+  const qr = R * 0.18;     // sub-dial radius — prominent, like NOMOS small seconds
   
   // Recessed background (slightly darker than dial)
   const bgCol = DIALS[currentDial].bg;
