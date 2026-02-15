@@ -10,6 +10,7 @@
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{width:100%;height:100%;overflow:hidden;background:transparent;touch-action:none;user-select:none;-webkit-user-select:none}
 canvas{display:block;width:100%;height:100%}
+#vignette{position:fixed;inset:0;pointer-events:none;z-index:5;opacity:0;transition:opacity 1.5s;background:radial-gradient(ellipse at center,transparent 40%,rgba(0,0,0,0.7) 100%)}
 #info{position:fixed;bottom:env(safe-area-inset-bottom,12px);left:0;right:0;text-align:center;font-family:'Inter',system-ui,sans-serif;pointer-events:none;z-index:10;padding:0 16px 12px;opacity:0;transition:opacity .4s}
 #info.visible{opacity:1}
 #info .hijri{font-size:14px;font-weight:500;letter-spacing:.5px}
@@ -21,6 +22,7 @@ canvas{display:block;width:100%;height:100%}
 </style>
 </head>
 <body>
+<div id="vignette"></div>
 <div id="info"><div class="hijri" id="hijri"></div><div class="greg" id="greg"></div></div>
 <div id="dialBar">
   <div class="dial-dot" data-dial="tennis" style="border-color:#2e8b57"></div>
@@ -52,14 +54,14 @@ const DIALS = {
   sky:    {bg:0x5a9ac0, lume:0xf0f8ff, hand:0xf4f0e8, sec:0xffffff, text:'#f0f8ff'},
   cream:  {bg:0xd8ccb4, lume:0x3a3530, hand:0x2a2520, sec:0x3a3530, text:'#3a3530'},
 };
-// Night lume palettes — what each dial's lume looks like in the dark
+// Night lume palettes — modeled after real SuperLuminova variants
 const NIGHT_LUME = {
-  tennis: { emissive: 0xb8ff50, color: 0xd0ff70 },  // vivid green SuperLuminova
-  white:  { emissive: 0x80ffa0, color: 0xa0ffc0 },   // cool mint glow
-  salmon: { emissive: 0xffd080, color: 0xffe0a0 },   // warm amber
-  slate:  { emissive: 0xc8e8a0, color: 0xd8f0b8 },   // classic green-cream SuperLuminova
-  sky:    { emissive: 0x60d0ff, color: 0x90e0ff },    // ice blue — matching the dial
-  cream:  { emissive: 0xe0c080, color: 0xf0d8a0 },   // old radium warm gold
+  tennis: { emissive: 0x90ff40 },  // C1 SuperLuminova — vivid green (matches dial energy)
+  white:  { emissive: 0xa0d8ff },  // BGW9 — cool blue-white (elegant on white dial)
+  salmon: { emissive: 0xffb870 },  // Old radium — warm amber-orange (vintage warmth)
+  slate:  { emissive: 0xc0e890 },  // C3 — classic green-cream (THE lume color, most watches)
+  sky:    { emissive: 0x70c8ff },  // BGW9 variant — ice blue (harmonizes with sky dial)
+  cream:  { emissive: 0xe8d090 },  // Old tritium — warm gold (patina feel)
 };
 const DIAL_NAMES = Object.keys(DIALS);
 const ARABIC = ['١٢','١','٢','٣','٤','٥','٦','٧','٨','٩','١٠','١١'];
@@ -576,9 +578,10 @@ function buildQibla() {
     const ang = (i/4) * Math.PI * 2; // 0=N(up), π/2=E, π=S, 3π/2=W
     const isNorth = i === 0;
     const tGeo = new THREE.BoxGeometry(tickW, isNorth ? tickLen*1.4 : tickLen, 0.3);
+    const tColor = isNorth ? 0xf0f0f0 : new THREE.Color(d.lume).multiplyScalar(0.6);
     const tMat = new THREE.MeshPhysicalMaterial({
-      color: isNorth ? 0xf0f0f0 : new THREE.Color(d.lume).multiplyScalar(0.6),
-      roughness: 0.3, metalness: 0.1, envMapIntensity: 0
+      color: tColor, roughness: 0.3, metalness: 0.1, envMapIntensity: 0,
+      emissive: tColor, emissiveIntensity: 0
     });
     const tick = new THREE.Mesh(tGeo, tMat);
     const tr = rotorR - tickLen*0.55;
@@ -846,6 +849,7 @@ window.addEventListener('resize',()=>{
 // ══════════════════════════════════════════
 // RENDER LOOP
 // ══════════════════════════════════════════
+const vignetteEl = document.getElementById('vignette');
 function animate(){
   requestAnimationFrame(animate);
   
@@ -877,12 +881,16 @@ function animate(){
     dialMesh.material.emissiveIntensity = modeBlend;
   }
   
-  // Qibla triangle glows brighter at night
+  // Qibla compass elements glow at night
   if(qiblaGroup) {
     qiblaGroup.traverse(child => {
       if(child.material && child.material.emissive) {
-        if(child.material.color.getHex() === 0x2a9d5c) { // qibla green triangle
-          child.material.emissiveIntensity = 0.15 + modeBlend * 0.8;
+        if(child.material.color && child.material.color.getHex() === 0x2a9d5c) {
+          // Qibla green triangle — strong glow
+          child.material.emissiveIntensity = 0.15 + modeBlend * 1.0;
+        } else if(child.material.emissiveIntensity !== undefined) {
+          // Compass ticks — subtle lume glow
+          child.material.emissiveIntensity = modeBlend * 0.5;
         }
       }
     });
@@ -898,6 +906,9 @@ function animate(){
   spotLight.intensity = 1.5 * (1 - modeBlend * 0.7);
   specPoint.intensity = 15 * (1 - modeBlend * 0.6);
   renderer.toneMappingExposure = 1.5 - modeBlend * 0.5;
+  
+  // Vignette at night
+  vignetteEl.style.opacity = modeBlend * 0.8;
   
   // Second hand subtle glow at night
   if(secMat_) secMat_.emissiveIntensity = modeBlend * 0.3;
