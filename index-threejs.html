@@ -172,7 +172,7 @@ scene.add(spotLight);
 scene.add(spotLight.target);
 
 // Spec point — tight highlight on polished surfaces (tracks with tilt)
-const specPoint = new THREE.PointLight(0xffffff, 15, 300, 2);
+const specPoint = new THREE.PointLight(0xffffff, 20, 300, 2);
 specPoint.position.set(30, 60, 180);
 scene.add(specPoint);
 
@@ -188,16 +188,11 @@ scene.add(counterSpec);
 function dialMat(color) {
   const cd = currentDial;
   const special = {
-    kawthar: { roughness:0.6, metalness:0.15, sheen:0.8, sheenColor:0xd4909a, sheenRoughness:0.3, clearcoat:0.4, clearcoatRoughness:0.3 },
-    sky:     { roughness:0.85, metalness:0.0, sheen:0, sheenColor:0x5a9ac0, sheenRoughness:0.8, clearcoat:0, clearcoatRoughness:0 }, // flat matte, no sheen
-    najm:    { roughness:0.88, metalness:0.0, sheen:0, sheenColor:0x1a2a48, sheenRoughness:0.8, clearcoat:0, clearcoatRoughness:0 }, // flat matte, no gradient
-    dhuha:   { roughness:0.88, metalness:0.0, sheen:0, sheenColor:0xf08040, sheenRoughness:0.8, clearcoat:0, clearcoatRoughness:0 }, // flat matte sorbet
-    qamar:   { roughness:0.5, metalness:0.25, sheen:0.4, sheenColor:0x8890a0, sheenRoughness:0.3, clearcoat:0.5, clearcoatRoughness:0.15 }, // cool lunar
-    ward:    { roughness:0.75, metalness:0.05, sheen:0.4, sheenColor:0xd06080, sheenRoughness:0.4, clearcoat:0.15, clearcoatRoughness:0.3 }, // dusty rose warmth
-    rainbow: { roughness:0.6, metalness:0.1, sheen:0.3, sheenColor:0xd4c090, sheenRoughness:0.3, clearcoat:0.3, clearcoatRoughness:0.2 }, // champagne
-    lilas:   { roughness:0.88, metalness:0.0, sheen:0, sheenColor:0x8878a8, sheenRoughness:0.8, clearcoat:0, clearcoatRoughness:0 }, // flat matte sorbet
+    kawthar: { roughness:0.6, metalness:0.15, sheen:0.8, sheenColor:0xd4909a, sheenRoughness:0.3, clearcoat:0.4, clearcoatRoughness:0.3 }, // rose gold sheen
+    qamar:   { roughness:0.7, metalness:0.15, sheen:0, sheenColor:0x000000, sheenRoughness:0.8, clearcoat:0.2, clearcoatRoughness:0.2 }, // subtle silver metallic
+    rainbow: { roughness:0.85, metalness:0.0, sheen:0, sheenColor:0x000000, sheenRoughness:0.8, clearcoat:0, clearcoatRoughness:0 }, // flat black
   };
-  const s = special[cd] || { roughness:0.88, metalness:0.0, sheen:0.25, sheenColor:0x706860, sheenRoughness:0.8, clearcoat:0, clearcoatRoughness:0 };
+  const s = special[cd] || { roughness:0.88, metalness:0.0, sheen:0, sheenColor:0x000000, sheenRoughness:0.8, clearcoat:0, clearcoatRoughness:0 };
   const m = new THREE.MeshPhysicalMaterial({
     color, roughness:s.roughness, metalness:s.metalness,
     sheen:s.sheen, sheenColor:new THREE.Color(s.sheenColor), sheenRoughness:s.sheenRoughness,
@@ -1241,7 +1236,7 @@ function animate(){
   keyLight.intensity = 3.5 * (1 - modeBlend * 0.8);
   coolFill.intensity = 1.2 * (1 - modeBlend * 0.9);
   spotLight.intensity = 1.5 * (1 - modeBlend * 0.7);
-  specPoint.intensity = 15 * (1 - modeBlend * 0.6);
+  specPoint.intensity = 20 * (1 - modeBlend * 0.6);
   counterSpec.intensity = 6 * (1 - modeBlend * 0.7);
   renderer.toneMappingExposure = 1.4 - modeBlend * 0.5;
   
