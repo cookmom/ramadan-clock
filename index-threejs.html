@@ -235,7 +235,7 @@ function buildMarkers() {
     if(atTop||atBot) continue;
     
     if(isHour){
-      const mH=R*0.12, mW=R*0.032, depth=3;
+      const mH=R*0.12, mW=R*0.032, depth=8;
       const geo = extrudedPill(mW, mH, depth);
       const mesh = new THREE.Mesh(geo, metalMat(c.hand));
       mesh.castShadow = true;
@@ -257,7 +257,7 @@ function buildMarkers() {
       lumeMeshes.push(lMesh);
     } else {
       // Minute tick — thin extruded line
-      const tH=R*0.03, tW=1, depth=1.5;
+      const tH=R*0.03, tW=1, depth=3;
       const geo = new THREE.BoxGeometry(tW, tH, depth);
       const mat = new THREE.MeshStandardMaterial({color:c.lume, roughness:0.5, metalness:0.2, transparent:true, opacity:0.4});
       const mesh = new THREE.Mesh(geo, mat);
