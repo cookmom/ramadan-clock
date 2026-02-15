@@ -493,8 +493,7 @@ document.fonts.ready.then(()=>buildAll());
 // ══════════════════════════════════════════
 // UPDATES
 // ══════════════════════════════════════════
-let secAngle=0, secTarget=0, secVelocity=0;
-const SEC_SPRING=0.25, SEC_DAMP=0.65;
+let secAngle=0;
 
 function updateHands(){
   const now=new Date();
@@ -504,12 +503,8 @@ function updateHands(){
   if(hourGroup) hourGroup.rotation.z=-(hour/12)*Math.PI*2;
   if(minGroup) minGroup.rotation.z=-(min/60)*Math.PI*2;
   
-  // Spring tick
-  const tgt=-(Math.floor(sec)/60)*Math.PI*2;
-  if(Math.abs(tgt-secTarget)>0.01){secTarget=tgt;secVelocity=-0.15;}
-  secVelocity+=(secTarget-secAngle)*SEC_SPRING;
-  secVelocity*=SEC_DAMP;
-  secAngle+=secVelocity;
+  // Quartz sweep
+  secAngle=-(sec/60)*Math.PI*2;
   if(secGroup) secGroup.rotation.z=secAngle;
 }
 
