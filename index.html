@@ -1308,16 +1308,16 @@ function drawFastingArc(c){
   const sweepAng=(fastDur/720)*Math.PI*2;
   const endAng=startAng+sweepAng;
   const arcR=R+R*0.14;
-  // Track line — white in dark mode, black in light mode
-  const isDark=(modeBlend>0.5);
-  const trackColor=isDark?'rgba(255,255,255,0.15)':'rgba(0,0,0,0.12)';
-  const activeColor=isDark?'rgba(255,255,255,0.5)':'rgba(0,0,0,0.35)';
-  ctx.strokeStyle=trackColor;ctx.lineWidth=1.5*dpr;ctx.lineCap='round';
+  // Track line — white on most dials, black on white/cream dials
+  const isLightDial=(S.dial==='white'||S.dial==='cream');
+  const trackColor=isLightDial?'rgba(0,0,0,0.12)':'rgba(255,255,255,0.15)';
+  const activeColor=isLightDial?'rgba(0,0,0,0.35)':'rgba(255,255,255,0.5)';
+  ctx.strokeStyle=trackColor;ctx.lineWidth=3*dpr;ctx.lineCap='round';
   ctx.beginPath();ctx.arc(cx,cy,arcR,startAng,endAng);ctx.stroke();
   if(now>=fajr&&now<=mag){
     const elapsed=now-fajr;
     const nowAng=startAng+(elapsed/720)*Math.PI*2;
-    ctx.strokeStyle=activeColor;ctx.lineWidth=2*dpr;ctx.lineCap='round';
+    ctx.strokeStyle=activeColor;ctx.lineWidth=4*dpr;ctx.lineCap='round';
     ctx.beginPath();ctx.arc(cx,cy,arcR,startAng,nowAng);ctx.stroke();
     // Red sphere at tip
     ctx.fillStyle='#e53e3e';ctx.shadowColor='rgba(229,62,62,0.6)';ctx.shadowBlur=8*dpr;
@@ -1451,7 +1451,7 @@ function releaseWakeLock(){
 }
 
 // ── Adhan Debug Log ──
-const _ADHAN_VER='v63-redarc';
+const _ADHAN_VER='v64-whitearc';
 const _adhanLog=[];
 // Auto-show debug panel on load
 requestAnimationFrame(()=>{adhanDbg('ready');});
