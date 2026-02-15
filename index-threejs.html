@@ -309,11 +309,19 @@ bloomScene.add(bloomGroup);
 
 // ── Build static elements ──
 // Background quad
+// Full screen background
 const bgGeo = new THREE.PlaneGeometry(W * 2, H * 2);
 const bgMat = new THREE.MeshBasicMaterial({ color: hexToVec3('#3a3a44') });
 const bgMesh = new THREE.Mesh(bgGeo, bgMat);
 bgMesh.position.z = -10;
 bgGroup.add(bgMesh);
+
+// Dial face circle (separate from background for proper layering)
+const faceGeo = new THREE.CircleGeometry(R * 1.02, 256);
+const faceMat = new THREE.MeshBasicMaterial({ color: hexToVec3('#3a3a44') });
+const faceMesh = new THREE.Mesh(faceGeo, faceMat);
+faceMesh.position.z = -5;
+faceGroup.add(faceMesh);
 
 // Bloom background (black)
 const bloomBgGeo = new THREE.PlaneGeometry(W * 2, H * 2);
@@ -425,7 +433,7 @@ function buildClock() {
   // Minute labels (05, 10, 15...)
   for (let i = 0; i < 60; i += 5) {
     const ang = (i / 60) * Math.PI * 2 - Math.PI / 2;
-    const r = R + R * 0.06;
+    const r = R * 0.93;
     const label = MIN_LABELS[i];
     if (!label) continue;
     const fontSize = R * 0.045;
@@ -638,8 +646,9 @@ function buildStars() {
 function updateColors() {
   const c = getColors();
   
-  // Background
+  // Background + face
   bgMat.color = hexToVec3(c.bg);
+  faceMat.color = hexToVec3(c.bg);
   
   // Hour markers
   hourMarkers.forEach(m => m.material.color = hexToVec3(c.hand));
@@ -878,17 +887,19 @@ function updateFastingArc(c) {
   
   const isLightDial = currentDial === 'white' || currentDial === 'cream';
   
+  // Helper: build thick arc as a RingGeometry slice
+  function makeThickArc(innerR, outerR, sAng, eAng, color, opacity, z) {
+    const geo = new THREE.RingGeometry(innerR, outerR, 128, 1, sAng, eAng - sAng);
+    const mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity, side: THREE.DoubleSide });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.z = z;
+    return mesh;
+  }
+  
+  const trackW = 1.5; // half-width of arc line
   // Track line
-  const trackCurve = new THREE.EllipseCurve(0, 0, arcR, arcR, startAng, endAng, false, 0);
-  const trackPoints = trackCurve.getPoints(128);
-  const trackGeo = new THREE.BufferGeometry().setFromPoints(trackPoints);
-  const trackMat = new THREE.LineBasicMaterial({
-    color: isLightDial ? 0x000000 : 0xffffff,
-    transparent: true,
-    opacity: isLightDial ? 0.25 : 0.35
-  });
-  const track = new THREE.Line(trackGeo, trackMat);
-  track.position.z = 1;
+  const trackColor = isLightDial ? 0x000000 : 0xffffff;
+  const track = makeThickArc(arcR - trackW, arcR + trackW, startAng, endAng, trackColor, isLightDial ? 0.25 : 0.35, 1);
   arcGroup.add(track);
   
   // Progress
@@ -896,16 +907,8 @@ function updateFastingArc(c) {
     const elapsed = now - fajr;
     const nowAng = startAng + (elapsed / 720) * Math.PI * 2;
     
-    const progCurve = new THREE.EllipseCurve(0, 0, arcR, arcR, startAng, nowAng, false, 0);
-    const progPoints = progCurve.getPoints(128);
-    const progGeo = new THREE.BufferGeometry().setFromPoints(progPoints);
-    const progMat = new THREE.LineBasicMaterial({
-      color: isLightDial ? 0x000000 : 0xffffff,
-      transparent: true,
-      opacity: isLightDial ? 0.7 : 0.85
-    });
-    const prog = new THREE.Line(progGeo, progMat);
-    prog.position.z = 1;
+    const progW = 2;
+    const prog = makeThickArc(arcR - progW, arcR + progW, startAng, nowAng, trackColor, isLightDial ? 0.7 : 0.85, 1.5);
     arcGroup.add(prog);
     
     // Red sphere tip
@@ -1020,7 +1023,7 @@ function rebuildNumerals() {
   
   for (let i = 0; i < 60; i += 5) {
     const ang = (i / 60) * Math.PI * 2 - Math.PI / 2;
-    const r = R + R * 0.06;
+    const r = R * 0.93;
     const label = MIN_LABELS[i];
     if (!label) continue;
     const fontSize = R * 0.045;
