@@ -1394,6 +1394,18 @@ function animate(){
     });
   }
   
+  // Ring segments glow with lume at night
+  if(window._subdialRings) {
+    window._subdialRings.forEach(r => {
+      r.group.children.forEach(child => {
+        if(child.material && child.material.userData && child.material.userData.fullColor) {
+          const nightBoost = modeBlend * 0.5;
+          child.material.emissiveIntensity = Math.max(child.material.emissiveIntensity, nightBoost);
+        }
+      });
+    });
+  }
+  
   // Bloom ramps up in night mode — soft, dreamy glow
   bloomPass.strength = modeBlend * 0.7;
   bloomPass.radius = 0.4 + modeBlend * 0.3; // slightly wider spread at full night
