@@ -37,6 +37,8 @@ canvas{display:block;width:100%;height:100%}
   <div class="dial-dot" data-dial="najm" style="border-color:#1a2a48"></div>
   <div class="dial-dot" data-dial="fajr" style="border-color:#b8a0c8"></div>
   <div class="dial-dot" data-dial="qamar" style="border-color:#c0c4cc"></div>
+  <div class="dial-dot" data-dial="ward" style="border-color:#c87088"></div>
+  <div class="dial-dot" data-dial="lilas" style="border-color:#6a5088"></div>
 </div>
 
 <script type="importmap">
@@ -64,6 +66,8 @@ const DIALS = {
   najm:   {bg:0x1a2a48, lume:0xc8d8f0, hand:0xc0c8d8, sec:0xe8d050, text:'#c8d8f0', surah:'An-Najm'},          // deep midnight blue — the star
   fajr:   {bg:0xb8a0c8, lume:0xf0e8f8, hand:0xf0e8f0, sec:0xffffff, text:'#f0e8f8', surah:'Al-Fajr'},          // soft lavender — the dawn
   qamar:  {bg:0xc0c4cc, lume:0x2a2a30, hand:0x1a1a20, sec:0x2a2a30, text:'#2a2a30', surah:'Al-Qamar'},         // cool silver — the moon
+  ward:   {bg:0xc87088, lume:0xf0d8e0, hand:0xf0e4e8, sec:0xffffff, text:'#f0d8e0', surah:'Al-Wāqiʿah'},      // dusty rose — the inevitable
+  lilas:  {bg:0x6a5088, lume:0xe0d0f0, hand:0xe8ddf0, sec:0xf0d0ff, text:'#e0d0f0', surah:'Al-Mulk'},          // deep purple — the sovereignty
 };
 // Night lume palettes — modeled after real SuperLuminova variants
 // Each matches the daytime lume character but amplified for glow
@@ -79,6 +83,8 @@ const NIGHT_LUME = {
   najm:   { emissive: 0x90b8ff },  // Cool stellar blue
   fajr:   { emissive: 0xd0a0ff },  // Soft violet dawn light
   qamar:  { emissive: 0xd0d8e8 },  // Cool silver moonlight
+  ward:   { emissive: 0xff80a8 },  // Warm rose glow
+  lilas:  { emissive: 0xc090ff },  // Purple lume
 };
 const DIAL_NAMES = Object.keys(DIALS);
 const ARABIC = ['١٢','١','٢','٣','٤','٥','٦','٧','٨','٩','١٠','١١'];
@@ -190,6 +196,8 @@ function dialMat(color) {
     dhuha:   { roughness:0.65, metalness:0.1, sheen:0.6, sheenColor:0xd4a040, sheenRoughness:0.4, clearcoat:0.3, clearcoatRoughness:0.2 }, // warm sunlit
     qamar:   { roughness:0.5, metalness:0.25, sheen:0.4, sheenColor:0x8890a0, sheenRoughness:0.3, clearcoat:0.5, clearcoatRoughness:0.15 }, // cool lunar
     fajr:    { roughness:0.7, metalness:0.05, sheen:0.5, sheenColor:0x9878b0, sheenRoughness:0.4, clearcoat:0.2, clearcoatRoughness:0.3 }, // soft dawn
+    ward:    { roughness:0.75, metalness:0.05, sheen:0.4, sheenColor:0xd06080, sheenRoughness:0.4, clearcoat:0.15, clearcoatRoughness:0.3 }, // dusty rose warmth
+    lilas:   { roughness:0.5, metalness:0.2, sheen:0.6, sheenColor:0x8060c0, sheenRoughness:0.25, clearcoat:0.5, clearcoatRoughness:0.15 }, // rich purple lacquer
   };
   const s = special[cd] || { roughness:0.88, metalness:0.0, sheen:0.25, sheenColor:0x706860, sheenRoughness:0.8, clearcoat:0, clearcoatRoughness:0 };
   const m = new THREE.MeshPhysicalMaterial({
