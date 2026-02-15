@@ -311,7 +311,7 @@ function buildMarkers() {
     }
     // Also draw hour marker at non-numeral hour positions
     if(isHour && !isNumeralPos){
-      const mH=R*0.12, mW=0.675, depth=3;
+      const mH=R*0.12, mW=R*0.064, depth=3;
       const geo = extrudedPill(mW, mH, depth);
       const mesh = new THREE.Mesh(geo, metalMat(c.hand));
       mesh.castShadow = true;
@@ -387,7 +387,7 @@ function buildHands() {
   
   // Hour — NOMOS Club Campus sword hand
   hourGroup = new THREE.Group();
-  const hL=R*0.75, hW=R*0.07, hT=R*0.05, hD=4;
+  const hL=R*0.75, hW=R*0.05, hT=R*0.05, hD=4;
   const hGeo = nomosHand(hL, hW, hT, hD);
   hourMat_ = metalMat(c.hand);
   const hMesh = new THREE.Mesh(hGeo, hourMat_);
