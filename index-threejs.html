@@ -948,14 +948,17 @@ function buildQibla() {
       
       // Offset color index per ring so alignment creates columns
       const colIdx = (s + ri * 0) % segCount; // same order — alignment = color match
+      const fullColor = new THREE.Color(sorbet[colIdx]);
+      const dimColor = fullColor.clone().lerp(new THREE.Color(0x888888), 0.6); // desaturated
       const segMat = new THREE.MeshPhysicalMaterial({
-        color: sorbet[colIdx],
+        color: dimColor,
         roughness: 0.25, metalness: 0.15,
         clearcoat: 0.3,
-        emissive: new THREE.Color(sorbet[colIdx]),
+        emissive: fullColor,
         emissiveIntensity: 0,
         envMapIntensity: 0
       });
+      segMat.userData = { fullColor, dimColor };
       const segMesh = new THREE.Mesh(new THREE.ShapeGeometry(segShape), segMat);
       segMesh.position.z = 0.15;
       ringGroup.add(segMesh);
@@ -997,6 +1000,7 @@ function buildQibla() {
   const triMesh = new THREE.Mesh(triGeo, triMat);
   triMesh.position.set(0, innerR*0.35, 0.3);
   qiblaInnerRotor.add(triMesh);
+  window._qiblaTriMat = triMat;
   
   // Position inner rotor offset from center (orbiting)
   qiblaInnerRotor.position.y = gaugeR * 0.38;
@@ -1452,6 +1456,12 @@ function animate(){
     const aligned = offNorm < 0.05; // within ~9°
     const nearZone = offNorm < 0.15; // within ~27° — rings start slowing
     
+    // Qibla triangle pulses when aligned
+    if(window._qiblaTriMat) {
+      const targetTri = aligned ? 0.6 + Math.sin(Date.now() * 0.005) * 0.2 : 0.15;
+      window._qiblaTriMat.emissiveIntensity += (targetTri - window._qiblaTriMat.emissiveIntensity) * 0.1;
+    }
+    
     window._subdialRings.forEach(r => {
       if(aligned) {
         // Snap to nearest aligned position (nearest multiple of segment angle)
@@ -1464,11 +1474,15 @@ function animate(){
         r.group.rotation.z += spinSpeed;
       }
       
-      // Glow segments when aligned
+      // Color shift: desaturated while spinning → vivid + glow on alignment
       r.group.children.forEach(child => {
-        if(child.material && child.material.emissive) {
-          const targetEmissive = aligned ? 0.25 : (nearZone ? 0.08 : 0);
-          child.material.emissiveIntensity += (targetEmissive - child.material.emissiveIntensity) * 0.05;
+        if(child.material && child.material.userData) {
+          const { fullColor, dimColor } = child.material.userData;
+          const targetEmissive = aligned ? 0.4 : (nearZone ? 0.1 : 0);
+          child.material.emissiveIntensity += (targetEmissive - child.material.emissiveIntensity) * 0.08;
+          // Lerp base color: dim → full
+          const colorTarget = aligned ? fullColor : (nearZone ? fullColor.clone().lerp(dimColor, 0.5) : dimColor);
+          child.material.color.lerp(colorTarget, 0.06);
         }
       });
     });
