@@ -77,8 +77,8 @@ const scene = new THREE.Scene();
 // ── Perspective camera (slight top-down angle for depth)
 // Adjust camera distance based on aspect ratio so clock fits both portrait and landscape
 const aspect = W/H;
-const camZ = aspect < 1 ? 750 / aspect : 750; // full breathing room
-const cam = new THREE.PerspectiveCamera(22, aspect, 1, 2000);
+const camZ = aspect < 1 ? 320 / aspect : 320; // back to original distance
+const cam = new THREE.PerspectiveCamera(32, aspect, 1, 2000); // wider FOV instead of far camera
 cam.position.set(0, -3, camZ);
 cam.lookAt(0, 0, 0);
 
@@ -588,7 +588,7 @@ window.addEventListener('resize',()=>{
   renderer.setSize(W,H);
   const a=W/H;
   cam.aspect=a;
-  cam.position.z = a < 1 ? 750/a : 750;
+  cam.position.z = a < 1 ? 320/a : 320;
   cam.updateProjectionMatrix();
 });
 
