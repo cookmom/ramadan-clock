@@ -774,25 +774,67 @@ function buildQibla() {
     const fastDuration = maghribMin - fajrMin;
     const fastProgress = Math.max(0, Math.min(1, (nowMin - fajrMin) / fastDuration));
     
-    // Only show during fasting hours
+    // Fasting progress — 4 quadrants, each = 25%
     if(nowMin >= fajrMin && nowMin <= maghribMin) {
-      const arcR = gaugeR - 0.5;
-      const arcWidth = 1.5;
-      const startAng = Math.PI/2; // 12 o'clock of subdial
-      const sweep = fastProgress * Math.PI * 2;
+      const qR = gaugeR - 2; // inner radius to leave room for compass
+      const gap = 0.04; // radians gap between quadrants
+      const filledColor = new THREE.Color(0x2a9d5c);
+      const emptyColor = new THREE.Color(d.bg).multiplyScalar(0.6);
       
-      const arcShape = new THREE.Shape();
-      arcShape.absarc(0, 0, arcR, startAng, startAng - sweep, true);
-      arcShape.absarc(0, 0, arcR - arcWidth, startAng - sweep, startAng, false);
-      arcShape.closePath();
-      
-      const arcGeo = new THREE.ShapeGeometry(arcShape);
-      const arcMat = new THREE.MeshBasicMaterial({
-        color: 0x2a9d5c, transparent: true, opacity: 0.7
-      });
-      const arcMesh = new THREE.Mesh(arcGeo, arcMat);
-      arcMesh.position.z = 0.3;
-      qiblaGroup.add(arcMesh);
+      for(let q = 0; q < 4; q++) {
+        // Quadrants: top-right, bottom-right, bottom-left, top-left (CW from 12)
+        const startAng = Math.PI/2 - q * Math.PI/2 - gap;
+        const endAng = Math.PI/2 - (q+1) * Math.PI/2 + gap;
+        const filled = fastProgress >= (q+1) * 0.25;
+        const partial = !filled && fastProgress > q * 0.25;
+        
+        const qs = new THREE.Shape();
+        if(partial) {
+          // Partially fill this quadrant
+          const localProg = (fastProgress - q * 0.25) / 0.25;
+          const partialEnd = startAng - localProg * (startAng - endAng);
+          // Filled portion
+          const fs = new THREE.Shape();
+          fs.moveTo(0, 0);
+          fs.absarc(0, 0, qR, startAng, partialEnd, true);
+          fs.lineTo(0, 0);
+          const fGeo = new THREE.ShapeGeometry(fs);
+          const fMat = new THREE.MeshPhysicalMaterial({
+            color: filledColor, roughness: 0.3, metalness: 0.1,
+            transparent: true, opacity: 0.85
+          });
+          const fMesh = new THREE.Mesh(fGeo, fMat);
+          fMesh.position.z = 0.2;
+          qiblaGroup.add(fMesh);
+          // Empty remainder
+          const es = new THREE.Shape();
+          es.moveTo(0, 0);
+          es.absarc(0, 0, qR, partialEnd, endAng, true);
+          es.lineTo(0, 0);
+          const eGeo = new THREE.ShapeGeometry(es);
+          const eMat = new THREE.MeshPhysicalMaterial({
+            color: emptyColor, roughness: 0.5, metalness: 0.0,
+            transparent: true, opacity: 0.4
+          });
+          const eMesh = new THREE.Mesh(eGeo, eMat);
+          eMesh.position.z = 0.2;
+          qiblaGroup.add(eMesh);
+        } else {
+          qs.moveTo(0, 0);
+          qs.absarc(0, 0, qR, startAng, endAng, true);
+          qs.lineTo(0, 0);
+          const qGeo = new THREE.ShapeGeometry(qs);
+          const qMat = new THREE.MeshPhysicalMaterial({
+            color: filled ? filledColor : emptyColor,
+            roughness: filled ? 0.3 : 0.5,
+            metalness: filled ? 0.1 : 0.0,
+            transparent: true, opacity: filled ? 0.85 : 0.4
+          });
+          const qMesh = new THREE.Mesh(qGeo, qMat);
+          qMesh.position.z = 0.2;
+          qiblaGroup.add(qMesh);
+        }
+      }
     }
   }
   
