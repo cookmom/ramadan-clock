@@ -97,10 +97,10 @@ RectAreaLightUniformsLib.init();
 const { RGBELoader } = await import('three/addons/loaders/RGBELoader.js');
 const pmrem = new THREE.PMREMGenerator(renderer);
 pmrem.compileEquirectangularShader();
-new RGBELoader().load('https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/photo_studio_loft_hall_1k.hdr', (tex) => {
+new RGBELoader().load('https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/studio_small_03_1k.hdr', (tex) => {
   const envMap = pmrem.fromEquirectangular(tex).texture;
   scene.environment = envMap;
-  scene.environmentIntensity = 0.8;
+  scene.environmentIntensity = 1.5;
   tex.dispose();
   pmrem.dispose();
 });
@@ -132,7 +132,7 @@ function dialMat(color) {
   return new THREE.MeshStandardMaterial({ color, roughness: 0.85, metalness: 0.0 });
 }
 function metalMat(color) {
-  return new THREE.MeshStandardMaterial({ color, roughness: 0.26, metalness: 0.75 });
+  return new THREE.MeshStandardMaterial({ color, roughness: 0.1, metalness: 0.95 });
 }
 function lumeMat(color) {
   return new THREE.MeshStandardMaterial({ color, roughness: 0.5, metalness: 0.1, emissive: color, emissiveIntensity: 0 });
@@ -466,14 +466,14 @@ let qiblaGroup;
 function buildQibla() {
   if(qiblaGroup) clockGroup.remove(qiblaGroup);
   qiblaGroup = new THREE.Group();
-  // Metal gauge disc in cutout
+  // Metal gauge disc in cutout — slightly convex for reflections
   const gaugeR = R*0.38 - 1;
-  const gaugeGeo = new THREE.CylinderGeometry(gaugeR, gaugeR, 2, 64);
-  const gaugeMat = new THREE.MeshStandardMaterial({ color: DIALS[currentDial].hand, roughness: 0.26, metalness: 0.75 });
+  const gaugeGeo = new THREE.SphereGeometry(gaugeR*3, 64, 32, 0, Math.PI*2, 0, Math.PI*0.12);
+  const gaugeMat = new THREE.MeshStandardMaterial({ color: DIALS[currentDial].hand, roughness: 0.08, metalness: 0.98 });
   const gaugeMesh = new THREE.Mesh(gaugeGeo, gaugeMat);
-  gaugeMesh.rotation.x = Math.PI/2;
+  gaugeMesh.rotation.x = Math.PI;
   gaugeMesh.position.y = -R*0.5;
-  gaugeMesh.position.z = 0;
+  gaugeMesh.position.z = gaugeR*3*0.02;
   qiblaGroup.add(gaugeMesh);
   clockGroup.add(qiblaGroup);
 }
