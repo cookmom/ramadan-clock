@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#3a3a44">
 <title>A Gift of Time</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600&family=Lateef:wght@400&family=Noto+Sans+Arabic:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600&family=Lateef:wght@400&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{width:100%;height:100%;overflow:hidden;background:transparent;touch-action:none;user-select:none;-webkit-user-select:none}
@@ -543,14 +543,14 @@ function buildNumerals() {
     // Measure actual text width
     const measCv = document.createElement('canvas');
     const measCtx = measCv.getContext('2d');
-    measCtx.font = `500 ${fontSize*dpr}px "Noto Sans Arabic","Lateef",sans-serif`;
+    measCtx.font = `400 ${fontSize*dpr}px "Lateef",sans-serif`;
     const measured = measCtx.measureText(ARABIC[i]);
-    const tw = (measured.width / dpr) + fontSize*0.3; // padding
-    const th = fontSize*1.4;
+    const tw = (measured.width / dpr) + fontSize*0.4; // padding
+    const th = fontSize*1.6;
     const cv = document.createElement('canvas');
     cv.width = Math.ceil(tw*dpr); cv.height = Math.ceil(th*dpr);
     const ctx = cv.getContext('2d');
-    ctx.font = `500 ${fontSize*dpr}px "Noto Sans Arabic","Lateef",sans-serif`;
+    ctx.font = `400 ${fontSize*dpr}px "Lateef",sans-serif`;
     ctx.fillStyle = c.text||'#ffffff';
     ctx.textAlign='center'; ctx.textBaseline='middle';
     ctx.fillText(ARABIC[i], cv.width/2, cv.height/2);
