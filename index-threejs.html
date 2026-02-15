@@ -86,7 +86,7 @@ cam.lookAt(0, 0, 0);
 // ══════════════════════════════════════════
 // LIGHTING
 // ══════════════════════════════════════════
-const ambLight = new THREE.AmbientLight(0xffffff, 0.4);
+const ambLight = new THREE.AmbientLight(0xffffff, 0.25);
 scene.add(ambLight);
 
 // Softbox rect light — product-shot fill
@@ -100,16 +100,16 @@ pmrem.compileEquirectangularShader();
 new RGBELoader().load('https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/photo_studio_loft_hall_1k.hdr', (tex) => {
   const envMap = pmrem.fromEquirectangular(tex).texture;
   scene.environment = envMap;
-  scene.environmentIntensity = 1.2;
+  scene.environmentIntensity = 0.8;
   tex.dispose();
   pmrem.dispose();
 });
-const rectLight = new THREE.RectAreaLight(0xffffff, 0.2, 447, 447);
+const rectLight = new THREE.RectAreaLight(0xffffff, 0.5, 447, 447);
 rectLight.position.set(0, 0, 300);
 rectLight.lookAt(0, 0, 0);
 scene.add(rectLight);
 
-const dirLight = new THREE.DirectionalLight(0xffffff, 0.85);
+const dirLight = new THREE.DirectionalLight(0xffffff, 1.0);
 dirLight.position.set(-60, 170, 250);
 dirLight.castShadow = true;
 dirLight.shadow.mapSize.set(2048, 2048);
@@ -120,9 +120,10 @@ sc.near = 1; sc.far = 600; sc.left = sc.bottom = -200; sc.right = sc.top = 200;
 scene.add(dirLight);
 
 // Subtle fill from bottom-right
-const fillLight = new THREE.DirectionalLight(0xffffff, 0.45);
-fillLight.position.set(60, -60, 200);
-scene.add(fillLight);
+// Fill light disabled — was flattening shadows
+// const fillLight = new THREE.DirectionalLight(0xffffff, 0.45);
+// fillLight.position.set(60, -60, 200);
+// scene.add(fillLight);
 
 // ══════════════════════════════════════════
 // MATERIALS (PBR)
