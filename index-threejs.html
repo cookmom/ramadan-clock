@@ -1033,7 +1033,7 @@ function buildStars(){
   // Moon sphere
   const moonGeo = new THREE.SphereGeometry(moonR, 32, 32);
   const moonMat = new THREE.MeshBasicMaterial({
-    color: 0xffffff,
+    color: new THREE.Color(2.5, 2.4, 2.2), // HDR white — punches through ACES tone mapping
     transparent: true,
     opacity: 0,
     depthWrite: false,
@@ -1046,9 +1046,10 @@ function buildStars(){
   // Soft glow halo behind moon
   const glowGeo = new THREE.CircleGeometry(moonR * 3.5, 32);
   const glowMat = new THREE.MeshBasicMaterial({
-    color: 0xf4f0e0,
+    color: new THREE.Color(1.5, 1.4, 1.2), // HDR warm glow
     transparent: true,
     opacity: 0,
+    depthWrite: false,
   });
   moonGlowMesh = new THREE.Mesh(glowGeo, glowMat);
   moonGlowMesh.position.z = -1;
@@ -1424,7 +1425,9 @@ function animate(){
     // Stars scale up as they appear
     const sc = 0.5 + starBlend * 1.0;
     m.scale.setScalar(sc);
-    m.material.color.copy(new THREE.Color(0xfffff0).lerp(lumeEmCol, modeBlend * 0.3));
+    const starCol = new THREE.Color(2.0, 2.0, 1.8); // HDR star white
+    starCol.lerp(new THREE.Color(lumeEmCol).multiplyScalar(1.5), modeBlend * 0.3);
+    m.material.color.copy(starCol);
   });
   
   // Moon — rises from below, reaches position at full night
@@ -1444,11 +1447,16 @@ function animate(){
     // Moon glow and emissive
     if(moonMesh) {
       moonMesh.material.opacity = moonBlend;
-      moonMesh.material.color.copy(new THREE.Color(0xffffff).lerp(lumeEmCol, 0.15));
+      // HDR moon tinted slightly toward lume
+      const mc = new THREE.Color(2.5, 2.4, 2.2);
+      mc.lerp(new THREE.Color(lumeEmCol).multiplyScalar(2.0), 0.15);
+      moonMesh.material.color.copy(mc);
     }
     if(moonGlowMesh) {
-      moonGlowMesh.material.opacity = moonBlend * 0.15;
-      moonGlowMesh.material.color.copy(new THREE.Color(0xffffff).lerp(lumeEmCol, 0.2));
+      moonGlowMesh.material.opacity = moonBlend * 0.12;
+      const gc = new THREE.Color(1.5, 1.4, 1.2);
+      gc.lerp(new THREE.Color(lumeEmCol).multiplyScalar(1.5), 0.2);
+      moonGlowMesh.material.color.copy(gc);
     }
     
     // Moon phase: TODO — canvas texture approach for proper crescent
