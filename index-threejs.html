@@ -1323,7 +1323,7 @@ function animate(){
   requestAnimationFrame(animate);
   
   // Night blend
-  if(Math.abs(modeBlend-modeTarget)>0.001) modeBlend+=(modeTarget-modeBlend)*0.04;
+  if(Math.abs(modeBlend-modeTarget)>0.001) modeBlend+=(modeTarget-modeBlend)*0.015;
   else modeBlend=modeTarget;
   
   // Night mode: lume glow with per-dial color
@@ -1333,7 +1333,7 @@ function animate(){
   const lumeBreathe = 1.0 + Math.sin(Date.now() * 0.0005) * 0.05;
   const lumeIntensity = modeBlend * 2.0 * lumeBreathe;
   lumeMeshes.forEach(m=>{
-    m.material.emissive.lerp(lumeEmCol, modeBlend);
+    m.material.emissive.copy(new THREE.Color(0x000000).lerp(lumeEmCol, modeBlend));
     // Kawthar candy buttons: cap glow to prevent blowout
     m.material.emissiveIntensity = m.userData?.kawtharButton ? lumeIntensity * 0.35 : lumeIntensity;
   });
@@ -1342,7 +1342,7 @@ function animate(){
   
   // Numerals glow
   numeralMats.forEach(m=>{
-    m.emissive.lerp(lumeEmCol, modeBlend);
+    m.emissive.copy(new THREE.Color(0x000000).lerp(lumeEmCol, modeBlend));
     m.emissiveIntensity = lumeIntensity * 0.85;
   });
   
@@ -1432,7 +1432,7 @@ function animate(){
     // Stars scale up as they appear
     const sc = 0.5 + starBlend * 1.0;
     m.scale.setScalar(sc);
-    m.material.color.lerp(lumeEmCol, modeBlend * 0.3);
+    m.material.color.copy(new THREE.Color(0xfffff0).lerp(lumeEmCol, modeBlend * 0.3));
   });
   
   // Moon — rises from below, reaches position at full night
@@ -1452,11 +1452,12 @@ function animate(){
     // Moon glow and emissive
     if(moonMesh) {
       moonMesh.material.opacity = moonBlend * 0.9;
-      moonMesh.material.color.lerp(lumeEmCol, 0.3); // tint toward dial lume
+      const moonCol = new THREE.Color(0xf4f0e0).lerp(lumeEmCol, 0.3);
+      moonMesh.material.color.copy(moonCol);
     }
     if(moonGlowMesh) {
       moonGlowMesh.material.opacity = moonBlend * 0.25;
-      moonGlowMesh.material.color.lerp(lumeEmCol, 0.3);
+      moonGlowMesh.material.color.copy(new THREE.Color(0xf4f0e0).lerp(lumeEmCol, 0.3));
     }
     
     // Moon phase shadow — use Hijri day if available
