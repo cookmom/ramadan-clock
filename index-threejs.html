@@ -1032,12 +1032,10 @@ function buildStars(){
   const moonR = 10;
   // Moon sphere
   const moonGeo = new THREE.SphereGeometry(moonR, 32, 32);
-  const moonMat = new THREE.MeshPhysicalMaterial({
+  const moonMat = new THREE.MeshBasicMaterial({
     color: 0xf4f0e0,
-    roughness: 0.8,
-    metalness: 0.0,
-    emissive: 0xf4f0e0,
-    emissiveIntensity: 0,
+    transparent: true,
+    opacity: 0,
   });
   moonMesh = new THREE.Mesh(moonGeo, moonMat);
   moonGroup.add(moonMesh);
@@ -1453,8 +1451,8 @@ function animate(){
     
     // Moon glow and emissive
     if(moonMesh) {
-      moonMesh.material.emissiveIntensity = moonBlend * 1.2;
-      moonMesh.material.opacity = moonBlend;
+      moonMesh.material.opacity = moonBlend * 0.9;
+      moonMesh.material.color.lerp(lumeEmCol, 0.3); // tint toward dial lume
     }
     if(moonGlowMesh) {
       moonGlowMesh.material.opacity = moonBlend * 0.25;
