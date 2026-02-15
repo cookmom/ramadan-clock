@@ -64,6 +64,7 @@ let W = window.innerWidth, H = window.innerHeight;
 const R = 80; // world-space radius
 
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference:'high-performance' });
+renderer.samples = 4;
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 3));
 renderer.setSize(W, H);
 renderer.shadowMap.enabled = true;
