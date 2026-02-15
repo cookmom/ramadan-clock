@@ -120,7 +120,8 @@ cam.position.z = 100;
 // ── Selective Bloom Setup ──
 const renderTarget = new THREE.WebGLRenderTarget(W, H, {
   type: THREE.HalfFloatType,
-  format: THREE.RGBAFormat
+  format: THREE.RGBAFormat,
+  samples: 4 // MSAA for anti-aliasing through EffectComposer
 });
 
 const composer = new EffectComposer(renderer, renderTarget);
@@ -129,18 +130,13 @@ composer.addPass(renderPass);
 
 const bloomPass = new UnrealBloomPass(
   new THREE.Vector2(W, H),
-  0.8,   // strength
-  0.6,   // radius
-  0.1    // threshold
+  0.0,   // strength — controlled dynamically by modeBlend
+  0.4,   // radius
+  0.7    // threshold — only bright lume elements bloom
 );
 composer.addPass(bloomPass);
 
-// Bloom composer for selective bloom
-const bloomComposer = new EffectComposer(renderer, renderTarget.clone());
-const bloomRenderPass = new RenderPass(bloomScene, cam);
-bloomComposer.addPass(bloomRenderPass);
-const bloomPass2 = new UnrealBloomPass(new THREE.Vector2(W, H), 1.5, 0.8, 0.0);
-bloomComposer.addPass(bloomPass2);
+// (removed redundant second bloom composer — single pass handles it)
 
 // Final compositing shader
 const finalShader = {
@@ -669,8 +665,7 @@ function updateColors() {
   if (qiblaNeedle) qiblaNeedle.material.color = hexToVec3(c.bg);
   
   // Bloom intensity based on night mode
-  bloomPass.strength = 0.3 + modeBlend * 1.2;
-  bloomPass2.strength = modeBlend * 2.0;
+  bloomPass.strength = modeBlend * 0.4; // subtle glow only in night mode
   
   // Stars visibility
   starsGroup.children.forEach(mesh => {
@@ -1052,9 +1047,9 @@ function onResize() {
   cam.updateProjectionMatrix();
   
   composer.setSize(W, H);
-  bloomComposer.setSize(W, H);
+  // bloomComposer removed
   bloomPass.resolution.set(W, H);
-  bloomPass2.resolution.set(W, H);
+  
   
   bgMesh.scale.set(W * 2 / bgGeo.parameters.width, H * 2 / bgGeo.parameters.height, 1);
   bloomBgMesh.scale.set(W * 2 / bloomBgGeo.parameters.width, H * 2 / bloomBgGeo.parameters.height, 1);
