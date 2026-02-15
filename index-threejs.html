@@ -980,17 +980,22 @@ function updateQibla() {
   if(!hasCompassData) { targetCompassHeading = qiblaBearing; }
   compassHeading += ((targetCompassHeading - compassHeading + 540) % 360 - 180) * 0.08;
   
-  // Outer rotor: shows compass direction (north indicator rotates with phone)
-  const compassRad = -(compassHeading * Math.PI/180);
-  qiblaRotor.rotation.z = compassRad;
-  
-  // Inner rotor: triangle points toward Qibla relative to user's facing direction
-  // When facing Qibla (compassHeading ≈ qiblaBearing), triangle points straight up (12 o'clock)
+  // Check alignment
   const qiblaOffset = ((qiblaBearing - compassHeading) % 360 + 360) % 360;
   const offDeg = Math.min(qiblaOffset, 360 - qiblaOffset);
-  // Snap to exactly 12 o'clock when within ~9° of Qibla
-  const desiredWorld = offDeg < 9 ? 0 : -(qiblaBearing - compassHeading) * Math.PI / 180;
-  qiblaInnerRotor.rotation.z = desiredWorld - compassRad;
+  const aligned = offDeg < 9;
+  
+  // Outer rotor: compass direction — but eases to 0 when aligned so inner rotor
+  // sits on the 12-6 centerline (triangle tip → 12, base → 6)
+  const compassRad = -(compassHeading * Math.PI/180);
+  const targetOuterRot = aligned ? 0 : compassRad;
+  qiblaRotor.rotation.z += (targetOuterRot - qiblaRotor.rotation.z) * 0.08;
+  
+  // Inner rotor: triangle points toward Qibla relative to user
+  // When aligned + outer eased to 0: inner rotation = 0 → triangle at exact 12
+  const desiredWorld = aligned ? 0 : -(qiblaBearing - compassHeading) * Math.PI / 180;
+  const targetInnerRot = desiredWorld - qiblaRotor.rotation.z;
+  qiblaInnerRotor.rotation.z += (targetInnerRot - qiblaInnerRotor.rotation.z) * 0.08;
 }
 
 // Split-flap at 12 o'clock
