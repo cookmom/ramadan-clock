@@ -416,14 +416,6 @@ function buildQibla() {
   recess.receiveShadow = true;
   qiblaGroup.add(recess);
   
-  // Border ring
-  const ringGeo = new THREE.TorusGeometry(qr, 0.8, 8, 64);
-  const ringMesh = new THREE.Mesh(ringGeo, metalMat(c.hand));
-  ringMesh.position.y = subY;
-  ringMesh.position.z = 1;
-  ringMesh.castShadow = true;
-  qiblaGroup.add(ringMesh);
-  
   // Compass ticks
   for(let i=0;i<8;i++){
     const ang=Math.PI/2-(i/8)*Math.PI*2;
