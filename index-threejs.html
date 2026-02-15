@@ -998,7 +998,7 @@ function updateQibla() {
   // sits on the 12-6 centerline (triangle tip → 12, base → 6)
   const compassRad = -(compassHeading * Math.PI/180);
   const targetOuterRot = aligned ? 0 : compassRad;
-  const snapSpeed = aligned ? 0.12 : 0.5;
+  const snapSpeed = aligned ? 0.3 : 0.5;
   qiblaRotor.rotation.z += (targetOuterRot - qiblaRotor.rotation.z) * snapSpeed;
   
   // Inner rotor: triangle points toward Qibla relative to user
