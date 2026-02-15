@@ -370,49 +370,98 @@ function buildMarkers() {
   markerMeshes=[]; lumeMeshes=[];
   
   const c = DIALS[currentDial];
+  const isKawthar = currentDial === 'kawthar';
+  
   for(let i=0;i<60;i++){
     const ang = Math.PI/2 - (i/60)*Math.PI*2; // CW from 12
     const isHour = i%5===0;
-    // At numeral positions, draw minute tick instead of hour marker
     const hourIdx = i/5;
+    // Skip 6 o'clock (qibla cutout) for hour markers
     const isNumeralPos = isHour && [0,2,4,6,8,10].includes(hourIdx);
     
-    // Always draw a minute tick
-    {
-      const tH=R*0.036, tW=0.675, depth=1.5;
-      const geo = new THREE.BoxGeometry(tW, tH, depth);
-      const mat = new THREE.MeshStandardMaterial({color:c.lume, roughness:0.5, metalness:0.2}); mat.envMapIntensity = 0;
-      const mesh = new THREE.Mesh(geo, mat);
-      const midR = (R - R*0.04 - tH/2) * 1.03;
-      mesh.position.x = Math.cos(ang)*midR;
-      mesh.position.y = Math.sin(ang)*midR;
-      mesh.position.z = 2;
-      mesh.rotation.z = ang + Math.PI/2;
-      clockGroup.add(mesh);
-      markerMeshes.push(mesh);
-    }
-    // Also draw hour marker at non-numeral hour positions
-    if(isHour && !isNumeralPos){
-      const mH=R*0.12, mW=R*0.05, depth=3;
-      const geo = new THREE.BoxGeometry(mW, mH, depth);
-      const mesh = new THREE.Mesh(geo, metalMat(c.hand));
-      mesh.castShadow = true;
-      const midR = (R - R*0.04 - mH/2) * 0.9;
-      mesh.position.x = Math.cos(ang)*midR;
-      mesh.position.y = Math.sin(ang)*midR;
-      mesh.position.z = depth/2;
-      mesh.rotation.z = ang + Math.PI/2;
-      clockGroup.add(mesh);
-      markerMeshes.push(mesh);
-      
-      // Lume insert
-      const lGeo = new THREE.BoxGeometry(mW*0.5, mH*0.65, depth+0.5);
-      const lMesh = new THREE.Mesh(lGeo, lumeMat(c.lume));
-      lMesh.position.copy(mesh.position);
-      lMesh.position.z = depth/2 + 0.3;
-      lMesh.rotation.z = mesh.rotation.z;
-      clockGroup.add(lMesh);
-      lumeMeshes.push(lMesh);
+    if(isKawthar) {
+      // ── KAWTHAR: gold dot minute track + faceted diamond hour markers ──
+      if(isHour && hourIdx !== 6) {
+        // Faceted diamond marker at each hour
+        const dSize = (hourIdx === 0) ? R*0.07 : R*0.05; // 12 o'clock larger
+        const shape = new THREE.Shape();
+        shape.moveTo(0, dSize);       // top
+        shape.lineTo(dSize*0.6, 0);   // right
+        shape.lineTo(0, -dSize);      // bottom
+        shape.lineTo(-dSize*0.6, 0);  // left
+        shape.closePath();
+        const depth = 3;
+        const geo = new THREE.ExtrudeGeometry(shape, {depth, bevelEnabled: true, bevelThickness: 0.4, bevelSize: 0.3, bevelSegments: 3});
+        const mesh = new THREE.Mesh(geo, metalMat(c.hand));
+        mesh.castShadow = true;
+        const midR = R * 0.85;
+        mesh.position.x = Math.cos(ang)*midR;
+        mesh.position.y = Math.sin(ang)*midR;
+        mesh.position.z = 1;
+        clockGroup.add(mesh);
+        markerMeshes.push(mesh);
+        
+        // Lume pip in center of diamond
+        const pipGeo = new THREE.CircleGeometry(dSize*0.25, 16);
+        const pipMesh = new THREE.Mesh(pipGeo, lumeMat(c.lume));
+        pipMesh.position.copy(mesh.position);
+        pipMesh.position.z = depth + 1;
+        clockGroup.add(pipMesh);
+        lumeMeshes.push(pipMesh);
+      } else if(!isHour) {
+        // Small gold dot for minute track
+        const dotR = (i % 5 === 0) ? 0.8 : 0.5;
+        const geo = new THREE.CircleGeometry(dotR, 12);
+        const mat = new THREE.MeshStandardMaterial({
+          color: c.lume, roughness: 0.3, metalness: 0.5
+        }); mat.envMapIntensity = 0;
+        const mesh = new THREE.Mesh(geo, mat);
+        const midR = R * 0.95;
+        mesh.position.x = Math.cos(ang)*midR;
+        mesh.position.y = Math.sin(ang)*midR;
+        mesh.position.z = 1.5;
+        clockGroup.add(mesh);
+        markerMeshes.push(mesh);
+      }
+    } else {
+      // ── STANDARD: tick marks + rectangular hour markers ──
+      // Always draw a minute tick
+      {
+        const tH=R*0.036, tW=0.675, depth=1.5;
+        const geo = new THREE.BoxGeometry(tW, tH, depth);
+        const mat = new THREE.MeshStandardMaterial({color:c.lume, roughness:0.5, metalness:0.2}); mat.envMapIntensity = 0;
+        const mesh = new THREE.Mesh(geo, mat);
+        const midR = (R - R*0.04 - tH/2) * 1.03;
+        mesh.position.x = Math.cos(ang)*midR;
+        mesh.position.y = Math.sin(ang)*midR;
+        mesh.position.z = 2;
+        mesh.rotation.z = ang + Math.PI/2;
+        clockGroup.add(mesh);
+        markerMeshes.push(mesh);
+      }
+      // Also draw hour marker at non-numeral hour positions
+      if(isHour && !isNumeralPos){
+        const mH=R*0.12, mW=R*0.05, depth=3;
+        const geo = new THREE.BoxGeometry(mW, mH, depth);
+        const mesh = new THREE.Mesh(geo, metalMat(c.hand));
+        mesh.castShadow = true;
+        const midR = (R - R*0.04 - mH/2) * 0.9;
+        mesh.position.x = Math.cos(ang)*midR;
+        mesh.position.y = Math.sin(ang)*midR;
+        mesh.position.z = depth/2;
+        mesh.rotation.z = ang + Math.PI/2;
+        clockGroup.add(mesh);
+        markerMeshes.push(mesh);
+        
+        // Lume insert
+        const lGeo = new THREE.BoxGeometry(mW*0.5, mH*0.65, depth+0.5);
+        const lMesh = new THREE.Mesh(lGeo, lumeMat(c.lume));
+        lMesh.position.copy(mesh.position);
+        lMesh.position.z = depth/2 + 0.3;
+        lMesh.rotation.z = mesh.rotation.z;
+        clockGroup.add(lMesh);
+        lumeMeshes.push(lMesh);
+      }
     }
   }
 }
@@ -423,6 +472,7 @@ let numeralMats = [];
 function buildNumerals() {
   numeralSprites.forEach(s=>clockGroup.remove(s));
   numeralSprites=[]; numeralMats=[];
+  if(currentDial === 'kawthar') return; // Kawthar uses diamond markers only — no numerals
   const c = DIALS[currentDial];
   const NUMERAL_POS = [0,2,4,8,10]; // 12, 2, 4, 8, 10 (no 6 — qibla)
   for(const i of NUMERAL_POS){
