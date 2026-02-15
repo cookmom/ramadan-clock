@@ -413,17 +413,6 @@ function buildQibla() {
   const c = DIALS[currentDial];
   const subY = -R*0.32, qr = R*0.17;
   
-  // Recessed disc (slightly inset)
-  const recessGeo = new THREE.CylinderGeometry(qr, qr, 2, 64);
-  const bgHex = c.bg;
-  const recessMat = new THREE.MeshStandardMaterial({color:new THREE.Color(bgHex).multiplyScalar(0.85), roughness:0.9, metalness:0});
-  const recess = new THREE.Mesh(recessGeo, recessMat);
-  recess.rotation.x = Math.PI/2;
-  recess.position.y = subY;
-  recess.position.z = -1;
-  recess.receiveShadow = true;
-  qiblaGroup.add(recess);
-  
   // Compass ticks
   for(let i=0;i<8;i++){
     const ang=Math.PI/2-(i/8)*Math.PI*2;
