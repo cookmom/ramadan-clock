@@ -1310,8 +1310,8 @@ function drawFastingArc(c){
   const arcR=R+R*0.14;
   // Track line — white on most dials, black on white/cream dials
   const isLightDial=(S.dial==='white'||S.dial==='cream');
-  const trackColor=isLightDial?'rgba(0,0,0,0.12)':'rgba(255,255,255,0.15)';
-  const activeColor=isLightDial?'rgba(0,0,0,0.35)':'rgba(255,255,255,0.5)';
+  const trackColor=isLightDial?'rgba(0,0,0,0.25)':'rgba(255,255,255,0.35)';
+  const activeColor=isLightDial?'rgba(0,0,0,0.7)':'rgba(255,255,255,0.85)';
   ctx.strokeStyle=trackColor;ctx.lineWidth=3*dpr;ctx.lineCap='round';
   ctx.beginPath();ctx.arc(cx,cy,arcR,startAng,endAng);ctx.stroke();
   if(now>=fajr&&now<=mag){
@@ -1451,7 +1451,7 @@ function releaseWakeLock(){
 }
 
 // ── Adhan Debug Log ──
-const _ADHAN_VER='v65-bigsphere';
+const _ADHAN_VER='v66-contrast';
 const _adhanLog=[];
 // Auto-show debug panel on load
 requestAnimationFrame(()=>{adhanDbg('ready');});
