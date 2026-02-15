@@ -104,7 +104,7 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 3));
 renderer.setSize(W, H);
 renderer.shadowMap.enabled = false;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.5;
+renderer.toneMappingExposure = 1.4;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 document.body.appendChild(renderer.domElement);
 
@@ -1130,7 +1130,7 @@ function animate(){
   spotLight.intensity = 1.5 * (1 - modeBlend * 0.7);
   specPoint.intensity = 15 * (1 - modeBlend * 0.6);
   counterSpec.intensity = 6 * (1 - modeBlend * 0.7);
-  renderer.toneMappingExposure = 1.5 - modeBlend * 0.5;
+  renderer.toneMappingExposure = 1.4 - modeBlend * 0.5;
   
   // Vignette at night
   vignetteEl.style.opacity = modeBlend * 0.8;
