@@ -340,7 +340,7 @@ function buildHands() {
   
   // Hour
   hourGroup = new THREE.Group();
-  const hL=R*0.92, hW=R*0.05, hT=R*0.05, hD=4;
+  const hL=R*0.46, hW=R*0.05, hT=R*0.05, hD=4;
   const hGeo = extrudedLeaf(hL, hW, hT, hD);
   hourMat_ = metalMat(c.hand);
   const hMesh = new THREE.Mesh(hGeo, hourMat_);
@@ -358,7 +358,7 @@ function buildHands() {
   
   // Minute
   minGroup = new THREE.Group();
-  const mL=R*1.32, mW=R*0.038, mT=R*0.07, mD=5;
+  const mL=R*0.66, mW=R*0.038, mT=R*0.07, mD=5;
   const mGeo = extrudedLeaf(mL, mW, mT, mD);
   minMat_ = metalMat(c.hand);
   const mMesh = new THREE.Mesh(mGeo, minMat_);
@@ -375,7 +375,7 @@ function buildHands() {
   
   // Second hand
   secGroup = new THREE.Group();
-  const sL=R*1.48, sT=R*0.16, sD=2;
+  const sL=R*0.74, sT=R*0.16, sD=2;
   const ss = new THREE.Shape();
   ss.moveTo(-0.5,-sT); ss.lineTo(-0.25,sL); ss.lineTo(0.25,sL); ss.lineTo(0.5,-sT); ss.closePath();
   const sGeo = new THREE.ExtrudeGeometry(ss,{depth:sD,bevelEnabled:true,bevelThickness:0.2,bevelSize:0.15,bevelSegments:1});
