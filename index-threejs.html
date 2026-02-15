@@ -93,16 +93,21 @@ scene.add(ambLight);
 const { RectAreaLightUniformsLib } = await import('three/addons/lights/RectAreaLightUniformsLib.js');
 RectAreaLightUniformsLib.init();
 
-// Studio HDR environment for metal reflections
-const { RGBELoader } = await import('three/addons/loaders/RGBELoader.js');
+// Studio environment for metal reflections — procedural (no external file)
 const pmrem = new THREE.PMREMGenerator(renderer);
-pmrem.compileEquirectangularShader();
-new RGBELoader().load('https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/studio_small_09_1k.hdr', (tex) => {
-  const envMap = pmrem.fromEquirectangular(tex).texture;
-  scene.environment = envMap;
-  tex.dispose();
-  pmrem.dispose();
-});
+const envScene = new THREE.Scene();
+envScene.background = new THREE.Color(0x888888);
+const envLight1 = new THREE.DirectionalLight(0xffffff, 3);
+envLight1.position.set(1, 2, 3);
+envScene.add(envLight1);
+const envLight2 = new THREE.DirectionalLight(0xaabbff, 1.5);
+envLight2.position.set(-2, -1, 1);
+envScene.add(envLight2);
+const envLight3 = new THREE.DirectionalLight(0xffddcc, 1);
+envLight3.position.set(0, 3, -2);
+envScene.add(envLight3);
+scene.environment = pmrem.fromScene(envScene, 0.04).texture;
+pmrem.dispose();
 const rectLight = new THREE.RectAreaLight(0xffffff, 0.2, 447, 447);
 rectLight.position.set(0, 0, 300);
 rectLight.lookAt(0, 0, 0);
