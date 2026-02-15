@@ -45,7 +45,7 @@ const DIALS = {
   tennis: {bg:0x2e8b57, lume:0xc8e860, hand:0xf4f0e0, sec:0xffffff, text:'#fffff0'},
   white:  {bg:0xe8e4dc, lume:0x1a1a1a, hand:0x111111, sec:0xc41e3a, text:'#1a1a1a'},
   salmon: {bg:0xc47a60, lume:0xfff0e0, hand:0xf8f4ec, sec:0xffffff, text:'#fff0e0'},
-  slate:  {bg:0x4a4a54, lume:0xc0c0ca, hand:0xe0e0e4, sec:0xf0f0f4, text:'#e0e0e4'},
+  slate:  {bg:0x585860, lume:0xe8e0c8, hand:0xd0d0d4, sec:0xff6633, text:'#e8e0c8'},
   sky:    {bg:0x5a9ac0, lume:0xf0f8ff, hand:0xf4f0e8, sec:0xffffff, text:'#f0f8ff'},
   cream:  {bg:0xd8ccb4, lume:0x3a3530, hand:0x2a2520, sec:0x3a3530, text:'#3a3530'},
 };
@@ -129,7 +129,7 @@ scene.add(specPoint);
 // MATERIALS (PBR)
 // ══════════════════════════════════════════
 function dialMat(color) {
-  const m = new THREE.MeshPhysicalMaterial({ color, roughness: 0.88, metalness: 0.0, sheen: 0.3, sheenColor: new THREE.Color(0x666680), sheenRoughness: 0.8 }); m.envMapIntensity = 0; return m;
+  const m = new THREE.MeshPhysicalMaterial({ color, roughness: 0.88, metalness: 0.0, sheen: 0.25, sheenColor: new THREE.Color(0x706860), sheenRoughness: 0.8 }); m.envMapIntensity = 0; return m;
 }
 function metalMat(color) {
   return new THREE.MeshPhysicalMaterial({ color, roughness: 0.15, metalness: 0.5, clearcoat: 1.0, clearcoatRoughness: 0.05, reflectivity: 0.9 });
