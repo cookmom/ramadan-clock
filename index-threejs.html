@@ -1356,11 +1356,20 @@ function showInfo(){
 renderer.domElement.addEventListener('click',showInfo);
 renderer.domElement.addEventListener('dblclick',()=>{modeTarget=modeTarget>0.5?0:1;});
 
-let touchStartX=0;
-renderer.domElement.addEventListener('touchstart',e=>{touchStartX=e.touches[0].clientX;});
+let touchStartX=0, touchStartY=0;
+renderer.domElement.addEventListener('touchstart',e=>{
+  touchStartX=e.touches[0].clientX;
+  touchStartY=e.touches[0].clientY;
+},{passive:true});
 renderer.domElement.addEventListener('touchend',e=>{
   const dx=e.changedTouches[0].clientX-touchStartX;
-  if(Math.abs(dx)>50){
+  const dy=e.changedTouches[0].clientY-touchStartY;
+  // Determine if swipe is more horizontal or vertical
+  if(Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 50) {
+    // Vertical swipe — up = night, down = day
+    modeTarget = dy < 0 ? 1 : 0;
+  } else if(Math.abs(dx) > 50) {
+    // Horizontal swipe — change dial
     const idx=DIAL_NAMES.indexOf(currentDial);
     currentDial=DIAL_NAMES[dx>0?(idx-1+DIAL_NAMES.length)%DIAL_NAMES.length:(idx+1)%DIAL_NAMES.length];
     buildAll();
