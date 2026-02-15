@@ -650,6 +650,7 @@ let qiblaGroup, qiblaRotor, qiblaInnerRotor;
 let hasCompassData = false;
 let compassHeading = 0, targetCompassHeading = 0;
 let qiblaBearing = 0; // degrees from north
+let qiblaAligned = false; // hysteresis state
 let userLat = null, userLng = null;
 
 // Kaaba coordinates
@@ -986,10 +987,12 @@ function updateQibla() {
   // Smooth compass heading
   compassHeading += ((targetCompassHeading - compassHeading + 540) % 360 - 180) * 0.08;
   
-  // Check alignment
+  // Check alignment — hysteresis to prevent jitter (enter at 15°, exit at 25°)
   const qiblaOffset = ((qiblaBearing - compassHeading) % 360 + 360) % 360;
   const offDeg = Math.min(qiblaOffset, 360 - qiblaOffset);
-  const aligned = offDeg < 9;
+  if(offDeg < 15) qiblaAligned = true;
+  if(offDeg > 25) qiblaAligned = false;
+  const aligned = qiblaAligned;
   
   // Outer rotor: compass direction — but eases to 0 when aligned so inner rotor
   // sits on the 12-6 centerline (triangle tip → 12, base → 6)
@@ -1533,7 +1536,7 @@ function animate(){
   if(window._subdialRings && qiblaRotor) {
     const qiblaOffset = ((qiblaBearing - compassHeading) % 360 + 360) % 360;
     const offNorm = Math.min(qiblaOffset, 360 - qiblaOffset) / 180; // 0=aligned, 1=opposite
-    const aligned = offNorm < 0.05; // within ~9°
+    const aligned = qiblaAligned;
     const nearZone = offNorm < 0.15; // within ~27° — rings start slowing
     
     // Qibla triangle pulses when aligned
