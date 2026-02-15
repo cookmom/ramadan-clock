@@ -224,7 +224,7 @@ function buildMarkers() {
     if(atBot) continue;
     // Skip hour markers where numerals go (2,4,8,10 = minute 10,20,40,50)
     const hourIdx = i/5;
-    if(isHour && [2,4,8,10].includes(hourIdx)) continue;
+    if(isHour && [0,2,4,8,10].includes(hourIdx)) continue;
     
     if(isHour){
       const mH=R*0.12, mW=R*0.032, depth=3;
