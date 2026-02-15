@@ -97,7 +97,7 @@ RectAreaLightUniformsLib.init();
 const { RGBELoader } = await import('three/addons/loaders/RGBELoader.js');
 const pmrem = new THREE.PMREMGenerator(renderer);
 pmrem.compileEquirectangularShader();
-new RGBELoader().load('https://dl.polyhaven.com/file/ph-assets/HDRIs/hdr/1k/studio_small_09_1k.hdr', (tex) => {
+new RGBELoader().load('https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/studio_small_09_1k.hdr', (tex) => {
   const envMap = pmrem.fromEquirectangular(tex).texture;
   scene.environment = envMap;
   tex.dispose();
