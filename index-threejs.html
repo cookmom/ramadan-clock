@@ -120,8 +120,7 @@ cam.position.z = 100;
 // ── Selective Bloom Setup ──
 const renderTarget = new THREE.WebGLRenderTarget(W, H, {
   type: THREE.HalfFloatType,
-  format: THREE.RGBAFormat,
-  samples: 4 // MSAA for anti-aliasing through EffectComposer
+  format: THREE.RGBAFormat
 });
 
 const composer = new EffectComposer(renderer, renderTarget);
@@ -130,13 +129,18 @@ composer.addPass(renderPass);
 
 const bloomPass = new UnrealBloomPass(
   new THREE.Vector2(W, H),
-  0.0,   // strength — controlled dynamically by modeBlend
-  0.4,   // radius
-  0.7    // threshold — only bright lume elements bloom
+  0.8,   // strength
+  0.6,   // radius
+  0.1    // threshold
 );
 composer.addPass(bloomPass);
 
-// (removed redundant second bloom composer — single pass handles it)
+// Bloom composer for selective bloom
+const bloomComposer = new EffectComposer(renderer, renderTarget.clone());
+const bloomRenderPass = new RenderPass(bloomScene, cam);
+bloomComposer.addPass(bloomRenderPass);
+const bloomPass2 = new UnrealBloomPass(new THREE.Vector2(W, H), 1.5, 0.8, 0.0);
+bloomComposer.addPass(bloomPass2);
 
 // Final compositing shader
 const finalShader = {
@@ -309,19 +313,11 @@ bloomScene.add(bloomGroup);
 
 // ── Build static elements ──
 // Background quad
-// Full screen background
 const bgGeo = new THREE.PlaneGeometry(W * 2, H * 2);
 const bgMat = new THREE.MeshBasicMaterial({ color: hexToVec3('#3a3a44') });
 const bgMesh = new THREE.Mesh(bgGeo, bgMat);
 bgMesh.position.z = -10;
 bgGroup.add(bgMesh);
-
-// Dial face circle (separate from background for proper layering)
-const faceGeo = new THREE.CircleGeometry(R * 1.02, 256);
-const faceMat = new THREE.MeshBasicMaterial({ color: hexToVec3('#3a3a44') });
-const faceMesh = new THREE.Mesh(faceGeo, faceMat);
-faceMesh.position.z = -5;
-faceGroup.add(faceMesh);
 
 // Bloom background (black)
 const bloomBgGeo = new THREE.PlaneGeometry(W * 2, H * 2);
@@ -329,6 +325,54 @@ const bloomBgMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
 const bloomBgMesh = new THREE.Mesh(bloomBgGeo, bloomBgMat);
 bloomBgMesh.position.z = -10;
 bloomGroup.add(bloomBgMesh);
+
+// ── Dial face (flat surface with subtle texture) ──
+let dialFaceMesh = null;
+let dialFaceTexture = null;
+
+function createDialFaceTexture(bgColor) {
+  const size = 1024;
+  const cv = document.createElement('canvas');
+  cv.width = size; cv.height = size;
+  const ctx = cv.getContext('2d');
+  
+  // Fill with dial bg color
+  ctx.fillStyle = bgColor;
+  ctx.fillRect(0, 0, size, size);
+  
+  // Subtle stipple noise (like canvas version)
+  ctx.globalAlpha = 0.012;
+  for (let i = 0; i < 2000; i++) {
+    const x = Math.random() * size, y = Math.random() * size;
+    ctx.fillStyle = Math.random() > 0.5 ? '#fff' : '#000';
+    ctx.fillRect(x, y, 1, 1);
+  }
+  ctx.globalAlpha = 1;
+  
+  // Mask to circle
+  const out = document.createElement('canvas');
+  out.width = size; out.height = size;
+  const octx = out.getContext('2d');
+  octx.beginPath();
+  octx.arc(size/2, size/2, size/2, 0, Math.PI * 2);
+  octx.clip();
+  octx.drawImage(cv, 0, 0);
+  
+  const tex = new THREE.CanvasTexture(out);
+  tex.minFilter = THREE.LinearFilter;
+  tex.magFilter = THREE.LinearFilter;
+  return tex;
+}
+
+function buildDialFace(bgColor) {
+  if (dialFaceMesh) faceGroup.remove(dialFaceMesh);
+  dialFaceTexture = createDialFaceTexture(bgColor);
+  const geo = new THREE.PlaneGeometry(R * 2, R * 2);
+  const mat = new THREE.MeshBasicMaterial({ map: dialFaceTexture, transparent: true });
+  dialFaceMesh = new THREE.Mesh(geo, mat);
+  dialFaceMesh.position.z = -1; // just above background
+  faceGroup.add(dialFaceMesh);
+}
 
 // ── Dynamic elements storage ──
 let hourMarkers = [];
@@ -366,6 +410,9 @@ function buildClock() {
   bloomHandLumes = [];
   
   const c = getColors();
+  
+  // Dial face — flat textured circle
+  buildDialFace(c.bg);
   
   // Hour indices (pill shapes with lume)
   for (let i = 0; i < 60; i++) {
@@ -433,7 +480,7 @@ function buildClock() {
   // Minute labels (05, 10, 15...)
   for (let i = 0; i < 60; i += 5) {
     const ang = (i / 60) * Math.PI * 2 - Math.PI / 2;
-    const r = R * 0.93;
+    const r = R + R * 0.06;
     const label = MIN_LABELS[i];
     if (!label) continue;
     const fontSize = R * 0.045;
@@ -646,9 +693,15 @@ function buildStars() {
 function updateColors() {
   const c = getColors();
   
-  // Background + face
+  // Background
   bgMat.color = hexToVec3(c.bg);
-  faceMat.color = hexToVec3(c.bg);
+  
+  // Dial face texture (regenerate on dial change for stipple + color match)
+  if (dialFaceMesh) {
+    dialFaceTexture = createDialFaceTexture(c.bg);
+    dialFaceMesh.material.map = dialFaceTexture;
+    dialFaceMesh.material.needsUpdate = true;
+  }
   
   // Hour markers
   hourMarkers.forEach(m => m.material.color = hexToVec3(c.hand));
@@ -674,7 +727,8 @@ function updateColors() {
   if (qiblaNeedle) qiblaNeedle.material.color = hexToVec3(c.bg);
   
   // Bloom intensity based on night mode
-  bloomPass.strength = 0; // bloom disabled — fix selective bloom first
+  bloomPass.strength = 0.3 + modeBlend * 1.2;
+  bloomPass2.strength = modeBlend * 2.0;
   
   // Stars visibility
   starsGroup.children.forEach(mesh => {
@@ -887,19 +941,17 @@ function updateFastingArc(c) {
   
   const isLightDial = currentDial === 'white' || currentDial === 'cream';
   
-  // Helper: build thick arc as a RingGeometry slice
-  function makeThickArc(innerR, outerR, sAng, eAng, color, opacity, z) {
-    const geo = new THREE.RingGeometry(innerR, outerR, 128, 1, sAng, eAng - sAng);
-    const mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity, side: THREE.DoubleSide });
-    const mesh = new THREE.Mesh(geo, mat);
-    mesh.position.z = z;
-    return mesh;
-  }
-  
-  const trackW = 1.5; // half-width of arc line
   // Track line
-  const trackColor = isLightDial ? 0x000000 : 0xffffff;
-  const track = makeThickArc(arcR - trackW, arcR + trackW, startAng, endAng, trackColor, isLightDial ? 0.25 : 0.35, 1);
+  const trackCurve = new THREE.EllipseCurve(0, 0, arcR, arcR, startAng, endAng, false, 0);
+  const trackPoints = trackCurve.getPoints(128);
+  const trackGeo = new THREE.BufferGeometry().setFromPoints(trackPoints);
+  const trackMat = new THREE.LineBasicMaterial({
+    color: isLightDial ? 0x000000 : 0xffffff,
+    transparent: true,
+    opacity: isLightDial ? 0.25 : 0.35
+  });
+  const track = new THREE.Line(trackGeo, trackMat);
+  track.position.z = 1;
   arcGroup.add(track);
   
   // Progress
@@ -907,8 +959,16 @@ function updateFastingArc(c) {
     const elapsed = now - fajr;
     const nowAng = startAng + (elapsed / 720) * Math.PI * 2;
     
-    const progW = 2;
-    const prog = makeThickArc(arcR - progW, arcR + progW, startAng, nowAng, trackColor, isLightDial ? 0.7 : 0.85, 1.5);
+    const progCurve = new THREE.EllipseCurve(0, 0, arcR, arcR, startAng, nowAng, false, 0);
+    const progPoints = progCurve.getPoints(128);
+    const progGeo = new THREE.BufferGeometry().setFromPoints(progPoints);
+    const progMat = new THREE.LineBasicMaterial({
+      color: isLightDial ? 0x000000 : 0xffffff,
+      transparent: true,
+      opacity: isLightDial ? 0.7 : 0.85
+    });
+    const prog = new THREE.Line(progGeo, progMat);
+    prog.position.z = 1;
     arcGroup.add(prog);
     
     // Red sphere tip
@@ -1023,7 +1083,7 @@ function rebuildNumerals() {
   
   for (let i = 0; i < 60; i += 5) {
     const ang = (i / 60) * Math.PI * 2 - Math.PI / 2;
-    const r = R * 0.93;
+    const r = R + R * 0.06;
     const label = MIN_LABELS[i];
     if (!label) continue;
     const fontSize = R * 0.045;
@@ -1050,9 +1110,9 @@ function onResize() {
   cam.updateProjectionMatrix();
   
   composer.setSize(W, H);
-  // bloomComposer removed
+  bloomComposer.setSize(W, H);
   bloomPass.resolution.set(W, H);
-  
+  bloomPass2.resolution.set(W, H);
   
   bgMesh.scale.set(W * 2 / bgGeo.parameters.width, H * 2 / bgGeo.parameters.height, 1);
   bloomBgMesh.scale.set(W * 2 / bloomBgGeo.parameters.width, H * 2 / bloomBgGeo.parameters.height, 1);
@@ -1071,8 +1131,12 @@ function animate() {
   updateFlap(c);
   updateFastingArc(c);
   
-  // Render directly — bypass EffectComposer for clean native AA
-  renderer.render(scene, cam);
+  // Render bloom scene
+  renderer.autoClear = false;
+  renderer.clear();
+  
+  // Render main scene with bloom
+  composer.render();
 }
 
 // ── Init ──
