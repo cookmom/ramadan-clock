@@ -1433,10 +1433,15 @@ function animate(){
   updateHands();
   updateFlap();
   updateQibla();
-  // Spin subdial rings
-  if(window._subdialRings) {
+  // Spin subdial rings — driven by Qibla offset, align when facing Mecca
+  if(window._subdialRings && qiblaRotor) {
+    // How far off Qibla are we? 0 = perfectly aligned, 180 = opposite
+    const qiblaOffset = ((qiblaBearing - compassHeading) % 360 + 360) % 360;
+    const offNorm = Math.min(qiblaOffset, 360 - qiblaOffset) / 180; // 0=aligned, 1=opposite
     window._subdialRings.forEach(r => {
-      r.group.rotation.z += r.speed * r.dir * 0.003;
+      // Target rotation: 0 when aligned, scattered when off
+      const targetZ = offNorm * Math.PI * 2 * r.speed * r.dir;
+      r.group.rotation.z += (targetZ - r.group.rotation.z) * 0.06; // smooth lerp
     });
   }
   
