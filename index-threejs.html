@@ -78,7 +78,7 @@ const NIGHT_LUME = {
   kawthar:{ emissive: 0xffa0c0 },  // Soft pink glow
   dhuha:  { emissive: 0xffc040 },  // Warm golden sunrise
   najm:   { emissive: 0x90b8ff },  // Cool stellar blue
-  qamar:  { emissive: 0xd0d8e8 },  // Cool silver moonlight
+  qamar:  { emissive: 0xe8f0ff },  // Bright ice-silver moonbeam
   ward:   { emissive: 0xff80a8 },  // Warm rose glow
   lilas:  { emissive: 0xc090ff },  // Purple lume
   rainbow:{ emissive: 0xf0d8a0 },  // Warm champagne
@@ -1011,9 +1011,9 @@ let moonGroup, moonMesh, moonGlowMesh;
 function buildStars(){
   starMeshes.forEach(m=>scene.remove(m)); starMeshes=[];
   STARS.forEach(s=>{
-    const m=new THREE.Mesh(new THREE.CircleGeometry(s.r*1.5,16),new THREE.MeshBasicMaterial({color:0xfffff0,transparent:true,opacity:0}));
-    m.position.x=(s.x-0.5)*350; m.position.y=(0.5-s.y)*600;
-    m.position.z=-20; m.userData=s; scene.add(m); starMeshes.push(m);
+    const m=new THREE.Mesh(new THREE.CircleGeometry(s.r*2.5,16),new THREE.MeshBasicMaterial({color:0xfffff0,transparent:true,opacity:0}));
+    m.position.x=(s.x-0.5)*400; m.position.y=(0.5-s.y)*500 + 80;
+    m.position.z=-15; m.userData=s; scene.add(m); starMeshes.push(m);
   });
   
   // 3D Moon — rises during night transition
