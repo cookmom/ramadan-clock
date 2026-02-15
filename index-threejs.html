@@ -186,7 +186,7 @@ initGyro();
 // Background plane (fills screen behind case ring)
 const bgPlane = new THREE.Mesh(
   new THREE.PlaneGeometry(2000, 2000),
-  new THREE.MeshBasicMaterial({ color: 0x2a2a30 })
+  new THREE.MeshBasicMaterial({ color: 0x1a1a1e })
 );
 bgPlane.position.z = -50;
 scene.add(bgPlane);
@@ -208,8 +208,8 @@ function buildDial() {
 }
 
 // Case ring (watch bezel — polished steel)
-const caseR = R * 1.08; // just outside the minute ticks
-const caseTube = R * 0.045; // thickness of the ring
+const caseR = R * 1.12; // just outside the minute ticks
+const caseTube = R * 0.08; // visible bezel thickness
 const caseGeo = new THREE.TorusGeometry(caseR, caseTube, 32, 128);
 const caseMat = new THREE.MeshStandardMaterial({
   color: 0xc0c0c0, metalness: 0.9, roughness: 0.15
