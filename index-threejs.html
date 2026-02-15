@@ -1444,10 +1444,11 @@ function animate(){
     
     // Moon glow and emissive
     if(moonMesh) {
-      moonMesh.material.emissiveIntensity = moonBlend * 0.6;
+      moonMesh.material.emissiveIntensity = moonBlend * 1.2;
+      moonMesh.material.opacity = moonBlend;
     }
     if(moonGlowMesh) {
-      moonGlowMesh.material.opacity = moonBlend * 0.08;
+      moonGlowMesh.material.opacity = moonBlend * 0.25;
       moonGlowMesh.material.color.lerp(lumeEmCol, 0.3);
     }
     
