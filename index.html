@@ -844,7 +844,7 @@ function drawSplitFlap(c){
   let label='',mins=0;
   const sunnahTag=!isRam&&isSunnahDay?' · SUNNAH':'';
 
-  // Primary countdown (fasting-related)
+  // Slot A: Isha countdown (during fasting hours) or fasting countdown
   let priMins=0,priLabel='';
   if(now>=fajr&&now<mag){priMins=mag-now;priLabel='UNTIL IFTAR'+sunnahTag;}
   else if(now<fajr){priMins=fajr-now;priLabel='UNTIL FAJR'+sunnahTag;}
@@ -854,17 +854,22 @@ function drawSplitFlap(c){
     return;
   }
 
-  // Next prayer countdown (any prayer)
+  // Slot B: Isha countdown
+  const ishaMin=pM(PD.Isha);
+  let ishaMins=0,ishaLabel='';
+  if(ishaMin>now){ishaMins=ishaMin-now;ishaLabel='UNTIL ISHA';}
+
+  // Slot C: Next upcoming prayer
   let nxtMins=0,nxtLabel='';
   for(let i=0;i<PN.length;i++){
     const pt=pM(PD[PN[i]]);
     if(pt>now){nxtMins=pt-now;nxtLabel='UNTIL '+PN[i].toUpperCase();break;}
   }
 
-  // Toggle every minute: even minutes = primary (iftar/fajr), odd = next prayer
-  // If next prayer IS the same as primary, always show primary
-  const useAlt=nxtLabel&&nxtLabel!==priLabel&&(Math.floor(Date.now()/60000)%2===1);
-  if(useAlt){mins=nxtMins;label=nxtLabel;}
+  // Toggle every 5 seconds between fasting countdown, Isha, and next prayer
+  const slot=Math.floor(Date.now()/5000)%3;
+  if(slot===1&&ishaLabel&&ishaLabel!==priLabel){mins=ishaMins;label=ishaLabel;}
+  else if(slot===2&&nxtLabel&&nxtLabel!==priLabel&&nxtLabel!==ishaLabel){mins=nxtMins;label=nxtLabel;}
   else{mins=priMins;label=priLabel;}
   const h=Math.floor(mins/60),m=Math.floor(mins%60);
   const chars=[
@@ -1437,7 +1442,7 @@ function releaseWakeLock(){
 }
 
 // ── Adhan Debug Log ──
-const _ADHAN_VER='v55-qiblactx';
+const _ADHAN_VER='v56-flipclean';
 const _adhanLog=[];
 // Auto-show debug panel on load
 requestAnimationFrame(()=>{adhanDbg('ready');});
@@ -2273,7 +2278,7 @@ if(urlP.has('time')){devTimeMin=parseFloat(urlP.get('time'));}
 if(urlP.get('ramadan')==='true'){devRamadan=true;}
 if(urlP.get('tawaf')==='true'){devRamadan=true;setTimeout(()=>{celestialProgress=0;modeBlend=0;modeTarget=0;startTawaf(true);},1000);}
 const embedFeature=urlP.get('feature'); // prayers, countdown, qibla, etc.
-const hideMarkers=urlP.has('nomarkers');
+const hideMarkers=true; // prayer dot markers hidden — unclear UX, revisit with labels
 if(embedMode){
   // Hide overlays and chrome for clean embed — also auto-activate
   document.body.style.background='transparent';
