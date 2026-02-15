@@ -159,7 +159,7 @@ scene.add(specPoint);
 // MATERIALS (PBR)
 // ══════════════════════════════════════════
 function dialMat(color) {
-  const m = new THREE.MeshPhysicalMaterial({ color, roughness: 0.88, metalness: 0.0, sheen: 0.25, sheenColor: new THREE.Color(0x706860), sheenRoughness: 0.8 }); m.envMapIntensity = 0; return m;
+  const m = new THREE.MeshPhysicalMaterial({ color, roughness: 0.88, metalness: 0.0, sheen: 0.25, sheenColor: new THREE.Color(0x706860), sheenRoughness: 0.8, emissive: 0x000000, emissiveIntensity: 0 }); m.envMapIntensity = 0; return m;
 }
 function metalMat(color) {
   return new THREE.MeshPhysicalMaterial({ color, roughness: 0.15, metalness: 0.5, clearcoat: 1.0, clearcoatRoughness: 0.05, reflectivity: 0.9 });
@@ -870,6 +870,13 @@ function animate(){
     m.emissiveIntensity = lumeIntensity * 0.6;
   });
   
+  // Dial surface picks up faint lume ambient bounce
+  if(dialMesh && dialMesh.material) {
+    dialMesh.material.emissive = dialMesh.material.emissive || new THREE.Color(0);
+    dialMesh.material.emissive.copy(lumeEmCol).multiplyScalar(0.03);
+    dialMesh.material.emissiveIntensity = modeBlend;
+  }
+  
   // Qibla triangle glows brighter at night
   if(qiblaGroup) {
     qiblaGroup.traverse(child => {
@@ -895,10 +902,15 @@ function animate(){
   // Second hand subtle glow at night
   if(secMat_) secMat_.emissiveIntensity = modeBlend * 0.3;
   
-  // Stars
+  // Hands catch faint lume-tinted spec at night (simulates lume bounce on polished steel)
+  if(hourMat_) { hourMat_.emissive = hourMat_.emissive || new THREE.Color(0); hourMat_.emissive.copy(lumeEmCol).multiplyScalar(0.04); hourMat_.emissiveIntensity = modeBlend; }
+  if(minMat_) { minMat_.emissive = minMat_.emissive || new THREE.Color(0); minMat_.emissive.copy(lumeEmCol).multiplyScalar(0.04); minMat_.emissiveIntensity = modeBlend; }
+  
+  // Stars — tinted to match lume palette
   starMeshes.forEach(m=>{
     const s=m.userData;if(!s)return;
     m.material.opacity=modeBlend*s.bright*(Math.sin(Date.now()*s.speed+s.offset)*0.3+0.7)*0.7;
+    m.material.color.lerp(lumeEmCol, modeBlend * 0.3);
   });
   
   // BG color blend
