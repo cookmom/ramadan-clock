@@ -37,7 +37,7 @@ canvas{display:block;width:100%;height:100%}
   <div class="dial-dot" data-dial="qamar" style="border-color:#c0c4cc"></div>
   <div class="dial-dot" data-dial="ward" style="border-color:#d89098"></div>
   <div class="dial-dot" data-dial="lilas" style="border-color:#8878a8"></div>
-  <div class="dial-dot" data-dial="rainbow" style="border-color:#f0ece8;background:linear-gradient(135deg,#ff4040,#ff8c00,#ffd700,#40c040,#4090ff,#8040c0)"></div>
+  <div class="dial-dot" data-dial="rainbow" style="border-color:#1a1a1a;background:linear-gradient(135deg,#ff4040,#ff8c00,#ffd700,#40c040,#4090ff,#8040c0)"></div>
 </div>
 
 <script type="importmap">
@@ -65,7 +65,7 @@ const DIALS = {
   qamar:  {bg:0xc0c4cc, lume:0x2a2a30, hand:0x1a1a20, sec:0x2a2a30, text:'#2a2a30', surah:'Al-Qamar'},         // silver — the neutral
   ward:   {bg:0xd89098, lume:0xf8f0f0, hand:0xf8f0f0, sec:0xffffff, text:'#f8f0f0', surah:'Al-Wāqiʿah'},       // raspberry sorbet
   lilas:  {bg:0x8878a8, lume:0xf0ecf4, hand:0xf0ecf4, sec:0xffffff, text:'#f0ecf4', surah:'Al-Mulk'},           // lavender sorbet
-  rainbow:{bg:0xf0ece8, lume:0x2a2a30, hand:0xc8b898, sec:0xc8b898, text:'#2a2a30', surah:'Al-Insān', bezel:true}, // Rolex Rainbow — champagne + gold
+  rainbow:{bg:0x1a1a1a, lume:0xc8a878, hand:0xc8a878, sec:0xc8a878, text:'#c8a878', surah:'Al-Insān', bezel:true}, // Rolex Rainbow — black dial + rose gold
 };
 // Night lume palettes — modeled after real SuperLuminova variants
 // Each matches the daytime lume character but amplified for glow
@@ -409,6 +409,7 @@ function buildMarkers() {
   
   const c = DIALS[currentDial];
   const isKawthar = currentDial === 'kawthar';
+  const isRainbow = currentDial === 'rainbow';
   
   for(let i=0;i<60;i++){
     const ang = Math.PI/2 - (i/60)*Math.PI*2; // CW from 12
@@ -450,6 +451,30 @@ function buildMarkers() {
         mesh.position.y = Math.sin(ang)*midR;
         mesh.position.z = 1.5;
         clockGroup.add(mesh); markerMeshes.push(mesh);
+      }
+    } else if(isRainbow) {
+      // ── RAINBOW: baguette gem hour markers ──
+      if(isHour) {
+        const hourIdx = i/5;
+        if(hourIdx === 6) continue; // skip qibla cutout
+        const hue = (hourIdx/12);
+        const gemColor = new THREE.Color().setHSL(hue, 0.85, 0.55);
+        const bW = R*0.04, bH = R*0.09, depth = 3;
+        const geo = new THREE.BoxGeometry(bW, bH, depth);
+        const mat = new THREE.MeshPhysicalMaterial({
+          color: gemColor, roughness: 0.05, metalness: 0.0,
+          clearcoat: 1.0, clearcoatRoughness: 0.02,
+          transmission: 0.2, thickness: 2, ior: 1.77,
+          emissive: gemColor, emissiveIntensity: 0.15
+        });
+        const mesh = new THREE.Mesh(geo, mat);
+        const midR = R * 0.87;
+        mesh.position.x = Math.cos(ang)*midR;
+        mesh.position.y = Math.sin(ang)*midR;
+        mesh.position.z = depth/2;
+        mesh.rotation.z = ang + Math.PI/2;
+        clockGroup.add(mesh); markerMeshes.push(mesh);
+        lumeMeshes.push(mesh);
       }
     } else {
       // ── STANDARD: tick marks + rectangular hour markers ──
@@ -500,7 +525,7 @@ let numeralMats = [];
 function buildNumerals() {
   numeralSprites.forEach(s=>clockGroup.remove(s));
   numeralSprites=[]; numeralMats=[];
-  if(currentDial === 'kawthar') return; // Kawthar uses diamond markers only — no numerals
+  if(currentDial === 'kawthar' || currentDial === 'rainbow') return; // special marker dials — no numerals
   const c = DIALS[currentDial];
   const NUMERAL_POS = [0,2,4,8,10]; // 12, 2, 4, 8, 10 (no 6 — qibla)
   for(const i of NUMERAL_POS){
