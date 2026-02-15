@@ -75,8 +75,11 @@ document.body.appendChild(renderer.domElement);
 const scene = new THREE.Scene();
 
 // ── Perspective camera (slight top-down angle for depth)
-const cam = new THREE.PerspectiveCamera(28, W/H, 1, 2000);
-cam.position.set(0, -5, 320);
+// Adjust camera distance based on aspect ratio so clock fits both portrait and landscape
+const aspect = W/H;
+const camZ = aspect < 1 ? 320 / aspect : 320; // pull back more on portrait
+const cam = new THREE.PerspectiveCamera(22, aspect, 1, 2000);
+cam.position.set(0, -3, camZ);
 cam.lookAt(0, 0, 0);
 
 // ══════════════════════════════════════════
@@ -583,7 +586,10 @@ document.querySelectorAll('.dial-dot').forEach(d=>{d.addEventListener('click',e=
 window.addEventListener('resize',()=>{
   W=window.innerWidth;H=window.innerHeight;
   renderer.setSize(W,H);
-  cam.aspect=W/H;cam.updateProjectionMatrix();
+  const a=W/H;
+  cam.aspect=a;
+  cam.position.z = a < 1 ? 320/a : 320;
+  cam.updateProjectionMatrix();
 });
 
 // ══════════════════════════════════════════
