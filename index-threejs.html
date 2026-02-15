@@ -183,6 +183,14 @@ initGyro();
 // ══════════════════════════════════════════
 // BUILD CLOCK
 // ══════════════════════════════════════════
+// Background plane (fills screen behind case ring)
+const bgPlane = new THREE.Mesh(
+  new THREE.PlaneGeometry(2000, 2000),
+  new THREE.MeshBasicMaterial({ color: 0x2a2a30 })
+);
+bgPlane.position.z = -50;
+scene.add(bgPlane);
+
 const clockGroup = new THREE.Group(); // everything lives here for parallax
 clockGroup.scale.setScalar(0.58);
 scene.add(clockGroup);
@@ -191,13 +199,24 @@ scene.add(clockGroup);
 let dialMesh;
 function buildDial() {
   if(dialMesh) clockGroup.remove(dialMesh);
-  // Large flat plane instead of cylinder — no visible edge
-  const geo = new THREE.PlaneGeometry(800, 800);
+  // Dial circle bounded by case ring
+  const geo = new THREE.CircleGeometry(caseR - caseTube * 0.5, 128);
   dialMesh = new THREE.Mesh(geo, dialMat(DIALS[currentDial].bg));
   dialMesh.position.z = -2;
   dialMesh.receiveShadow = true;
   clockGroup.add(dialMesh);
 }
+
+// Case ring (watch bezel — polished steel)
+const caseR = R * 1.08; // just outside the minute ticks
+const caseTube = R * 0.045; // thickness of the ring
+const caseGeo = new THREE.TorusGeometry(caseR, caseTube, 32, 128);
+const caseMat = new THREE.MeshStandardMaterial({
+  color: 0xc0c0c0, metalness: 0.9, roughness: 0.15
+});
+const caseRing = new THREE.Mesh(caseGeo, caseMat);
+caseRing.position.z = 0;
+clockGroup.add(caseRing);
 
 // Hour markers (extruded pills — actual 3D)
 let markerMeshes = [], lumeMeshes = [];
