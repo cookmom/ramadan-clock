@@ -918,8 +918,8 @@ function drawSplitFlapChars(c,chars,sub){
 
   // Sub-label below
   ctx.textAlign='center';ctx.textBaseline='middle';
-  ctx.font=`700 ${R*0.067}px 'Inter',system-ui,sans-serif`;
-  ctx.fillStyle=c.lume;ctx.globalAlpha=0.3;
+  ctx.font=`300 ${R*0.067}px 'Inter',system-ui,sans-serif`;
+  ctx.fillStyle=c.lume;ctx.globalAlpha=1;
   ctx.fillText(sub,cx,wy+cellH/2+R*0.045);
   ctx.globalAlpha=1;
 
@@ -1442,7 +1442,7 @@ function releaseWakeLock(){
 }
 
 // ── Adhan Debug Log ──
-const _ADHAN_VER='v57-bigflap';
+const _ADHAN_VER='v58-flaplabel';
 const _adhanLog=[];
 // Auto-show debug panel on load
 requestAnimationFrame(()=>{adhanDbg('ready');});
