@@ -45,7 +45,7 @@ const DIALS = {
   tennis: {bg:0x2e8b57, lume:0xc8e860, hand:0xf4f0e0, sec:0xffffff, text:'#fffff0'},
   white:  {bg:0xe8e4dc, lume:0x1a1a1a, hand:0x111111, sec:0xc41e3a, text:'#1a1a1a'},
   salmon: {bg:0xc47a60, lume:0xfff0e0, hand:0xf8f4ec, sec:0xffffff, text:'#fff0e0'},
-  slate:  {bg:0x2c2c34, lume:0xc0c0ca, hand:0xe0e0e4, sec:0xf0f0f4, text:'#e0e0e4'},
+  slate:  {bg:0x3a3a44, lume:0xc0c0ca, hand:0xe0e0e4, sec:0xf0f0f4, text:'#e0e0e4'},
   sky:    {bg:0x5a9ac0, lume:0xf0f8ff, hand:0xf4f0e8, sec:0xffffff, text:'#f0f8ff'},
   cream:  {bg:0xd8ccb4, lume:0x3a3530, hand:0x2a2520, sec:0x3a3530, text:'#3a3530'},
 };
@@ -86,7 +86,7 @@ cam.lookAt(0, 0, 0);
 // ══════════════════════════════════════════
 // LIGHTING
 // ══════════════════════════════════════════
-const ambLight = new THREE.AmbientLight(0xffffff, 0.15);
+const ambLight = new THREE.AmbientLight(0xffffff, 0.2);
 scene.add(ambLight);
 
 // Softbox rect light — product-shot fill
@@ -96,13 +96,13 @@ RectAreaLightUniformsLib.init();
 // HDRI disabled — using direct lights only for clean consistent look
 // const { RGBELoader } = await import('three/addons/loaders/RGBELoader.js');
 
-const rectLight = new THREE.RectAreaLight(0xffffff, 0.5, 447, 447);
+const rectLight = new THREE.RectAreaLight(0xffffff, 0, 447, 447);
 rectLight.position.set(0, 0, 300);
 rectLight.lookAt(0, 0, 0);
 scene.add(rectLight);
 
 const dirLight = new THREE.DirectionalLight(0xfff5e8, 1.2);
-dirLight.position.set(-40, 200, 200);
+dirLight.position.set(-80, 150, 180);
 dirLight.castShadow = true;
 dirLight.shadow.mapSize.set(2048, 2048);
 dirLight.shadow.radius = 3;
