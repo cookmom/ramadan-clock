@@ -85,10 +85,18 @@ cam.lookAt(0, 0, 0);
 // ══════════════════════════════════════════
 // LIGHTING
 // ══════════════════════════════════════════
-const ambLight = new THREE.AmbientLight(0xffffff, 1.0);
+const ambLight = new THREE.AmbientLight(0xffffff, 0.6);
 scene.add(ambLight);
 
-const dirLight = new THREE.DirectionalLight(0xffffff, 1.98);
+// Softbox rect light — product-shot fill
+const { RectAreaLightUniformsLib } = await import('three/addons/lights/RectAreaLightUniformsLib.js');
+RectAreaLightUniformsLib.init();
+const rectLight = new THREE.RectAreaLight(0xffffff, 3, 200, 200);
+rectLight.position.set(0, 0, 300);
+rectLight.lookAt(0, 0, 0);
+scene.add(rectLight);
+
+const dirLight = new THREE.DirectionalLight(0xffffff, 1.0);
 dirLight.position.set(-60, 100, 250);
 dirLight.castShadow = true;
 dirLight.shadow.mapSize.set(2048, 2048);
