@@ -198,7 +198,7 @@ let dialMesh;
 function buildDial() {
   if(dialMesh) clockGroup.remove(dialMesh);
   // Dial circle bounded by case ring
-  const geo = new THREE.CircleGeometry(caseR - caseTube * 0.5, 128);
+  const geo = new THREE.CircleGeometry(caseR, 128);
   dialMesh = new THREE.Mesh(geo, dialMat(DIALS[currentDial].bg));
   dialMesh.position.z = -2;
   dialMesh.receiveShadow = true;
