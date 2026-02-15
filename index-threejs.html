@@ -282,7 +282,8 @@ function buildNumerals() {
     if(i===0||i===6) continue;
     const ang = (i/12)*Math.PI*2 - Math.PI/2;
     const r = R - R*0.28;
-    const sp = makeTextSprite(ARABIC[i], `700 ${R*0.11}px Lateef,system-ui`, R*0.11, c.text);
+    const fontSize = R*0.18;
+    const sp = makeTextSprite(ARABIC[i], `700 ${fontSize}px Lateef,system-ui`, fontSize, c.text);
     sp.position.x = Math.cos(ang)*r;
     sp.position.y = Math.sin(ang)*r;
     sp.position.z = 5;
@@ -474,7 +475,8 @@ function buildAll(){
   buildFlap();
   buildStars();
 }
-buildAll();
+// Wait for fonts then build (Lateef for Arabic numerals)
+document.fonts.ready.then(()=>buildAll());
 
 // ══════════════════════════════════════════
 // UPDATES
