@@ -55,7 +55,7 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 // ══════════════════════════════════════════
 const DIALS = {
   tennis: {bg:0x68b890, lume:0xf0f0e8, hand:0xf0f0e8, sec:0xffffff, text:'#f0f0e8', surah:'Ar-Raḥmān'},       // pistachio sorbet
-  white:  {bg:0xe8e4dc, lume:0x1a1a1a, hand:0x1a1a1a, sec:0xc41e3a, text:'#1a1a1a', surah:'An-Nūr'},           // white + black + red sec — unified
+  white:  {bg:0xe8e4dc, lume:0x1a1a1a, hand:0x1a1a1a, sec:0xd4708c, text:'#1a1a1a', surah:'An-Nūr'},           // Nurjaan's dial — white + black + rose pink sec
   salmon: {bg:0xd8988c, lume:0xf8f0ec, hand:0xf8f0ec, sec:0xffffff, text:'#f8f0ec', surah:'Ash-Shams'},        // peach sorbet
   slate:  {bg:0x585860, lume:0xe8e0c8, hand:0xd0d0d4, sec:0xff6633, text:'#e8e0c8', surah:'Al-Layl'},          // grey + cream + orange sec — the anchor
   sky:    {bg:0x82b8d8, lume:0xf0f4f8, hand:0xf0f4f8, sec:0xffffff, text:'#f0f4f8', surah:'Al-Burūj'},         // blueberry sorbet
@@ -71,7 +71,7 @@ const DIALS = {
 // Each matches the daytime lume character but amplified for glow
 const NIGHT_LUME = {
   tennis: { emissive: 0x88ff30 },  // C1 — vivid green, gardens glowing at night
-  white:  { emissive: 0x90c8ff },  // BGW9 — cool blue from the blued steel indices
+  white:  { emissive: 0xffa0c0 },  // Nurjaan — soft rose pink lume
   salmon: { emissive: 0xffc070 },  // Old radium — warm amber, sunset afterglow
   slate:  { emissive: 0xc8e8a0 },  // C3 — classic green-cream, the iconic lume
   sky:    { emissive: 0x80d0ff },  // BGW9 — ice blue constellations
