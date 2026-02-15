@@ -217,7 +217,7 @@ function buildMarkers() {
   
   const c = DIALS[currentDial];
   for(let i=0;i<60;i++){
-    const ang = -(i/60)*Math.PI*2 + Math.PI/2; // CW from 12
+    const ang = (i/60)*Math.PI*2 + Math.PI/2; // match numeral direction
     const isHour = i%5===0;
     // Skip 12 and 6 positions
     const atBot = i===29||i===30||i===31;
@@ -407,7 +407,7 @@ function buildQibla() {
   
   // Compass ticks
   for(let i=0;i<8;i++){
-    const ang=-(i/8)*Math.PI*2+Math.PI/2;
+    const ang=(i/8)*Math.PI*2+Math.PI/2;
     const isC=i%2===0;
     const tH=isC?qr*0.13:qr*0.07, tW=isC?1.2:0.6, tD=1.5;
     const geo=new THREE.BoxGeometry(tW,tH,tD);
