@@ -91,7 +91,7 @@ scene.add(ambLight);
 // Softbox rect light — product-shot fill
 const { RectAreaLightUniformsLib } = await import('three/addons/lights/RectAreaLightUniformsLib.js');
 RectAreaLightUniformsLib.init();
-const rectLight = new THREE.RectAreaLight(0xffffff, 3, 200, 200);
+const rectLight = new THREE.RectAreaLight(0xffffff, 3, 283, 283);
 rectLight.position.set(0, 0, 300);
 rectLight.lookAt(0, 0, 0);
 scene.add(rectLight);
