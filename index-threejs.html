@@ -81,7 +81,7 @@ function pM(s){if(!s)return 0;const[h,m]=s.split(':').map(Number);return h*60+m;
 let W = window.innerWidth, H = window.innerHeight;
 const R = 80; // world-space radius
 
-const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference:'high-performance', alpha: EMBED });
+const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference:'high-performance', alpha: EMBED && !NIGHT_START });
 renderer.samples = 4;
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 3));
 renderer.setSize(W, H);
@@ -284,8 +284,8 @@ initGyro();
 const bgPlaneMat = new THREE.MeshBasicMaterial({ color: 0x1a1a22 });
 const bgPlane = new THREE.Mesh(new THREE.PlaneGeometry(2000, 2000), bgPlaneMat);
 bgPlane.position.z = -50;
-if(!EMBED) scene.add(bgPlane);
-if(EMBED) { renderer.setClearColor(0x000000, 0); }
+if(!EMBED || NIGHT_START) scene.add(bgPlane);
+if(EMBED && !NIGHT_START) { renderer.setClearColor(0x000000, 0); }
 
 const clockGroup = new THREE.Group(); // everything lives here for parallax
 clockGroup.scale.setScalar(EMBED ? 0.65 : 0.50);
@@ -860,7 +860,9 @@ function animate(){
   // Night mode: lume glow with per-dial color
   const nightLume = NIGHT_LUME[currentDial] || NIGHT_LUME.slate;
   const lumeEmCol = new THREE.Color(nightLume.emissive);
-  const lumeIntensity = modeBlend * 1.2;
+  // Subtle lume breathing — very slow, barely perceptible (±5%)
+  const lumeBreathe = 1.0 + Math.sin(Date.now() * 0.0005) * 0.05;
+  const lumeIntensity = modeBlend * 1.2 * lumeBreathe;
   lumeMeshes.forEach(m=>{
     m.material.emissive.lerp(lumeEmCol, modeBlend);
     m.material.emissiveIntensity = lumeIntensity;
@@ -896,8 +898,9 @@ function animate(){
     });
   }
   
-  // Bloom ramps up in night mode
-  bloomPass.strength = modeBlend * 0.6;
+  // Bloom ramps up in night mode — soft, dreamy glow
+  bloomPass.strength = modeBlend * 0.7;
+  bloomPass.radius = 0.4 + modeBlend * 0.3; // slightly wider spread at full night
   
   // Dim scene lights for night — let lume own the scene
   ambLight.intensity = 0.3 * (1 - modeBlend * 0.85);
@@ -941,7 +944,7 @@ function animate(){
   
   if(scene.background) document.querySelector('meta[name="theme-color"]').content='#'+scene.background.getHexString();
   
-  // Use composer for bloom, fallback to direct render if no bloom needed
+  // Use composer for bloom; in embed+night, render dark bg (no alpha)
   if(modeBlend > 0.01) {
     composer.render();
   } else {
