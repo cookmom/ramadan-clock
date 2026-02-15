@@ -244,41 +244,17 @@ function createDialTexture(bgColor) {
   const ctx = cv.getContext('2d');
   const cx = size / 2, cy = size / 2, r = size / 2;
   
-  // Base color fill
+  // Flat matte fill — uniform color
   ctx.fillStyle = bgColor;
   ctx.fillRect(0, 0, size, size);
   
-  // Sunburst gradient — slightly lighter at edges (like NOMOS)
-  const grad = ctx.createRadialGradient(cx, cy, r * 0.1, cx, cy, r);
-  const rgb = hexToRGB(bgColor);
-  // Darken center slightly, lighten edges
-  grad.addColorStop(0, `rgba(0,0,0,0.06)`);
-  grad.addColorStop(0.5, `rgba(0,0,0,0.02)`);
-  grad.addColorStop(0.85, `rgba(255,255,255,0.03)`);
-  grad.addColorStop(1, `rgba(255,255,255,0.06)`);
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, size, size);
-  
-  // Subtle stipple noise (surface texture)
-  for (let i = 0; i < 4000; i++) {
+  // Fine grain texture (galvanized/matte finish)
+  for (let i = 0; i < 8000; i++) {
     const x = Math.random() * size, y = Math.random() * size;
-    ctx.fillStyle = Math.random() > 0.5 ? 'rgba(255,255,255,0.008)' : 'rgba(0,0,0,0.008)';
+    const bright = Math.random() > 0.5;
+    ctx.fillStyle = bright ? 'rgba(255,255,255,0.012)' : 'rgba(0,0,0,0.012)';
     ctx.fillRect(x, y, 1, 1);
   }
-  
-  // Radial brushed lines (sunburst effect — very subtle)
-  ctx.save();
-  ctx.translate(cx, cy);
-  for (let a = 0; a < 360; a += 0.5) {
-    const rad = a * Math.PI / 180;
-    ctx.strokeStyle = `rgba(${Math.random() > 0.5 ? '255,255,255' : '0,0,0'},${0.003 + Math.random() * 0.004})`;
-    ctx.lineWidth = 0.5;
-    ctx.beginPath();
-    ctx.moveTo(Math.cos(rad) * r * 0.05, Math.sin(rad) * r * 0.05);
-    ctx.lineTo(Math.cos(rad) * r, Math.sin(rad) * r);
-    ctx.stroke();
-  }
-  ctx.restore();
   
   const tex = new THREE.CanvasTexture(cv);
   tex.minFilter = THREE.LinearFilter;
