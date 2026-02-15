@@ -1321,7 +1321,7 @@ function drawFastingArc(c){
     ctx.beginPath();ctx.arc(cx,cy,arcR,startAng,nowAng);ctx.stroke();
     // Red sphere at tip
     ctx.fillStyle='#e53e3e';ctx.shadowColor='rgba(229,62,62,0.6)';ctx.shadowBlur=8*dpr;
-    ctx.beginPath();ctx.arc(cx+Math.cos(nowAng)*arcR,cy+Math.sin(nowAng)*arcR,7*dpr,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc(cx+Math.cos(nowAng)*arcR,cy+Math.sin(nowAng)*arcR,5*dpr,0,Math.PI*2);ctx.fill();
     ctx.shadowBlur=0;
   }
 }
@@ -1451,7 +1451,7 @@ function releaseWakeLock(){
 }
 
 // ── Adhan Debug Log ──
-const _ADHAN_VER='v67-qiblagold';
+const _ADHAN_VER='v68-sphere';
 const _adhanLog=[];
 // Auto-show debug panel on load
 requestAnimationFrame(()=>{adhanDbg('ready');});
