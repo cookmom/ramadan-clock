@@ -878,36 +878,41 @@ function buildQibla() {
   
   clockGroup.add(qiblaGroup);
   
-  // ── Glass crystal dome over subdial ──
-  // Slightly domed sapphire crystal — catches tilt spec beautifully
+  // ── Glass sapphire crystal dome over subdial ──
+  // Research: real sapphire crystal = IOR 1.77, very low roughness,
+  // slight dispersion for chromatic aberration at edges,
+  // transmission ~0.98 (nearly perfectly clear).
+  // Key insight: don't use opacity — use transmission only.
+  // opacity + transmission = muddy. transmission alone = physically correct.
   const glassR = cutoutR - 0.5;
   const glassDome = new THREE.SphereGeometry(
-    glassR,          // radius matches cutout
-    64, 32,           // smooth
-    0, Math.PI*2,     // full circle
-    0, Math.PI*0.25   // shallow dome (45° cap = gentle curve)
+    glassR, 64, 32,
+    0, Math.PI*2,
+    0, Math.PI*0.2    // shallower dome (36° cap = watch crystal curve)
   );
   const glassMat = new THREE.MeshPhysicalMaterial({
     color: 0xffffff,
-    roughness: 0.02,
+    roughness: 0.0,       // perfectly polished sapphire
     metalness: 0.0,
-    transmission: 0.95,
-    thickness: 1.5,
-    ior: 1.77,          // sapphire crystal
+    transmission: 0.98,   // nearly perfectly clear
+    thickness: 2.0,       // thicker = more refraction visible
+    ior: 1.77,            // sapphire crystal IOR
+    dispersion: 0.15,     // subtle chromatic aberration at edges
     clearcoat: 1.0,
-    clearcoatRoughness: 0.01,
-    transparent: true,
-    opacity: 0.4,
-    envMapIntensity: 0.3,
-    specularIntensity: 2.0,
+    clearcoatRoughness: 0.0,
+    transparent: false,   // let transmission handle transparency, not opacity
+    specularIntensity: 1.5,
     specularColor: new THREE.Color(0xffffff),
+    attenuationDistance: 20,  // how far light travels before tinting
+    attenuationColor: new THREE.Color(0xf8f8ff), // very slight cool tint (sapphire)
   });
   const glassMesh = new THREE.Mesh(glassDome, glassMat);
   glassMesh.position.y = -R*0.5;
-  glassMesh.position.z = 3;  // sits above the compass elements
-  glassMesh.rotation.x = 0;  // dome faces camera
+  glassMesh.position.z = 4;  // sits above compass elements
+  glassMesh.rotation.x = 0;
+  glassMesh.renderOrder = 999; // render last for proper transparency
   clockGroup.add(glassMesh);
-  bezelMeshes.push(glassMesh); // reuse array for cleanup
+  bezelMeshes.push(glassMesh);
 }
 
 // Rebuild subdial every 60s to update fasting arc
