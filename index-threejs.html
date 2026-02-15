@@ -877,6 +877,37 @@ function buildQibla() {
   qiblaRotor.add(qiblaInnerRotor);
   
   clockGroup.add(qiblaGroup);
+  
+  // ── Glass crystal dome over subdial ──
+  // Slightly domed sapphire crystal — catches tilt spec beautifully
+  const glassR = cutoutR - 0.5;
+  const glassDome = new THREE.SphereGeometry(
+    glassR,          // radius matches cutout
+    64, 32,           // smooth
+    0, Math.PI*2,     // full circle
+    0, Math.PI*0.25   // shallow dome (45° cap = gentle curve)
+  );
+  const glassMat = new THREE.MeshPhysicalMaterial({
+    color: 0xffffff,
+    roughness: 0.02,
+    metalness: 0.0,
+    transmission: 0.95,
+    thickness: 1.5,
+    ior: 1.77,          // sapphire crystal
+    clearcoat: 1.0,
+    clearcoatRoughness: 0.01,
+    transparent: true,
+    opacity: 0.4,
+    envMapIntensity: 0.3,
+    specularIntensity: 2.0,
+    specularColor: new THREE.Color(0xffffff),
+  });
+  const glassMesh = new THREE.Mesh(glassDome, glassMat);
+  glassMesh.position.y = -R*0.5;
+  glassMesh.position.z = 3;  // sits above the compass elements
+  glassMesh.rotation.x = 0;  // dome faces camera
+  clockGroup.add(glassMesh);
+  bezelMeshes.push(glassMesh); // reuse array for cleanup
 }
 
 // Rebuild subdial every 60s to update fasting arc
