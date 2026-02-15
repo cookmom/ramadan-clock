@@ -195,10 +195,29 @@ scene.add(clockGroup);
 
 // Dial face
 let dialMesh;
+let dialLowerMesh;
 function buildDial() {
   if(dialMesh) clockGroup.remove(dialMesh);
-  // Dial circle bounded by case ring
-  const geo = new THREE.CircleGeometry(caseR, 128);
+  if(dialLowerMesh) clockGroup.remove(dialLowerMesh);
+  
+  const subY = -R*0.32, cutoutR = R*0.19; // slightly larger than qibla radius
+  
+  // Lower layer (recessed, darker — visible through cutout)
+  const lowerGeo = new THREE.CircleGeometry(caseR, 128);
+  const lowerColor = new THREE.Color(DIALS[currentDial].bg).multiplyScalar(0.75);
+  dialLowerMesh = new THREE.Mesh(lowerGeo, new THREE.MeshStandardMaterial({color:lowerColor, roughness:0.9, metalness:0}));
+  dialLowerMesh.position.z = -4;
+  dialLowerMesh.receiveShadow = true;
+  clockGroup.add(dialLowerMesh);
+  
+  // Upper layer with cutout at 6 o'clock
+  const dialShape = new THREE.Shape();
+  dialShape.absarc(0, 0, caseR, 0, Math.PI*2, false);
+  const holePath = new THREE.Path();
+  holePath.absarc(0, subY, cutoutR, 0, Math.PI*2, true);
+  dialShape.holes.push(holePath);
+  
+  const geo = new THREE.ShapeGeometry(dialShape, 128);
   dialMesh = new THREE.Mesh(geo, dialMat(DIALS[currentDial].bg));
   dialMesh.position.z = -2;
   dialMesh.receiveShadow = true;
