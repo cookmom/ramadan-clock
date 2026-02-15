@@ -210,17 +210,20 @@ function makeLeafOutline(len, maxW, tailLen, color, z) {
 }
 
 function makeTextTex(text, font, size, color, w, h) {
+  const dpr = Math.min(window.devicePixelRatio, 3);
+  const scale = dpr * 2; // 4-6x resolution for crisp text
   const cv = document.createElement('canvas');
-  cv.width=w*2; cv.height=h*2;
+  cv.width=w*scale; cv.height=h*scale;
   const ctx=cv.getContext('2d');
   ctx.clearRect(0,0,cv.width,cv.height);
-  ctx.font = font.replace(/(\d+)px/,(_,n)=>(n*2)+'px');
+  ctx.font = font.replace(/(\d+)px/,(_,n)=>(n*scale)+'px');
   ctx.fillStyle = color;
   ctx.textAlign='center'; ctx.textBaseline='middle';
   ctx.fillText(text, cv.width/2, cv.height/2);
   const tex = new THREE.CanvasTexture(cv);
   tex.minFilter = THREE.LinearFilter;
   tex.magFilter = THREE.LinearFilter;
+  tex.anisotropy = Math.min(renderer.capabilities.getMaxAnisotropy(), 8);
   return tex;
 }
 function makeText(text, font, size, color, z) {
@@ -403,12 +406,9 @@ function buildDialFace(bgColor) {
 }
 
 function buildGlass() {
-  if (glassMesh) glassGroup.remove(glassMesh);
-  const glassTex = createGlassTexture();
-  const geo = new THREE.PlaneGeometry(R*2.15, R*2.15);
-  glassMesh = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({map:glassTex, transparent:true, depthTest:false}));
-  glassMesh.position.z = 20;
-  glassGroup.add(glassMesh);
+  // Glass removed — fake 2D overlay looked lofi.
+  // Real glass needs 3D geometry + MeshPhysicalMaterial + environment map (like Rolex demo).
+  // Will revisit when we go full 3D.
 }
 
 function buildClock() {
@@ -686,7 +686,7 @@ function buildQibla(c) {
 }
 
 function buildFlap() {
-  const cw=512, ch=192;
+  const cw=1024, ch=384; // 2x resolution for crisp digits
   flapCanvas = document.createElement('canvas');
   flapCanvas.width=cw; flapCanvas.height=ch;
   flapTexture = new THREE.CanvasTexture(flapCanvas);
@@ -745,8 +745,10 @@ function updateColors() {
   }
   if(qiblaNeedle) qiblaNeedle.material.color=hx(c.hand);
   
-  bloomPass.strength = 0.12 + modeBlend * 0.8;
-  bloomPass2.strength = modeBlend * 1.5;
+  // Bloom disabled for now — was washing out the whole image
+  // Will re-enable selectively for night mode lume only
+  bloomPass.strength = 0;
+  bloomPass2.strength = modeBlend * 0.8; // only lume glow at night
   
   starsGroup.children.forEach(m => {
     const s=m.userData; if(!s)return;
@@ -1022,7 +1024,7 @@ function animate() {
   applyParallax(shadowGroup, 0.45);
   applyParallax(handsGroup, 0.55);
   applyParallax(capGroup, 0.6);
-  applyParallax(glassGroup, 0.85);
+  // applyParallax(glassGroup, 0.85); // glass removed
   
   const c = updateColors();
   updateHands();
