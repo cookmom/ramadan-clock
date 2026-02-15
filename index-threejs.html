@@ -976,8 +976,14 @@ function updateQibla() {
   if(!qiblaRotor) return;
   const now = Date.now();
   if(now - lastSubdialRebuild > 60000) { lastSubdialRebuild = now; buildQibla(); }
-  // Smooth compass heading — without compass data, assume facing Qibla (triangle at 12)
-  if(!hasCompassData) { targetCompassHeading = qiblaBearing; }
+  // No compass → everything at rest on the 12-6 centerline
+  if(!hasCompassData) {
+    qiblaRotor.rotation.z += (0 - qiblaRotor.rotation.z) * 0.12;
+    qiblaInnerRotor.rotation.z += (0 - qiblaInnerRotor.rotation.z) * 0.12;
+    return;
+  }
+  
+  // Smooth compass heading
   compassHeading += ((targetCompassHeading - compassHeading + 540) % 360 - 180) * 0.08;
   
   // Check alignment
