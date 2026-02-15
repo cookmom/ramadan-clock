@@ -1030,33 +1030,27 @@ function buildStars(){
   moonGroup = new THREE.Group();
   
   const moonR = 10;
-  // Moon sphere
-  const moonGeo = new THREE.SphereGeometry(moonR, 32, 32);
+  // Moon — flat disc, MeshBasicMaterial with HDR color
+  const moonGeo = new THREE.CircleGeometry(moonR, 48);
   const moonMat = new THREE.MeshBasicMaterial({
-    color: new THREE.Color(2.5, 2.4, 2.2), // HDR white — punches through ACES tone mapping
-    transparent: true,
-    opacity: 0,
-    depthWrite: false,
+    color: new THREE.Color(3.0, 2.9, 2.6),
+    transparent: true, opacity: 0, depthWrite: false,
   });
   moonMesh = new THREE.Mesh(moonGeo, moonMat);
   moonGroup.add(moonMesh);
   
-  // Moon phase shadow — removed for now, clean disc
-  
-  // Soft glow halo behind moon
-  const glowGeo = new THREE.CircleGeometry(moonR * 3.5, 32);
+  // Soft radial glow — larger, subtle
+  const glowGeo = new THREE.CircleGeometry(moonR * 4, 48);
+  // Use ShaderMaterial for radial falloff
   const glowMat = new THREE.MeshBasicMaterial({
-    color: new THREE.Color(1.5, 1.4, 1.2), // HDR warm glow
-    transparent: true,
-    opacity: 0,
-    depthWrite: false,
+    color: new THREE.Color(2.0, 1.8, 1.5),
+    transparent: true, opacity: 0, depthWrite: false,
   });
   moonGlowMesh = new THREE.Mesh(glowGeo, glowMat);
-  moonGlowMesh.position.z = -1;
+  moonGlowMesh.position.z = -0.5;
   moonGroup.add(moonGlowMesh);
   
-  // Start position — below visible area
-  moonGroup.position.set(100, -250, -30);
+  moonGroup.position.set(70, -100, -25);
   moonGroup.visible = false;
   scene.add(moonGroup);
 }
@@ -1437,8 +1431,8 @@ function animate(){
     moonGroup.visible = modeBlend > 0.1;
     
     // Rise from below-right to upper-right
-    const startY = -120, endY = 85;
-    const startX = 75, endX = 65;
+    const startY = -100, endY = 75;
+    const startX = 70, endX = 60;
     // Ease-out cubic for natural rise
     const eased = 1 - Math.pow(1 - moonBlend, 3);
     moonGroup.position.y = startY + (endY - startY) * eased;
