@@ -914,9 +914,9 @@ function buildQibla() {
   triShape.closePath();
   const triGeo = new THREE.ExtrudeGeometry(triShape, {depth:0.5, bevelEnabled:false});
   const triMat = new THREE.MeshPhysicalMaterial({
-    color: 0x2a9d5c, // Qibla green
+    color: new THREE.Color(d.hand),
     roughness: 0.3, metalness: 0.2,
-    emissive: 0x2a9d5c, emissiveIntensity: 0.15,
+    emissive: new THREE.Color(d.hand), emissiveIntensity: 0.15,
     envMapIntensity: 0
   });
   const triMesh = new THREE.Mesh(triGeo, triMat);
@@ -1391,7 +1391,7 @@ function animate(){
   if(qiblaGroup) {
     qiblaGroup.traverse(child => {
       if(child.material && child.material.emissive) {
-        if(child.material.color && child.material.color.getHex() === 0x2a9d5c) {
+        if(child.material === window._qiblaTriMat) {
           // Qibla green triangle — strong glow
           child.material.emissiveIntensity = 0.15 + modeBlend * 1.0;
         } else if(child.material.emissiveIntensity !== undefined) {
