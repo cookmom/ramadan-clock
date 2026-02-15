@@ -1033,26 +1033,18 @@ function buildStars(){
   // Moon sphere
   const moonGeo = new THREE.SphereGeometry(moonR, 32, 32);
   const moonMat = new THREE.MeshBasicMaterial({
-    color: 0xf4f0e0,
+    color: 0xffffff,
     transparent: true,
     opacity: 0,
+    depthWrite: false,
   });
   moonMesh = new THREE.Mesh(moonGeo, moonMat);
   moonGroup.add(moonMesh);
   
-  // Moon shadow disc — creates phase by covering part of moon
-  const shadowGeo = new THREE.SphereGeometry(moonR + 0.1, 32, 32);
-  const shadowMat = new THREE.MeshBasicMaterial({
-    color: 0x060608,
-    transparent: true,
-    opacity: 0,
-  });
-  const shadowMesh = new THREE.Mesh(shadowGeo, shadowMat);
-  shadowMesh.name = 'moonShadow';
-  moonGroup.add(shadowMesh);
+  // Moon phase shadow — removed for now, clean disc
   
   // Soft glow halo behind moon
-  const glowGeo = new THREE.CircleGeometry(moonR * 2.5, 32);
+  const glowGeo = new THREE.CircleGeometry(moonR * 3.5, 32);
   const glowMat = new THREE.MeshBasicMaterial({
     color: 0xf4f0e0,
     transparent: true,
@@ -1451,25 +1443,15 @@ function animate(){
     
     // Moon glow and emissive
     if(moonMesh) {
-      moonMesh.material.opacity = moonBlend * 0.9;
-      const moonCol = new THREE.Color(0xf4f0e0).lerp(lumeEmCol, 0.3);
-      moonMesh.material.color.copy(moonCol);
+      moonMesh.material.opacity = moonBlend;
+      moonMesh.material.color.copy(new THREE.Color(0xffffff).lerp(lumeEmCol, 0.15));
     }
     if(moonGlowMesh) {
-      moonGlowMesh.material.opacity = moonBlend * 0.25;
-      moonGlowMesh.material.color.copy(new THREE.Color(0xf4f0e0).lerp(lumeEmCol, 0.3));
+      moonGlowMesh.material.opacity = moonBlend * 0.15;
+      moonGlowMesh.material.color.copy(new THREE.Color(0xffffff).lerp(lumeEmCol, 0.2));
     }
     
-    // Moon phase shadow — use Hijri day if available
-    const shadow = moonGroup.children.find(c => c.name === 'moonShadow');
-    if(shadow) {
-      shadow.material.opacity = moonBlend * 0.95;
-      // Rotate shadow to show current phase (offset x to reveal crescent)
-      const phase = window._hijriMoonPhase || 0.1; // 0=new, 0.5=full, 1=new
-      const phaseAngle = phase * Math.PI * 2;
-      shadow.position.x = Math.cos(phaseAngle) * 12;
-      shadow.position.z = Math.sin(phaseAngle) > 0 ? 0.2 : -0.2;
-    }
+    // Moon phase: TODO — canvas texture approach for proper crescent
   }
   
   // BG color blend
