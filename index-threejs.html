@@ -129,7 +129,7 @@ scene.add(dirLight);
 // MATERIALS (PBR)
 // ══════════════════════════════════════════
 function dialMat(color) {
-  return new THREE.MeshStandardMaterial({ color, roughness: 0.85, metalness: 0.0 });
+  const m = new THREE.MeshStandardMaterial({ color, roughness: 0.85, metalness: 0.0 }); m.envMapIntensity = 0; return m;
 }
 function metalMat(color) {
   return new THREE.MeshPhysicalMaterial({ color, roughness: 0.08, metalness: 0.95, clearcoat: 0.8, clearcoatRoughness: 0.1, reflectivity: 1.0 });
@@ -266,7 +266,8 @@ function buildDial() {
   // Lower disc — solid, darker, recessed
   const lowerGeo = new THREE.CylinderGeometry(caseR, caseR, DIAL_THICKNESS, 128);
   const lowerColor = new THREE.Color(DIALS[currentDial].bg).multiplyScalar(0.75);
-  dialLowerMesh = new THREE.Mesh(lowerGeo, new THREE.MeshStandardMaterial({color:lowerColor, roughness:0.9, metalness:0}));
+  const lowerMat = new THREE.MeshStandardMaterial({color:lowerColor, roughness:0.9, metalness:0}); lowerMat.envMapIntensity = 0;
+  dialLowerMesh = new THREE.Mesh(lowerGeo, lowerMat);
   dialLowerMesh.rotation.x = Math.PI/2;
   dialLowerMesh.position.z = -(DIAL_THICKNESS/2 + DIAL_GAP + DIAL_THICKNESS);
   dialLowerMesh.receiveShadow = true;
