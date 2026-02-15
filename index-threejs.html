@@ -70,7 +70,7 @@ renderer.setSize(W, H);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.VSMShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.6;
+renderer.toneMappingExposure = 1.3;
 document.body.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
@@ -86,30 +86,16 @@ cam.lookAt(0, 0, 0);
 // ══════════════════════════════════════════
 // LIGHTING
 // ══════════════════════════════════════════
-const ambLight = new THREE.AmbientLight(0xffffff, 0.4);
+const ambLight = new THREE.AmbientLight(0xffffff, 0.5);
 scene.add(ambLight);
 
 // Softbox rect light — product-shot fill
 const { RectAreaLightUniformsLib } = await import('three/addons/lights/RectAreaLightUniformsLib.js');
 RectAreaLightUniformsLib.init();
 
-// Procedural env — instant, no async, neutral studio look
-const pmrem = new THREE.PMREMGenerator(renderer);
-const envScene = new THREE.Scene();
-envScene.background = new THREE.Color(0x666670);
-// White boxes as reflection cards
-const cardMat = new THREE.MeshBasicMaterial({color: 0xffffff});
-const topCard = new THREE.Mesh(new THREE.PlaneGeometry(300,300), cardMat);
-topCard.position.set(0, 200, 0); topCard.rotation.x = Math.PI/2; envScene.add(topCard);
-const frontCard = new THREE.Mesh(new THREE.PlaneGeometry(400,400), cardMat);
-frontCard.position.set(0, 0, 300); envScene.add(frontCard);
-const sideCard = new THREE.Mesh(new THREE.PlaneGeometry(200,300), cardMat);
-sideCard.position.set(-250, 0, 0); sideCard.rotation.y = Math.PI/2; envScene.add(sideCard);
-scene.environment = pmrem.fromScene(envScene, 0.04).texture;
-scene.environmentIntensity = 0.6;
-pmrem.dispose();
+// No env map — clean direct lighting only
 
-const rectLight = new THREE.RectAreaLight(0xffffff, 0, 447, 447);
+const rectLight = new THREE.RectAreaLight(0xffffff, 0.8, 447, 447);
 rectLight.position.set(0, 0, 300);
 rectLight.lookAt(0, 0, 0);
 scene.add(rectLight);
@@ -150,7 +136,7 @@ function dialMat(color) {
   const m = new THREE.MeshStandardMaterial({ color, roughness: 0.9, metalness: 0.0 }); m.envMapIntensity = 0; return m;
 }
 function metalMat(color) {
-  return new THREE.MeshPhysicalMaterial({ color, roughness: 0.04, metalness: 0.95, clearcoat: 0.9, clearcoatRoughness: 0.05, reflectivity: 1.0 });
+  return new THREE.MeshPhysicalMaterial({ color, roughness: 0.15, metalness: 0.5, clearcoat: 1.0, clearcoatRoughness: 0.05, reflectivity: 0.9 });
 }
 function lumeMat(color) {
   const m = new THREE.MeshStandardMaterial({ color, roughness: 0.5, metalness: 0.1, emissive: color, emissiveIntensity: 0 }); m.envMapIntensity = 0; return m;
