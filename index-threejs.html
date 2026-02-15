@@ -156,10 +156,15 @@ spotLight.target.position.set(0, -R*0.3, 0);
 scene.add(spotLight);
 scene.add(spotLight.target);
 
-// Spec point — tight highlight on polished surfaces
+// Spec point — tight highlight on polished surfaces (tracks with tilt)
 const specPoint = new THREE.PointLight(0xffffff, 15, 300, 2);
 specPoint.position.set(30, 60, 180);
 scene.add(specPoint);
+
+// Soft counter-highlight — moves opposite to spec, wider wash
+const counterSpec = new THREE.PointLight(0xfff0e0, 6, 400, 2);
+counterSpec.position.set(-40, -30, 200);
+scene.add(counterSpec);
 
 
 // ══════════════════════════════════════════
@@ -983,6 +988,7 @@ function animate(){
   coolFill.intensity = 1.2 * (1 - modeBlend * 0.9);
   spotLight.intensity = 1.5 * (1 - modeBlend * 0.7);
   specPoint.intensity = 15 * (1 - modeBlend * 0.6);
+  counterSpec.intensity = 6 * (1 - modeBlend * 0.7);
   renderer.toneMappingExposure = 1.5 - modeBlend * 0.5;
   
   // Vignette at night
@@ -1007,11 +1013,18 @@ function animate(){
   if(!EMBED) scene.background = nightBg;
   bgPlaneMat.color.copy(nightBg);
   
-  // Parallax
+  // Parallax + interactive spec light
   gx+=(tgx-gx)*0.08; gy+=(tgy-gy)*0.08;
   cam.position.x = gx*15;
   cam.position.y = -30 + -gy*12;
   cam.lookAt(0,0,0);
+  
+  // Spec point follows tilt — highlight glides across dial like turning a watch under a lamp
+  specPoint.position.x = 30 + gx * 80;
+  specPoint.position.y = 60 + gy * 60;
+  // Counter light moves opposite — dual-highlight dance
+  counterSpec.position.x = -40 - gx * 60;
+  counterSpec.position.y = -30 - gy * 50;
   
   updateHands();
   updateFlap();
