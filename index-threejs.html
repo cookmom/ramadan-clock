@@ -100,7 +100,7 @@ pmrem.compileEquirectangularShader();
 new RGBELoader().load('https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/studio_small_08_1k.hdr', (tex) => {
   const envMap = pmrem.fromEquirectangular(tex).texture;
   scene.environment = envMap;
-  scene.environmentIntensity = 0.8;
+  scene.environmentIntensity = 0.9;
   tex.dispose();
   pmrem.dispose();
 });
@@ -132,7 +132,10 @@ spotLight.target.position.set(0, -R*0.5, 0);
 scene.add(spotLight);
 scene.add(spotLight.target);
 
-// (reflection card removed — using spot + env instead)
+// Spec point — tight highlight on polished surfaces
+const specPoint = new THREE.PointLight(0xffffff, 15, 300, 2);
+specPoint.position.set(30, 60, 180);
+scene.add(specPoint);
 
 
 // ══════════════════════════════════════════
@@ -142,7 +145,7 @@ function dialMat(color) {
   const m = new THREE.MeshStandardMaterial({ color, roughness: 0.85, metalness: 0.0 }); m.envMapIntensity = 0; return m;
 }
 function metalMat(color) {
-  return new THREE.MeshPhysicalMaterial({ color, roughness: 0.08, metalness: 0.95, clearcoat: 0.8, clearcoatRoughness: 0.1, reflectivity: 1.0 });
+  return new THREE.MeshPhysicalMaterial({ color, roughness: 0.04, metalness: 0.95, clearcoat: 0.9, clearcoatRoughness: 0.05, reflectivity: 1.0 });
 }
 function lumeMat(color) {
   return new THREE.MeshStandardMaterial({ color, roughness: 0.5, metalness: 0.1, emissive: color, emissiveIntensity: 0 });
