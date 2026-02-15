@@ -1323,7 +1323,7 @@ function animate(){
   const lumeEmCol = new THREE.Color(nightLume.emissive);
   // Subtle lume breathing — very slow, barely perceptible (±5%)
   const lumeBreathe = 1.0 + Math.sin(Date.now() * 0.0005) * 0.05;
-  const lumeIntensity = modeBlend * 1.2 * lumeBreathe;
+  const lumeIntensity = modeBlend * 2.5 * lumeBreathe;
   lumeMeshes.forEach(m=>{
     m.material.emissive.lerp(lumeEmCol, modeBlend);
     m.material.emissiveIntensity = lumeIntensity;
@@ -1334,13 +1334,13 @@ function animate(){
   // Numerals glow
   numeralMats.forEach(m=>{
     m.emissive.lerp(lumeEmCol, modeBlend);
-    m.emissiveIntensity = lumeIntensity * 0.6;
+    m.emissiveIntensity = lumeIntensity * 0.85;
   });
   
   // Dial surface picks up faint lume ambient bounce
   if(dialMesh && dialMesh.material) {
     dialMesh.material.emissive = dialMesh.material.emissive || new THREE.Color(0);
-    dialMesh.material.emissive.copy(lumeEmCol).multiplyScalar(0.03);
+    dialMesh.material.emissive.copy(lumeEmCol).multiplyScalar(0.08);
     dialMesh.material.emissiveIntensity = modeBlend;
   }
   
@@ -1379,8 +1379,9 @@ function animate(){
   }
   
   // Bloom ramps up in night mode — soft, dreamy glow
-  bloomPass.strength = modeBlend * 0.7;
-  bloomPass.radius = 0.4 + modeBlend * 0.3; // slightly wider spread at full night
+  bloomPass.strength = modeBlend * 1.2;
+  bloomPass.radius = 0.5 + modeBlend * 0.4;
+  bloomPass.threshold = 0.85 - modeBlend * 0.35; // lower threshold at night = more bloom
   
   // Dim scene lights for night — let lume own the scene
   ambLight.intensity = 0.3 * (1 - modeBlend * 0.85);
@@ -1409,9 +1410,9 @@ function animate(){
     const starThreshold = 0.15 + (i / starMeshes.length) * 0.4; // 0.15 → 0.55
     const starBlend = Math.max(0, Math.min(1, (modeBlend - starThreshold) / 0.15));
     const twinkle = (Math.sin(Date.now()*s.speed+s.offset)*0.3+0.7);
-    m.material.opacity = starBlend * s.bright * twinkle * 0.8;
+    m.material.opacity = starBlend * s.bright * twinkle;
     // Stars scale up as they appear
-    const sc = 0.3 + starBlend * 0.7;
+    const sc = 0.5 + starBlend * 1.0;
     m.scale.setScalar(sc);
     m.material.color.lerp(lumeEmCol, modeBlend * 0.3);
   });
