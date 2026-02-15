@@ -311,8 +311,8 @@ function buildMarkers() {
     }
     // Also draw hour marker at non-numeral hour positions
     if(isHour && !isNumeralPos){
-      const mH=R*0.12, mW=R*0.064, depth=3;
-      const geo = extrudedPill(mW, mH, depth);
+      const mH=R*0.12, mW=R*0.05, depth=3;
+      const geo = new THREE.BoxGeometry(mW, mH, depth);
       const mesh = new THREE.Mesh(geo, metalMat(c.hand));
       mesh.castShadow = true;
       const midR = (R - R*0.04 - mH/2) * 0.9;
