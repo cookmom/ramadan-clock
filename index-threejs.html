@@ -1067,39 +1067,7 @@ function buildAll(){
   buildQibla();
   buildFlap();
   buildStars();
-  buildGlassDome();
   updateSurah();
-}
-
-let glassDomeMesh;
-function buildGlassDome() {
-  if(glassDomeMesh) clockGroup.remove(glassDomeMesh);
-  const domeR = R * 1.08; // slightly larger than dial
-  const domeGeo = new THREE.SphereGeometry(
-    domeR, 96, 48,
-    0, Math.PI*2,
-    0, Math.PI*0.15  // shallow dome (~27° cap, watch crystal profile)
-  );
-  const domeMat = new THREE.MeshPhysicalMaterial({
-    color: 0xffffff,
-    roughness: 0.0,
-    metalness: 0.0,
-    transmission: 0.98,
-    thickness: 3.0,
-    ior: 1.77,          // sapphire
-    dispersion: 0.12,
-    clearcoat: 1.0,
-    clearcoatRoughness: 0.0,
-    transparent: false,
-    specularIntensity: 1.5,
-    specularColor: new THREE.Color(0xffffff),
-    attenuationDistance: 25,
-    attenuationColor: new THREE.Color(0xf8f8ff),
-  });
-  glassDomeMesh = new THREE.Mesh(domeGeo, domeMat);
-  glassDomeMesh.position.z = 2;  // sits above dial surface
-  glassDomeMesh.renderOrder = 999;
-  clockGroup.add(glassDomeMesh);
 }
 // Wait for fonts then build (Lateef for Arabic numerals)
 document.fonts.ready.then(()=>buildAll());
