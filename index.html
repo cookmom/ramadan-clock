@@ -900,10 +900,10 @@ function drawSplitFlap(c){
 }
 function drawSplitFlapChars(c,chars,sub){
   const wy=cy+R*0.38;
-  const digitW=R*0.075; // width per digit cell
-  const colonW=R*0.032; // narrow colon column
-  const cellGap=R*0.005; // gap between cells
-  const cellH=R*0.13;
+  const digitW=R*0.105; // width per digit cell (40% bigger)
+  const colonW=R*0.045; // narrow colon column
+  const cellGap=R*0.007; // gap between cells
+  const cellH=R*0.182;
   // Compute total width with per-char widths
   const charWidths=chars.map(ch=>ch===':'?colonW:ch===' '?cellGap*2:digitW);
   const totalW=charWidths.reduce((a,w)=>a+w,0)+(chars.length-1)*cellGap;
@@ -912,15 +912,15 @@ function drawSplitFlapChars(c,chars,sub){
   const halfH=cellH/2-gap/2;
   const wr=R*0.012;
   const nowMs=performance.now();
-  const fontSize=R*0.08;
+  const fontSize=R*0.112;
 
   ctx.save();
 
   // Sub-label below
   ctx.textAlign='center';ctx.textBaseline='middle';
-  ctx.font=`700 ${R*0.048}px 'Inter',system-ui,sans-serif`;
+  ctx.font=`700 ${R*0.067}px 'Inter',system-ui,sans-serif`;
   ctx.fillStyle=c.lume;ctx.globalAlpha=0.3;
-  ctx.fillText(sub,cx,wy+cellH/2+R*0.035);
+  ctx.fillText(sub,cx,wy+cellH/2+R*0.045);
   ctx.globalAlpha=1;
 
   let curX=startX;
@@ -935,7 +935,7 @@ function drawSplitFlapChars(c,chars,sub){
     if(ch===' '){curX+=charW+cellGap;continue;}
     // Colon: render as two dots, no cell
     if(ch===':'){
-      const dotR=R*0.006;
+      const dotR=R*0.0084;
       ctx.fillStyle=c.lume;ctx.globalAlpha=0.5;
       ctx.beginPath();ctx.arc(cellCx,wy-cellH*0.18,dotR,0,Math.PI*2);ctx.fill();
       ctx.beginPath();ctx.arc(cellCx,wy+cellH*0.18,dotR,0,Math.PI*2);ctx.fill();
@@ -1442,7 +1442,7 @@ function releaseWakeLock(){
 }
 
 // ── Adhan Debug Log ──
-const _ADHAN_VER='v56-flipclean';
+const _ADHAN_VER='v57-bigflap';
 const _adhanLog=[];
 // Auto-show debug panel on load
 requestAnimationFrame(()=>{adhanDbg('ready');});
