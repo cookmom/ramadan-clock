@@ -181,6 +181,13 @@ const counterSpec = new THREE.PointLight(0xfff0e0, 6, 400, 2);
 counterSpec.position.set(-40, -30, 200);
 scene.add(counterSpec);
 
+// Focused subdial spotlight — tight cone for glass refraction
+const subSpot = new THREE.SpotLight(0xffffff, 30, 350, Math.PI/18, 0.6, 2);
+subSpot.position.set(10, -R*0.5 + 30, 200);
+subSpot.target.position.set(0, -R*0.5, 0); // aimed at subdial center
+scene.add(subSpot);
+scene.add(subSpot.target);
+
 
 // ══════════════════════════════════════════
 // MATERIALS (PBR)
@@ -895,7 +902,7 @@ function buildQibla() {
     roughness: 0.0,       // perfectly polished sapphire
     metalness: 0.0,
     transmission: 0.98,   // nearly perfectly clear
-    thickness: 2.0,       // thicker = more refraction visible
+    thickness: 3.5,       // thicker = more refraction visible with focused spot
     ior: 1.77,            // sapphire crystal IOR
     dispersion: 0.15,     // subtle chromatic aberration at edges
     clearcoat: 1.0,
@@ -1275,6 +1282,7 @@ function animate(){
   spotLight.intensity = 1.5 * (1 - modeBlend * 0.7);
   specPoint.intensity = 20 * (1 - modeBlend * 0.6);
   counterSpec.intensity = 6 * (1 - modeBlend * 0.7);
+  subSpot.intensity = 30 * (1 - modeBlend * 0.5);
   renderer.toneMappingExposure = 1.4 - modeBlend * 0.5;
   
   // Vignette at night
@@ -1308,6 +1316,9 @@ function animate(){
   // Spec point follows tilt — highlight glides across dial like turning a watch under a lamp
   specPoint.position.x = 30 + gx * 80;
   specPoint.position.y = 60 + gy * 60;
+  // Subdial spotlight follows tilt — offset from center
+  subSpot.position.x = 10 + gx * 50;
+  subSpot.position.y = -R*0.5 + 30 + gy * 40;
   // Counter light moves opposite — dual-highlight dance
   counterSpec.position.x = -40 - gx * 60;
   counterSpec.position.y = -30 - gy * 50;
