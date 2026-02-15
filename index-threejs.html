@@ -258,7 +258,7 @@ function buildMarkers() {
       const geo = extrudedPill(mW, mH, depth);
       const mesh = new THREE.Mesh(geo, metalMat(c.hand));
       mesh.castShadow = true;
-      const midR = R - R*0.04 - mH/2;
+      const midR = (R - R*0.04 - mH/2) * 0.9;
       mesh.position.x = Math.cos(ang)*midR;
       mesh.position.y = Math.sin(ang)*midR;
       mesh.position.z = depth/2;
@@ -280,7 +280,7 @@ function buildMarkers() {
       const geo = new THREE.BoxGeometry(tW, tH, depth);
       const mat = new THREE.MeshStandardMaterial({color:c.lume, roughness:0.5, metalness:0.2, transparent:true, opacity:0.4});
       const mesh = new THREE.Mesh(geo, mat);
-      const midR = R - R*0.04 - tH/2;
+      const midR = (R - R*0.04 - tH/2) * 0.9;
       mesh.position.x = Math.cos(ang)*midR;
       mesh.position.y = Math.sin(ang)*midR;
       mesh.position.z = depth/2;
