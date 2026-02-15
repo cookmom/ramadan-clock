@@ -93,17 +93,9 @@ scene.add(ambLight);
 const { RectAreaLightUniformsLib } = await import('three/addons/lights/RectAreaLightUniformsLib.js');
 RectAreaLightUniformsLib.init();
 
-// Studio HDR environment for metal reflections
-const { RGBELoader } = await import('three/addons/loaders/RGBELoader.js');
-const pmrem = new THREE.PMREMGenerator(renderer);
-pmrem.compileEquirectangularShader();
-new RGBELoader().load('https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/studio_small_08_1k.hdr', (tex) => {
-  const envMap = pmrem.fromEquirectangular(tex).texture;
-  scene.environment = envMap;
-  scene.environmentIntensity = 0.9;
-  tex.dispose();
-  pmrem.dispose();
-});
+// HDRI disabled — using direct lights only for clean consistent look
+// const { RGBELoader } = await import('three/addons/loaders/RGBELoader.js');
+
 const rectLight = new THREE.RectAreaLight(0xffffff, 0.5, 447, 447);
 rectLight.position.set(0, 0, 300);
 rectLight.lookAt(0, 0, 0);
