@@ -368,7 +368,7 @@ function buildHands() {
   
   // Minute
   minGroup = new THREE.Group();
-  const mL=R*0.95, mW=R*0.038, mT=R*0.07, mD=5;
+  const mL=R*0.90, mW=R*0.038, mT=R*0.07, mD=5;
   const mGeo = extrudedLeaf(mL, mW, mT, mD);
   minMat_ = metalMat(c.hand);
   const mMesh = new THREE.Mesh(mGeo, minMat_);
