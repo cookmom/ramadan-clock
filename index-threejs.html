@@ -192,12 +192,13 @@ function dialMat(color) {
     qamar:   { roughness:0.7, metalness:0.15, sheen:0, sheenColor:0x000000, sheenRoughness:0.8, clearcoat:0.2, clearcoatRoughness:0.2 }, // subtle silver metallic
     rainbow: { roughness:0.85, metalness:0.0, sheen:0, sheenColor:0x000000, sheenRoughness:0.8, clearcoat:0, clearcoatRoughness:0 }, // flat black
   };
-  const s = special[cd] || { roughness:0.88, metalness:0.0, sheen:0, sheenColor:0x000000, sheenRoughness:0.8, clearcoat:0, clearcoatRoughness:0 };
+  const s = special[cd] || { roughness:1.0, metalness:0.0, sheen:0, sheenColor:0x000000, sheenRoughness:0.8, clearcoat:0, clearcoatRoughness:0 };
+  const isFlat = !special[cd]; // non-special dials get emissive fill for flat look
   const m = new THREE.MeshPhysicalMaterial({
     color, roughness:s.roughness, metalness:s.metalness,
     sheen:s.sheen, sheenColor:new THREE.Color(s.sheenColor), sheenRoughness:s.sheenRoughness,
     clearcoat:s.clearcoat, clearcoatRoughness:s.clearcoatRoughness,
-    emissive: 0x000000, emissiveIntensity: 0
+    emissive: isFlat ? color : 0x000000, emissiveIntensity: isFlat ? 0.15 : 0
   });
   m.envMapIntensity = 0;
   return m;
