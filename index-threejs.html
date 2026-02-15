@@ -342,8 +342,10 @@ function onG(e){
   // Compass heading for qibla
   if(e.webkitCompassHeading !== undefined) {
     targetCompassHeading = e.webkitCompassHeading;
+    hasCompassData = true;
   } else if(e.alpha !== null) {
     targetCompassHeading = (360 - e.alpha) % 360;
+    hasCompassData = true;
   }
 }
 initGyro();
@@ -645,6 +647,7 @@ function buildHands() {
 // QIBLA ORBITAL COMPASS — Ressence-inspired
 // ══════════════════════════════════════════
 let qiblaGroup, qiblaRotor, qiblaInnerRotor;
+let hasCompassData = false;
 let compassHeading = 0, targetCompassHeading = 0;
 let qiblaBearing = 0; // degrees from north
 let userLat = null, userLng = null;
@@ -973,7 +976,8 @@ function updateQibla() {
   if(!qiblaRotor) return;
   const now = Date.now();
   if(now - lastSubdialRebuild > 60000) { lastSubdialRebuild = now; buildQibla(); }
-  // Smooth compass heading
+  // Smooth compass heading — without compass data, assume facing Qibla (triangle at 12)
+  if(!hasCompassData) { targetCompassHeading = qiblaBearing; }
   compassHeading += ((targetCompassHeading - compassHeading + 540) % 360 - 180) * 0.08;
   
   // Outer rotor: shows compass direction (north indicator rotates with phone)
