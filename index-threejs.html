@@ -280,7 +280,7 @@ function buildMarkers() {
       const midR = R - R*0.04 - tH/2;
       mesh.position.x = Math.cos(ang)*midR;
       mesh.position.y = Math.sin(ang)*midR;
-      mesh.position.z = depth/2;
+      mesh.position.z = 2;
       mesh.rotation.z = ang + Math.PI/2;
       clockGroup.add(mesh);
       markerMeshes.push(mesh);
