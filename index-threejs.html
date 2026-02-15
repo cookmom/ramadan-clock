@@ -236,6 +236,12 @@ function onG(e){
   if(e.gamma===null)return;
   tgx=Math.max(-1,Math.min(1,(e.gamma||0)/25));
   tgy=Math.max(-1,Math.min(1,((e.beta||0)-45)/25));
+  // Compass heading for qibla
+  if(e.webkitCompassHeading !== undefined) {
+    targetCompassHeading = e.webkitCompassHeading;
+  } else if(e.alpha !== null) {
+    targetCompassHeading = (360 - e.alpha) % 360;
+  }
 }
 initGyro();
 
@@ -257,11 +263,13 @@ let dialMesh;
 let dialLowerMesh;
 const DIAL_THICKNESS = 2;
 const DIAL_GAP = 2; // gap between upper and lower disc
+let cutoutR = R*0.38;
 function buildDial() {
   if(dialMesh) clockGroup.remove(dialMesh);
   if(dialLowerMesh) clockGroup.remove(dialLowerMesh);
   
-  const subY = -R*0.5, cutoutR = R*0.38;
+  const subY = -R*0.5;
+  cutoutR = R*0.38;
   
   // Lower disc — solid, darker, recessed
   const lowerGeo = new THREE.CylinderGeometry(caseR, caseR, DIAL_THICKNESS, 128);
@@ -462,23 +470,160 @@ function buildHands() {
   markerMeshes.push(capMesh); // for cleanup
 }
 
-// Qibla sub-dial at 6 o'clock
-let qiblaGroup;
+// ══════════════════════════════════════════
+// QIBLA ORBITAL COMPASS — Ressence-inspired
+// ══════════════════════════════════════════
+let qiblaGroup, qiblaRotor, qiblaInnerRotor;
+let compassHeading = 0, targetCompassHeading = 0;
+let qiblaBearing = 0; // degrees from north
+let userLat = null, userLng = null;
+
+// Kaaba coordinates
+const KAABA_LAT = 21.4225, KAABA_LNG = 39.8262;
+
+function calcQiblaBearing(lat, lng) {
+  const φ1 = lat * Math.PI/180, φ2 = KAABA_LAT * Math.PI/180;
+  const Δλ = (KAABA_LNG - lng) * Math.PI/180;
+  const x = Math.sin(Δλ) * Math.cos(φ2);
+  const y = Math.cos(φ1)*Math.sin(φ2) - Math.sin(φ1)*Math.cos(φ2)*Math.cos(Δλ);
+  return ((Math.atan2(x, y) * 180/Math.PI) + 360) % 360;
+}
+
+function initQiblaLocation() {
+  if(navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(pos => {
+      userLat = pos.coords.latitude;
+      userLng = pos.coords.longitude;
+      qiblaBearing = calcQiblaBearing(userLat, userLng);
+    }, () => {
+      // Fallback: LA
+      userLat = 34.05; userLng = -118.24;
+      qiblaBearing = calcQiblaBearing(userLat, userLng);
+    });
+  }
+}
+initQiblaLocation();
+
 function buildQibla() {
   if(qiblaGroup) clockGroup.remove(qiblaGroup);
   qiblaGroup = new THREE.Group();
-  // Metal gauge disc — brushed steel sub-dial
-  const gaugeR = R*0.38 - 1;
-  const gaugeGeo = new THREE.CircleGeometry(gaugeR, 64);
-  const gaugeMat = new THREE.MeshPhysicalMaterial({ 
-    color: 0xa8b0b8, roughness: 0.4, metalness: 0.5, 
-    clearcoat: 0.3, clearcoatRoughness: 0.2, reflectivity: 0.4
+  qiblaGroup.position.y = -R*0.5;
+  qiblaGroup.position.z = 1;
+  
+  const gaugeR = cutoutR - 1.5;
+  const d = DIALS[currentDial];
+  
+  // Base disc — slightly darker than dial, brushed metal
+  const baseMat = new THREE.MeshPhysicalMaterial({
+    color: new THREE.Color(d.bg).multiplyScalar(0.7),
+    roughness: 0.5, metalness: 0.4,
+    clearcoat: 0.2, envMapIntensity: 0
   });
-  const gaugeMesh = new THREE.Mesh(gaugeGeo, gaugeMat);
-  gaugeMesh.position.y = -R*0.5;
-  gaugeMesh.position.z = 1;
-  qiblaGroup.add(gaugeMesh);
+  const baseDisc = new THREE.Mesh(new THREE.CircleGeometry(gaugeR, 64), baseMat);
+  qiblaGroup.add(baseDisc);
+  
+  // Outer rotor — the main Ressence-style rotating disc
+  qiblaRotor = new THREE.Group();
+  qiblaRotor.position.z = 0.5;
+  
+  // Rotor disc — slightly smaller, different tone
+  const rotorR = gaugeR - 2;
+  const rotorMat = new THREE.MeshPhysicalMaterial({
+    color: new THREE.Color(d.bg).multiplyScalar(0.85),
+    roughness: 0.45, metalness: 0.3,
+    clearcoat: 0.3, envMapIntensity: 0
+  });
+  const rotorDisc = new THREE.Mesh(new THREE.CircleGeometry(rotorR, 64), rotorMat);
+  qiblaRotor.add(rotorDisc);
+  
+  // Cardinal tick marks on rotor rim (N, E, S, W as subtle lines)
+  const tickLen = gaugeR * 0.12;
+  const tickW = 0.4;
+  for(let i = 0; i < 4; i++) {
+    const ang = (i/4) * Math.PI * 2; // 0=N(up), π/2=E, π=S, 3π/2=W
+    const isNorth = i === 0;
+    const tGeo = new THREE.BoxGeometry(tickW, isNorth ? tickLen*1.4 : tickLen, 0.3);
+    const tMat = new THREE.MeshPhysicalMaterial({
+      color: isNorth ? 0xf0f0f0 : new THREE.Color(d.lume).multiplyScalar(0.6),
+      roughness: 0.3, metalness: 0.1, envMapIntensity: 0
+    });
+    const tick = new THREE.Mesh(tGeo, tMat);
+    const tr = rotorR - tickLen*0.55;
+    tick.position.set(Math.sin(ang)*tr, Math.cos(ang)*tr, 0.2);
+    tick.rotation.z = -ang;
+    qiblaRotor.add(tick);
+  }
+  
+  // 8 minor ticks (every 45°, skip cardinals)
+  for(let i = 0; i < 8; i++) {
+    if(i % 2 === 0) continue; // skip cardinals
+    const ang = (i/8) * Math.PI * 2;
+    const mtGeo = new THREE.BoxGeometry(0.3, tickLen*0.5, 0.2);
+    const mtMat = new THREE.MeshPhysicalMaterial({
+      color: new THREE.Color(d.lume).multiplyScalar(0.4),
+      roughness: 0.4, metalness: 0.1, envMapIntensity: 0
+    });
+    const mt = new THREE.Mesh(mtGeo, mtMat);
+    const mtr = rotorR - tickLen*0.3;
+    mt.position.set(Math.sin(ang)*mtr, Math.cos(ang)*mtr, 0.2);
+    mt.rotation.z = -ang;
+    qiblaRotor.add(mt);
+  }
+  
+  qiblaGroup.add(qiblaRotor);
+  
+  // Inner rotor — smaller orbiting disc (Ressence double-orbit)
+  qiblaInnerRotor = new THREE.Group();
+  qiblaInnerRotor.position.z = 1;
+  
+  const innerR = gaugeR * 0.28;
+  const innerMat = new THREE.MeshPhysicalMaterial({
+    color: new THREE.Color(d.bg).multiplyScalar(0.95),
+    roughness: 0.35, metalness: 0.35,
+    clearcoat: 0.4, envMapIntensity: 0
+  });
+  const innerDisc = new THREE.Mesh(new THREE.CircleGeometry(innerR, 48), innerMat);
+  qiblaInnerRotor.add(innerDisc);
+  
+  // Qibla marker — small triangle on inner disc pointing to Mecca
+  const triH = innerR * 0.4;
+  const triW = innerR * 0.3;
+  const triShape = new THREE.Shape();
+  triShape.moveTo(0, triH/2);
+  triShape.lineTo(-triW/2, -triH/2);
+  triShape.lineTo(triW/2, -triH/2);
+  triShape.closePath();
+  const triGeo = new THREE.ExtrudeGeometry(triShape, {depth:0.5, bevelEnabled:false});
+  const triMat = new THREE.MeshPhysicalMaterial({
+    color: 0x2a9d5c, // Qibla green
+    roughness: 0.3, metalness: 0.2,
+    emissive: 0x2a9d5c, emissiveIntensity: 0.15,
+    envMapIntensity: 0
+  });
+  const triMesh = new THREE.Mesh(triGeo, triMat);
+  triMesh.position.set(0, innerR*0.45, 0.3);
+  qiblaInnerRotor.add(triMesh);
+  
+  // Position inner rotor offset from center (orbiting)
+  qiblaInnerRotor.position.y = gaugeR * 0.38;
+  qiblaRotor.add(qiblaInnerRotor);
+  
   clockGroup.add(qiblaGroup);
+}
+
+function updateQibla() {
+  if(!qiblaRotor) return;
+  // Smooth compass heading
+  compassHeading += ((targetCompassHeading - compassHeading + 540) % 360 - 180) * 0.08;
+  
+  // Outer rotor: shows compass direction (north indicator rotates with phone)
+  const compassRad = -(compassHeading * Math.PI/180);
+  qiblaRotor.rotation.z = compassRad;
+  
+  // Inner rotor: counter-rotates to always point at Qibla
+  // It sits on the outer rotor, so we offset by compass + qibla bearing
+  const qiblaRad = (qiblaBearing * Math.PI/180);
+  qiblaInnerRotor.rotation.z = qiblaRad - compassRad;
 }
 
 // Split-flap at 12 o'clock
@@ -695,6 +840,7 @@ function animate(){
   
   updateHands();
   updateFlap();
+  updateQibla();
   
   document.querySelector('meta[name="theme-color"]').content='#'+scene.background.getHexString();
   
