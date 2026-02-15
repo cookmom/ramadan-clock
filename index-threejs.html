@@ -1339,9 +1339,18 @@ function animate(){
   
   // Dial surface picks up faint lume ambient bounce
   if(dialMesh && dialMesh.material) {
+    // Darken dial surface at night — lighter dials need more darkening
+    const dayColor = new THREE.Color(DIALS[currentDial].bg);
+    const nightDialColor = dayColor.clone().lerp(new THREE.Color(0x0a0a10), modeBlend * 0.85);
+    dialMesh.material.color.copy(nightDialColor);
     dialMesh.material.emissive = dialMesh.material.emissive || new THREE.Color(0);
     dialMesh.material.emissive.copy(lumeEmCol).multiplyScalar(0.08);
     dialMesh.material.emissiveIntensity = modeBlend;
+  }
+  // Darken lower dial too
+  if(dialLowerMesh && dialLowerMesh.material) {
+    const dayLower = new THREE.Color(DIALS[currentDial].bg).multiplyScalar(0.75);
+    dialLowerMesh.material.color.copy(dayLower.lerp(new THREE.Color(0x060608), modeBlend * 0.9));
   }
   
   // Rainbow bezel gems glow at night
