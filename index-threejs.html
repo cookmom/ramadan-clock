@@ -1323,7 +1323,7 @@ function animate(){
   const lumeEmCol = new THREE.Color(nightLume.emissive);
   // Subtle lume breathing — very slow, barely perceptible (±5%)
   const lumeBreathe = 1.0 + Math.sin(Date.now() * 0.0005) * 0.05;
-  const lumeIntensity = modeBlend * 2.5 * lumeBreathe;
+  const lumeIntensity = modeBlend * 2.0 * lumeBreathe;
   lumeMeshes.forEach(m=>{
     m.material.emissive.lerp(lumeEmCol, modeBlend);
     m.material.emissiveIntensity = lumeIntensity;
