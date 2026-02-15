@@ -75,8 +75,8 @@ document.body.appendChild(renderer.domElement);
 const scene = new THREE.Scene();
 
 // ── Perspective camera (slight top-down angle for depth)
-const cam = new THREE.PerspectiveCamera(24, W/H, 1, 2000);
-cam.position.set(0, -20, 450);
+const cam = new THREE.PerspectiveCamera(30, W/H, 1, 2000);
+cam.position.set(0, -15, 420);
 cam.lookAt(0, 0, 0);
 
 // ══════════════════════════════════════════
@@ -539,7 +539,11 @@ function rr(ctx,x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y)
 // PRAYER TIMES
 // ══════════════════════════════════════════
 async function fetchPrayer(){
-  try{const r=await fetch('https://api.aladhan.com/v1/timings/'+Math.floor(Date.now()/1000));const j=await r.json();if(j.code===200){PD=j.data.timings;
+  try{
+  // Use date-based endpoint with auto-detected location
+  const d=new Date(), dd=`${d.getDate()}-${d.getMonth()+1}-${d.getFullYear()}`;
+  const r=await fetch(`https://api.aladhan.com/v1/timingsByCity/${dd}?city=LosAngeles&country=US&method=2`);
+  const j=await r.json();if(j.code===200){PD=j.data.timings;
   document.getElementById('hijri').textContent=`Fajr ${PD.Fajr} · Maghrib ${PD.Maghrib}`;
   document.getElementById('hijri').style.color=DIALS[currentDial].text;
   document.getElementById('greg').textContent=new Date().toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
