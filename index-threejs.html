@@ -381,33 +381,16 @@ function buildMarkers() {
     
     if(isKawthar) {
       // ── KAWTHAR: playful — chunky pastel circles, each hour its own color ──
-      const HOUR_COLORS = [
-        0xf0a0b8, // 12 — rose
-        0xf0c090, // 1 — peach
-        0xf0d880, // 2 — golden
-        0xb8e8a0, // 3 — mint
-        0xa0d8c0, // 4 — sage
-        0xa0c8e8, // 5 — sky
-        // 6 = qibla cutout
-        0xb0a8e0, // 7 — lavender
-        0xd0a0d8, // 8 — lilac
-        0xe0a0c0, // 9 — pink
-        0xf0b0a0, // 10 — coral
-        0xe8c8a0, // 11 — honey
-      ];
       if(isHour && hourIdx !== 6) {
-        // Map hourIdx to color (skip 6)
-        const colorIdx = hourIdx < 6 ? hourIdx : hourIdx - 1;
-        const hColor = HOUR_COLORS[colorIdx] || 0xf0a0b8;
         const dotR = (hourIdx === 0) ? R*0.065 : R*0.05;
         const depth = 3;
-        // Chunky extruded circle — like candy buttons
+        // Chunky rose gold candy buttons
         const geo = new THREE.CylinderGeometry(dotR, dotR, depth, 32);
         const mat = new THREE.MeshPhysicalMaterial({
-          color: hColor, roughness: 0.35, metalness: 0.1,
-          clearcoat: 0.6, clearcoatRoughness: 0.15,
-          emissive: hColor, emissiveIntensity: 0
-        }); mat.envMapIntensity = 0;
+          color: c.hand, roughness: 0.1, metalness: 0.8,
+          clearcoat: 0.8, clearcoatRoughness: 0.1,
+          emissive: c.hand, emissiveIntensity: 0
+        });
         const mesh = new THREE.Mesh(geo, mat);
         const midR = R * 0.85;
         mesh.position.x = Math.cos(ang)*midR;
