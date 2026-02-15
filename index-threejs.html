@@ -440,6 +440,7 @@ function buildMarkers() {
         mesh.position.z = depth/2;
         mesh.rotation.x = Math.PI/2;
         clockGroup.add(mesh); markerMeshes.push(mesh);
+        mesh.userData.kawtharButton = true;
         lumeMeshes.push(mesh); // they all glow at night
       } else if(!isHour) {
         // Simple small dots — rose gold
@@ -1326,7 +1327,8 @@ function animate(){
   const lumeIntensity = modeBlend * 2.0 * lumeBreathe;
   lumeMeshes.forEach(m=>{
     m.material.emissive.lerp(lumeEmCol, modeBlend);
-    m.material.emissiveIntensity = lumeIntensity;
+    // Kawthar candy buttons: cap glow to prevent blowout
+    m.material.emissiveIntensity = m.userData?.kawtharButton ? lumeIntensity * 0.35 : lumeIntensity;
   });
   if(hLumeMat_) { hLumeMat_.emissive.lerp(lumeEmCol, modeBlend); hLumeMat_.emissiveIntensity = lumeIntensity; }
   if(mLumeMat_) { mLumeMat_.emissive.lerp(lumeEmCol, modeBlend); mLumeMat_.emissiveIntensity = lumeIntensity; }
@@ -1341,7 +1343,7 @@ function animate(){
   if(dialMesh && dialMesh.material) {
     // Darken dial surface at night — lighter dials need more darkening
     const dayColor = new THREE.Color(DIALS[currentDial].bg);
-    const nightDialColor = dayColor.clone().lerp(new THREE.Color(0x0a0a10), modeBlend * 0.85);
+    const nightDialColor = dayColor.clone().lerp(new THREE.Color(0x080810), modeBlend * 0.92);
     dialMesh.material.color.copy(nightDialColor);
     dialMesh.material.emissive = dialMesh.material.emissive || new THREE.Color(0);
     dialMesh.material.emissive.copy(lumeEmCol).multiplyScalar(0.08);
