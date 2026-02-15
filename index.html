@@ -1470,7 +1470,7 @@ function releaseWakeLock(){
 }
 
 // ── Adhan Debug Log ──
-const _ADHAN_VER='v70-bloom';
+const _ADHAN_VER='v71-noflash';
 const _adhanLog=[];
 // Auto-show debug panel on load
 requestAnimationFrame(()=>{adhanDbg('ready');});
@@ -2220,8 +2220,8 @@ function swipeDial(dir){
   const next=DIAL_KEYS[(idx+dir+DIAL_KEYS.length)%DIAL_KEYS.length];
   pickDial(next);
   showDots();
-  // Flash to day mode briefly so user can see the dial color
-  if(modeBlend>0.3){
+  // Flash to day mode briefly so user can see the dial color (DISABLED)
+  if(false&&modeBlend>0.3){
     const savedMode=S.mode;
     modeTarget=0; // snap toward day
     clearTimeout(dialPreviewTimer);
