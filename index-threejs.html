@@ -86,15 +86,29 @@ cam.lookAt(0, 0, 0);
 // ══════════════════════════════════════════
 // LIGHTING
 // ══════════════════════════════════════════
-const ambLight = new THREE.AmbientLight(0xffffff, 0.35);
+const ambLight = new THREE.AmbientLight(0xffffff, 0.3);
 scene.add(ambLight);
 
 // Softbox rect light — product-shot fill
 const { RectAreaLightUniformsLib } = await import('three/addons/lights/RectAreaLightUniformsLib.js');
 RectAreaLightUniformsLib.init();
 
-// HDRI disabled — using direct lights only for clean consistent look
-// const { RGBELoader } = await import('three/addons/loaders/RGBELoader.js');
+// Procedural env — instant, no async loading, neutral studio
+const pmrem = new THREE.PMREMGenerator(renderer);
+const envScene = new THREE.Scene();
+envScene.background = new THREE.Color(0x333340);
+// Overhead softbox
+const eL1 = new THREE.RectAreaLight(0xffffff, 8, 300, 300);
+eL1.position.set(0, 150, 100); eL1.lookAt(0,0,0); envScene.add(eL1);
+// Side fill
+const eL2 = new THREE.RectAreaLight(0xeeeeff, 3, 200, 200);
+eL2.position.set(-200, 0, 50); eL2.lookAt(0,0,0); envScene.add(eL2);
+// Front card (what flat surfaces see)
+const eL3 = new THREE.RectAreaLight(0xffffff, 4, 400, 400);
+eL3.position.set(0, 0, 300); eL3.lookAt(0,0,0); envScene.add(eL3);
+scene.environment = pmrem.fromScene(envScene, 0.02).texture;
+scene.environmentIntensity = 0.5;
+pmrem.dispose();
 
 const rectLight = new THREE.RectAreaLight(0xffffff, 0, 447, 447);
 rectLight.position.set(0, 0, 300);
@@ -102,7 +116,7 @@ rectLight.lookAt(0, 0, 0);
 scene.add(rectLight);
 
 const dirLight = new THREE.DirectionalLight(0xfff5e8, 1.2);
-dirLight.position.set(-80, 150, 180);
+dirLight.position.set(-50, 160, 220);
 dirLight.castShadow = true;
 dirLight.shadow.mapSize.set(2048, 2048);
 dirLight.shadow.radius = 3;
