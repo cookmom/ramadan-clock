@@ -78,7 +78,7 @@ const scene = new THREE.Scene();
 // Adjust camera distance based on aspect ratio so clock fits both portrait and landscape
 const aspect = W/H;
 const camZ = 280;
-const cam = new THREE.PerspectiveCamera(55, aspect, 1, 2000); // nuclear FOV
+const cam = new THREE.PerspectiveCamera(32, aspect, 1, 2000);
 cam.position.set(0, -3, camZ);
 cam.lookAt(0, 0, 0);
 
@@ -184,6 +184,7 @@ initGyro();
 // BUILD CLOCK
 // ══════════════════════════════════════════
 const clockGroup = new THREE.Group(); // everything lives here for parallax
+clockGroup.scale.setScalar(0.65); // shrink clock to fit viewport with margin
 scene.add(clockGroup);
 
 // Dial face
