@@ -350,7 +350,7 @@ function buildHands() {
   
   // Hour
   hourGroup = new THREE.Group();
-  const hL=R*0.46, hW=R*0.05, hT=R*0.05, hD=4;
+  const hL=R*0.75, hW=R*0.05, hT=R*0.05, hD=4;
   const hGeo = extrudedLeaf(hL, hW, hT, hD);
   hourMat_ = metalMat(c.hand);
   const hMesh = new THREE.Mesh(hGeo, hourMat_);
