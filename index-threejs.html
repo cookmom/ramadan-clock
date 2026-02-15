@@ -263,18 +263,18 @@ function createGlassTexture() {
   ctx.save();
   ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.clip();
   
-  // Very subtle edge darkening (dome curvature) — barely perceptible
-  const edgeGrad = ctx.createRadialGradient(cx,cy,r*0.7, cx,cy,r);
+  // Edge darkening — barely visible
+  const edgeGrad = ctx.createRadialGradient(cx,cy,r*0.75, cx,cy,r);
   edgeGrad.addColorStop(0, 'rgba(0,0,0,0)');
-  edgeGrad.addColorStop(1, 'rgba(0,0,0,0.04)');
+  edgeGrad.addColorStop(1, 'rgba(0,0,0,0.025)');
   ctx.fillStyle = edgeGrad;
   ctx.fillRect(0,0,S,S);
   
-  // Tiny highlight arc (barely there — just enough to hint at glass)
+  // Single hair-thin highlight arc — almost invisible
   ctx.beginPath();
-  ctx.arc(cx - r*0.2, cy - r*0.38, r*0.35, -0.6, 0.15);
-  ctx.strokeStyle = 'rgba(255,255,255,0.04)';
-  ctx.lineWidth = r*0.015;
+  ctx.arc(cx - r*0.15, cy - r*0.4, r*0.3, -0.4, 0.1);
+  ctx.strokeStyle = 'rgba(255,255,255,0.025)';
+  ctx.lineWidth = r*0.008;
   ctx.lineCap = 'round';
   ctx.stroke();
   
@@ -607,17 +607,17 @@ function buildQibla(c) {
   const subY = -R * 0.32;  // center of sub-dial
   const qr = R * 0.18;     // sub-dial radius — prominent, like NOMOS small seconds
   
-  // Recessed background (slightly darker than dial)
+  // Recessed background (noticeably darker than dial — like looking into a well)
   const bgCol = DIALS[currentDial].bg;
   const rgb = hexRGB(bgCol);
-  const recessCol = `rgb(${Math.max(0,rgb.r-15)},${Math.max(0,rgb.g-15)},${Math.max(0,rgb.b-15)})`;
+  const recessCol = `rgb(${Math.max(0,rgb.r-30)},${Math.max(0,rgb.g-30)},${Math.max(0,rgb.b-30)})`;
   qiblaBg = makeCircle(qr, recessCol, 1);
   qiblaBg.position.y = subY;
   qiblaGroup.add(qiblaBg);
   
-  // Inner shadow ring (recessed depth effect)
-  const innerShadow = makeRing(qr*0.92, qr, '#000000', 1.5);
-  innerShadow.material.transparent=true; innerShadow.material.opacity=0.08;
+  // Inner shadow ring (recessed depth)
+  const innerShadow = makeRing(qr*0.88, qr, '#000000', 1.5);
+  innerShadow.material.transparent=true; innerShadow.material.opacity=0.15;
   innerShadow.position.y = subY;
   qiblaGroup.add(innerShadow);
   
@@ -631,11 +631,11 @@ function buildQibla(c) {
   for (let i = 0; i < 8; i++) {
     const ang = (i/8) * Math.PI * 2 - Math.PI/2;
     const isCardinal = i % 2 === 0;
-    const tH = isCardinal ? qr*0.12 : qr*0.07;
-    const tW = isCardinal ? 1.2 : 0.6;
+    const tH = isCardinal ? qr*0.14 : qr*0.08;
+    const tW = isCardinal ? 1.5 : 0.8;
     const tr = qr - tH/2 - 1;
     const tick = makePlane(tW, tH, c.lume, 2);
-    tick.material.transparent=true; tick.material.opacity = isCardinal ? 0.5 : 0.25;
+    tick.material.transparent=true; tick.material.opacity = isCardinal ? 0.7 : 0.35;
     tick.position.x = Math.cos(ang)*tr;
     tick.position.y = subY + Math.sin(ang)*tr;
     tick.rotation.z = ang + Math.PI/2;
@@ -802,10 +802,12 @@ function updateFlap(c) {
   let label='UNTIL MAGHRIB', mins=0;
   
   if(PD) {
-    const fajr=pM(PD.Fajr), mag=pM(PD.Maghrib);
+    const fajr=pM(PD.Fajr), mag=pM(PD.Maghrib), isha=pM(PD.Isha);
     if(nowMin>=fajr&&nowMin<mag){mins=mag-nowMin;label='UNTIL IFTAR';}
     else if(nowMin<fajr){mins=fajr-nowMin;label='UNTIL FAJR';}
-    else{mins=0;label='IFTAR';}
+    else if(nowMin>=mag&&nowMin<isha){mins=isha-nowMin;label='UNTIL ISHA';}
+    else if(nowMin>=isha){mins=(24*60-nowMin)+fajr;label='UNTIL FAJR';}
+    else{mins=fajr-nowMin;label='UNTIL FAJR';}
   } else { mins=Math.max(0,(18*60+15)-nowMin); }
   
   const hh=Math.floor(mins/60), mm=Math.floor(mins%60);
