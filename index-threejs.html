@@ -1003,24 +1003,33 @@ function buildFlap() {
 }
 
 // Stars (Surah Yusuf 12:4)
+// 11 stars positioned in the dark corners/edges around the clock
 const STARS=[];
-for(let i=0;i<11;i++){const t=i/10,dip=4*t*(1-t);STARS.push({x:0.08+t*0.84,y:0.03+dip*0.12,r:0.8+Math.sin(i*1.7)*0.5+0.3,speed:0.0009+i*0.00008,offset:i*0.57,bright:0.7+Math.sin(i*2.3)*0.2});}
+const starPositions = [
+  {x:-0.48, y:0.48}, {x:0.48, y:0.48},   // top corners
+  {x:-0.48, y:-0.48}, {x:0.48, y:-0.48},  // bottom corners
+  {x:-0.5, y:0.15}, {x:0.5, y:0.15},      // left/right mid-upper
+  {x:-0.5, y:-0.15}, {x:0.5, y:-0.15},    // left/right mid-lower
+  {x:0, y:0.5},                             // top center
+  {x:-0.3, y:-0.5}, {x:0.3, y:-0.5},      // bottom left/right
+];
+for(let i=0;i<11;i++){STARS.push({x:starPositions[i].x+0.5,y:0.5-starPositions[i].y,r:1.0+Math.sin(i*1.7)*0.5,speed:0.0009+i*0.00008,offset:i*0.57,bright:0.7+Math.sin(i*2.3)*0.2});}
 let starMeshes=[];
 let moonGroup, moonMesh, moonGlowMesh;
 
 function buildStars(){
   starMeshes.forEach(m=>scene.remove(m)); starMeshes=[];
   STARS.forEach(s=>{
-    const m=new THREE.Mesh(new THREE.CircleGeometry(s.r*2.5,16),new THREE.MeshBasicMaterial({color:0xfffff0,transparent:true,opacity:0}));
-    m.position.x=(s.x-0.5)*400; m.position.y=(0.5-s.y)*500 + 80;
-    m.position.z=-15; m.userData=s; scene.add(m); starMeshes.push(m);
+    const m=new THREE.Mesh(new THREE.CircleGeometry(s.r*3,16),new THREE.MeshBasicMaterial({color:0xfffff0,transparent:true,opacity:0}));
+    m.position.x=(s.x-0.5)*180; m.position.y=(0.5-s.y)*280;
+    m.position.z=-10; m.userData=s; scene.add(m); starMeshes.push(m);
   });
   
   // 3D Moon — rises during night transition
   if(moonGroup) scene.remove(moonGroup);
   moonGroup = new THREE.Group();
   
-  const moonR = 18;
+  const moonR = 10;
   // Moon sphere
   const moonGeo = new THREE.SphereGeometry(moonR, 32, 32);
   const moonMat = new THREE.MeshPhysicalMaterial({
@@ -1435,8 +1444,8 @@ function animate(){
     moonGroup.visible = modeBlend > 0.1;
     
     // Rise from below-right to upper-right
-    const startY = -250, endY = 180;
-    const startX = 120, endX = 100;
+    const startY = -120, endY = 85;
+    const startX = 75, endX = 65;
     // Ease-out cubic for natural rise
     const eased = 1 - Math.pow(1 - moonBlend, 3);
     moonGroup.position.y = startY + (endY - startY) * eased;
