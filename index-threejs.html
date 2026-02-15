@@ -1296,6 +1296,10 @@ window.addEventListener('message',(e)=>{
   if(e.data&&e.data.type==='dispose'){
     renderer.dispose();renderer.forceContextLoss();
   }
+  if(e.data&&e.data.type==='switchDial'&&DIALS[e.data.dial]){
+    currentDial=e.data.dial;
+    buildAll();
+  }
 });
 window.addEventListener('resize',()=>{
   W=window.innerWidth;H=window.innerHeight;
