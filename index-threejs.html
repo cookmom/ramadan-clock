@@ -464,7 +464,15 @@ let qiblaGroup;
 function buildQibla() {
   if(qiblaGroup) clockGroup.remove(qiblaGroup);
   qiblaGroup = new THREE.Group();
-  // Empty — cutout only, no elements inside
+  // Metal gauge disc in cutout
+  const gaugeR = R*0.38 - 1;
+  const gaugeGeo = new THREE.CylinderGeometry(gaugeR, gaugeR, 2, 64);
+  const gaugeMat = new THREE.MeshStandardMaterial({ color: DIALS[currentDial].hand, roughness: 0.15, metalness: 0.95 });
+  const gaugeMesh = new THREE.Mesh(gaugeGeo, gaugeMat);
+  gaugeMesh.rotation.x = Math.PI/2;
+  gaugeMesh.position.y = -R*0.5;
+  gaugeMesh.position.z = 0;
+  qiblaGroup.add(gaugeMesh);
   clockGroup.add(qiblaGroup);
 }
 
