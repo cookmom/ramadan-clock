@@ -67,8 +67,7 @@ const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference:'hig
 renderer.samples = 4;
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 3));
 renderer.setSize(W, H);
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.VSMShadowMap;
+renderer.shadowMap.enabled = false;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.8;
 document.body.appendChild(renderer.domElement);
@@ -100,15 +99,11 @@ rectLight.position.set(0, 0, 300);
 rectLight.lookAt(0, 0, 0);
 scene.add(rectLight);
 
-const dirLight = new THREE.DirectionalLight(0xfff5e8, 1.4);
-dirLight.position.set(-50, 160, 220);
-dirLight.castShadow = true;
-dirLight.shadow.mapSize.set(2048, 2048);
-dirLight.shadow.radius = 3;
-dirLight.shadow.bias = -0.0003;
-const sc = dirLight.shadow.camera;
-sc.near = 1; sc.far = 600; sc.left = sc.bottom = -200; sc.right = sc.top = 200;
-scene.add(dirLight);
+// Key light — large rect for soft wrap, no shadow artifacts
+const keyLight = new THREE.RectAreaLight(0xfff5e8, 3, 300, 300);
+keyLight.position.set(-60, 160, 220);
+keyLight.lookAt(0, 0, 0);
+scene.add(keyLight);
 
 // Subtle fill from bottom-right
 // Rim light — edge definition on hands from behind-left  
