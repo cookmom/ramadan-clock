@@ -8,7 +8,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600&family=Lateef:wght@700&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-html,body{width:100%;height:100%;overflow:hidden;background:#000;touch-action:none;user-select:none;-webkit-user-select:none}
+html,body{width:100%;height:100%;overflow:hidden;background:transparent;touch-action:none;user-select:none;-webkit-user-select:none}
 canvas{display:block;width:100%;height:100%}
 #info{position:fixed;bottom:env(safe-area-inset-bottom,12px);left:0;right:0;text-align:center;font-family:'Inter',system-ui,sans-serif;pointer-events:none;z-index:10;padding:0 16px 12px;opacity:0;transition:opacity .4s}
 #info.visible{opacity:1}
@@ -66,7 +66,7 @@ function pM(s){if(!s)return 0;const[h,m]=s.split(':').map(Number);return h*60+m;
 let W = window.innerWidth, H = window.innerHeight;
 const R = 80; // world-space radius
 
-const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference:'high-performance' });
+const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference:'high-performance', alpha: EMBED });
 renderer.samples = 4;
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 3));
 renderer.setSize(W, H);
@@ -255,7 +255,8 @@ initGyro();
 const bgPlaneMat = new THREE.MeshBasicMaterial({ color: 0x1a1a22 });
 const bgPlane = new THREE.Mesh(new THREE.PlaneGeometry(2000, 2000), bgPlaneMat);
 bgPlane.position.z = -50;
-scene.add(bgPlane);
+if(!EMBED) scene.add(bgPlane);
+if(EMBED) { renderer.setClearColor(0x000000, 0); }
 
 const clockGroup = new THREE.Group(); // everything lives here for parallax
 clockGroup.scale.setScalar(0.50);
@@ -833,7 +834,7 @@ function animate(){
   });
   
   // BG color blend
-  scene.background = new THREE.Color(modeBlend<0.01 ? DIALS[currentDial].bg : new THREE.Color(DIALS[currentDial].bg).lerp(new THREE.Color(0x0a0a0f),modeBlend));
+  if(!EMBED) scene.background = new THREE.Color(modeBlend<0.01 ? DIALS[currentDial].bg : new THREE.Color(DIALS[currentDial].bg).lerp(new THREE.Color(0x0a0a0f),modeBlend));
   
   // Parallax
   gx+=(tgx-gx)*0.08; gy+=(tgy-gy)*0.08;
