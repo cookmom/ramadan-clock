@@ -774,66 +774,89 @@ function buildQibla() {
     const fastDuration = maghribMin - fajrMin;
     const fastProgress = Math.max(0, Math.min(1, (nowMin - fajrMin) / fastDuration));
     
-    // Fasting progress — 4 quadrants, each = 25%
-    if(nowMin >= fajrMin && nowMin <= maghribMin) {
-      const qR = gaugeR - 2; // inner radius to leave room for compass
-      const gap = 0.04; // radians gap between quadrants
-      const filledColor = new THREE.Color(0x2a9d5c);
-      const emptyColor = new THREE.Color(d.bg).multiplyScalar(0.6);
+    // Fasting progress — constellation reveal
+    // 9 star-spheres form a crescent shape; lines connect as fast progresses
+    {
+      const cR = gaugeR * 0.65; // constellation fits within subdial
+      // Crescent constellation points (x,y normalized to cR)
+      const stars = [
+        { x: -0.15, y:  0.75 },  // 0 — top of crescent
+        { x:  0.30, y:  0.60 },  // 1
+        { x:  0.55, y:  0.30 },  // 2
+        { x:  0.65, y: -0.05 },  // 3 — right tip
+        { x:  0.50, y: -0.40 },  // 4
+        { x:  0.20, y: -0.65 },  // 5
+        { x: -0.20, y: -0.70 },  // 6 — bottom of crescent
+        { x: -0.45, y: -0.35 },  // 7 — inner curve
+        { x: -0.35, y:  0.20 },  // 8 — inner curve back up
+      ];
+      // Connections (edges) — drawn in order as fast progresses
+      const edges = [
+        [0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,8],[8,0]
+      ];
       
-      for(let q = 0; q < 4; q++) {
-        // Quadrants: top-right, bottom-right, bottom-left, top-left (CW from 12)
-        const startAng = Math.PI/2 - q * Math.PI/2 - gap;
-        const endAng = Math.PI/2 - (q+1) * Math.PI/2 + gap;
-        const filled = fastProgress >= (q+1) * 0.25;
-        const partial = !filled && fastProgress > q * 0.25;
+      const litColor = new THREE.Color(d.lume || 0xe8e0c8);
+      const dimColor = new THREE.Color(d.bg).multiplyScalar(0.5);
+      const sphereR = 1.2;
+      
+      // How many edges to show based on progress
+      const edgesLit = Math.floor(fastProgress * edges.length);
+      const edgePartial = (fastProgress * edges.length) - edgesLit;
+      
+      // Track which stars are connected
+      const starLit = new Set();
+      // All stars always visible (dim); connected ones glow
+      if(fastProgress >= 1) stars.forEach((_,i) => starLit.add(i));
+      for(let e = 0; e < edgesLit; e++) {
+        starLit.add(edges[e][0]);
+        starLit.add(edges[e][1]);
+      }
+      if(edgesLit < edges.length) starLit.add(edges[edgesLit][0]);
+      
+      // Draw stars
+      const sphereGeo = new THREE.SphereGeometry(sphereR, 16, 12);
+      stars.forEach((s, i) => {
+        const lit = starLit.has(i);
+        const sMat = new THREE.MeshPhysicalMaterial({
+          color: lit ? litColor : dimColor,
+          roughness: lit ? 0.2 : 0.6,
+          metalness: lit ? 0.4 : 0.0,
+          emissive: lit ? litColor : new THREE.Color(0x000000),
+          emissiveIntensity: lit ? 0.3 : 0,
+          envMapIntensity: 0,
+        });
+        const sMesh = new THREE.Mesh(sphereGeo, sMat);
+        sMesh.position.set(s.x * cR, s.y * cR, 1.5);
+        sMesh.scale.setScalar(lit ? 1.0 : 0.6);
+        qiblaGroup.add(sMesh);
+      });
+      
+      // Draw connecting lines
+      const lineMat = new THREE.MeshBasicMaterial({
+        color: litColor, transparent: true, opacity: 0.6
+      });
+      for(let e = 0; e < edgesLit + (edgePartial > 0.05 ? 1 : 0); e++) {
+        if(e >= edges.length) break;
+        const [a, b] = edges[e];
+        const ax = stars[a].x * cR, ay = stars[a].y * cR;
+        const bx = stars[b].x * cR, by = stars[b].y * cR;
         
-        const qs = new THREE.Shape();
-        if(partial) {
-          // Partially fill this quadrant
-          const localProg = (fastProgress - q * 0.25) / 0.25;
-          const partialEnd = startAng - localProg * (startAng - endAng);
-          // Filled portion
-          const fs = new THREE.Shape();
-          fs.moveTo(0, 0);
-          fs.absarc(0, 0, qR, startAng, partialEnd, true);
-          fs.lineTo(0, 0);
-          const fGeo = new THREE.ShapeGeometry(fs);
-          const fMat = new THREE.MeshPhysicalMaterial({
-            color: filledColor, roughness: 0.3, metalness: 0.1,
-            transparent: true, opacity: 0.85
-          });
-          const fMesh = new THREE.Mesh(fGeo, fMat);
-          fMesh.position.z = 0.2;
-          qiblaGroup.add(fMesh);
-          // Empty remainder
-          const es = new THREE.Shape();
-          es.moveTo(0, 0);
-          es.absarc(0, 0, qR, partialEnd, endAng, true);
-          es.lineTo(0, 0);
-          const eGeo = new THREE.ShapeGeometry(es);
-          const eMat = new THREE.MeshPhysicalMaterial({
-            color: emptyColor, roughness: 0.5, metalness: 0.0,
-            transparent: true, opacity: 0.4
-          });
-          const eMesh = new THREE.Mesh(eGeo, eMat);
-          eMesh.position.z = 0.2;
-          qiblaGroup.add(eMesh);
-        } else {
-          qs.moveTo(0, 0);
-          qs.absarc(0, 0, qR, startAng, endAng, true);
-          qs.lineTo(0, 0);
-          const qGeo = new THREE.ShapeGeometry(qs);
-          const qMat = new THREE.MeshPhysicalMaterial({
-            color: filled ? filledColor : emptyColor,
-            roughness: filled ? 0.3 : 0.5,
-            metalness: filled ? 0.1 : 0.0,
-            transparent: true, opacity: filled ? 0.85 : 0.4
-          });
-          const qMesh = new THREE.Mesh(qGeo, qMat);
-          qMesh.position.z = 0.2;
-          qiblaGroup.add(qMesh);
-        }
+        // For partial edge, interpolate endpoint
+        const t = (e < edgesLit) ? 1.0 : edgePartial;
+        const ex = ax + (bx - ax) * t;
+        const ey = ay + (by - ay) * t;
+        
+        const dx = ex - ax, dy = ey - ay;
+        const len = Math.sqrt(dx*dx + dy*dy);
+        if(len < 0.1) continue;
+        const ang = Math.atan2(dy, dx);
+        
+        const lineGeo = new THREE.PlaneGeometry(len, 0.4);
+        const lineMesh = new THREE.Mesh(lineGeo, lineMat.clone());
+        lineMesh.material.opacity = (e < edgesLit) ? 0.6 : 0.6 * edgePartial;
+        lineMesh.position.set(ax + dx*0.5*t, ay + dy*0.5*t, 1.0);
+        lineMesh.rotation.z = ang;
+        qiblaGroup.add(lineMesh);
       }
     }
   }
