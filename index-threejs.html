@@ -140,13 +140,13 @@ function extrudedPill(w, h, depth) {
   return new THREE.ExtrudeGeometry(s, { depth, bevelEnabled:true, bevelThickness:0.3, bevelSize:0.2, bevelSegments:2 });
 }
 
-function extrudedLeaf(len, maxW, tailLen, depth) {
-  const s = new THREE.Shape(), hw=maxW/2;
-  s.moveTo(-hw*0.5, -tailLen);
-  s.quadraticCurveTo(-hw, len*0.15, -hw, len*0.3);
+function extrudedLeaf(len, maxW, tailLen, depth, baseScale=1.0) {
+  const s = new THREE.Shape(), hw=maxW/2, bw=hw*baseScale;
+  s.moveTo(-bw*0.5, -tailLen);
+  s.quadraticCurveTo(-bw, len*0.15, -bw, len*0.3);
   s.quadraticCurveTo(-hw*0.25, len*0.75, 0, len);
-  s.quadraticCurveTo(hw*0.25, len*0.75, hw, len*0.3);
-  s.quadraticCurveTo(hw, len*0.15, hw*0.5, -tailLen);
+  s.quadraticCurveTo(hw*0.25, len*0.75, bw, len*0.3);
+  s.quadraticCurveTo(bw, len*0.15, bw*0.5, -tailLen);
   s.closePath();
   return new THREE.ExtrudeGeometry(s, { depth, bevelEnabled:true, bevelThickness:0.4, bevelSize:0.3, bevelSegments:3 });
 }
@@ -351,7 +351,7 @@ function buildHands() {
   // Hour
   hourGroup = new THREE.Group();
   const hL=R*0.75, hW=R*0.05, hT=R*0.05, hD=4;
-  const hGeo = extrudedLeaf(hL, hW, hT, hD);
+  const hGeo = extrudedLeaf(hL, hW, hT, hD, 1.3);
   hourMat_ = metalMat(c.hand);
   const hMesh = new THREE.Mesh(hGeo, hourMat_);
   hMesh.castShadow = true;
