@@ -174,15 +174,14 @@ function nomosHand(len, baseW, tailLen, depth) {
 
 // Lume channel — recessed strip in center of NOMOS hand
 function nomosLume(len, baseW, depth) {
-  const cw = baseW * 0.3; // channel width = 30% of hand
+  const cw = baseW * 0.35; // channel width
   const hw = cw / 2;
-  const startY = len * 0.08;
-  const endY = len * 0.65;
+  const startY = baseW * 0.5; // start just above pivot
+  const triH = baseW; // match nomosHand triangle height
+  const endY = len - triH; // stop at triangle base
   const s = new THREE.Shape();
   s.moveTo(-hw, startY);
   s.lineTo(-hw, endY);
-  s.lineTo(-hw * 0.5, endY + len * 0.05);
-  s.lineTo(hw * 0.5, endY + len * 0.05);
   s.lineTo(hw, endY);
   s.lineTo(hw, startY);
   s.closePath();
