@@ -324,7 +324,7 @@ function buildMarkers() {
       markerMeshes.push(mesh);
       
       // Lume insert
-      const lGeo = extrudedPill(mW*0.5, mH*0.65, depth+0.5);
+      const lGeo = new THREE.BoxGeometry(mW*0.5, mH*0.65, depth+0.5);
       const lMesh = new THREE.Mesh(lGeo, lumeMat(c.lume));
       lMesh.position.copy(mesh.position);
       lMesh.position.z = depth/2 + 0.3;
