@@ -16,9 +16,9 @@ canvas{display:block;width:100%;height:100%}
 #info .hijri{font-size:14px;font-weight:500;letter-spacing:.5px}
 #info .greg{font-size:11px;font-weight:300;margin-top:2px}
 #info .surah{font-size:10px;font-weight:200;letter-spacing:1.5px;text-transform:uppercase;margin-top:6px;opacity:0.6}
-#dialBar{position:fixed;bottom:calc(env(safe-area-inset-bottom,0px) + 50px);left:0;right:0;display:flex;justify-content:center;gap:8px;opacity:0;transition:opacity .4s;z-index:10;pointer-events:none}
+#dialBar{position:fixed;bottom:calc(env(safe-area-inset-bottom,0px) + 50px);left:0;right:0;display:flex;justify-content:center;gap:6px;opacity:0;transition:opacity .4s;z-index:10;pointer-events:none}
 #dialBar.visible{opacity:1;pointer-events:auto}
-.dial-dot{width:8px;height:8px;border-radius:50%;border:1.5px solid rgba(255,255,255,.3);cursor:pointer;transition:all .3s}
+.dial-dot{width:7px;height:7px;border-radius:50%;border:1.5px solid rgba(255,255,255,.3);cursor:pointer;transition:all .3s}
 .dial-dot.active{border-color:rgba(255,255,255,.8);background:rgba(255,255,255,.5)}
 </style>
 </head>
@@ -33,6 +33,10 @@ canvas{display:block;width:100%;height:100%}
   <div class="dial-dot" data-dial="sky" style="border-color:#5a9ac0"></div>
   <div class="dial-dot" data-dial="cream" style="border-color:#d8ccb4"></div>
   <div class="dial-dot" data-dial="kawthar" style="border-color:#f2dce0"></div>
+  <div class="dial-dot" data-dial="dhuha" style="border-color:#e8c878"></div>
+  <div class="dial-dot" data-dial="najm" style="border-color:#1a2a48"></div>
+  <div class="dial-dot" data-dial="fajr" style="border-color:#b8a0c8"></div>
+  <div class="dial-dot" data-dial="qamar" style="border-color:#c0c4cc"></div>
 </div>
 
 <script type="importmap">
@@ -56,6 +60,10 @@ const DIALS = {
   sky:    {bg:0x5a9ac0, lume:0xe0f0ff, hand:0xf4f0e8, sec:0xffffff, text:'#f0f8ff', surah:'Al-Burūj'},         // ice white — the constellations
   cream:  {bg:0xd8ccb4, lume:0x4a3828, hand:0x2a2520, sec:0x3a3530, text:'#3a3530', surah:'At-Tīn'},           // dark chocolate — the fig
   kawthar:{bg:0xf2dce0, lume:0xd4a0b0, hand:0xc88898, sec:0xe0a0b0, text:'#9a6878', surah:'Al-Kawthar'},      // soft rose pink, rose gold — for Kawthar
+  dhuha:  {bg:0xe8c878, lume:0x5a3a20, hand:0x3a2810, sec:0x8a4a20, text:'#3a2810', surah:'Aḍ-Ḍuḥā'},         // warm gold — the morning brightness
+  najm:   {bg:0x1a2a48, lume:0xc8d8f0, hand:0xc0c8d8, sec:0xe8d050, text:'#c8d8f0', surah:'An-Najm'},          // deep midnight blue — the star
+  fajr:   {bg:0xb8a0c8, lume:0xf0e8f8, hand:0xf0e8f0, sec:0xffffff, text:'#f0e8f8', surah:'Al-Fajr'},          // soft lavender — the dawn
+  qamar:  {bg:0xc0c4cc, lume:0x2a2a30, hand:0x1a1a20, sec:0x2a2a30, text:'#2a2a30', surah:'Al-Qamar'},         // cool silver — the moon
 };
 // Night lume palettes — modeled after real SuperLuminova variants
 // Each matches the daytime lume character but amplified for glow
@@ -67,6 +75,10 @@ const NIGHT_LUME = {
   sky:    { emissive: 0x80d0ff },  // BGW9 — ice blue constellations
   cream:  { emissive: 0xe0c878 },  // Tritium — warm gold, aged patina
   kawthar:{ emissive: 0xffa0c0 },  // Soft pink glow — rose petals in moonlight
+  dhuha:  { emissive: 0xffc040 },  // Warm golden sunrise
+  najm:   { emissive: 0x90b8ff },  // Cool stellar blue
+  fajr:   { emissive: 0xd0a0ff },  // Soft violet dawn light
+  qamar:  { emissive: 0xd0d8e8 },  // Cool silver moonlight
 };
 const DIAL_NAMES = Object.keys(DIALS);
 const ARABIC = ['١٢','١','٢','٣','٤','٥','٦','٧','٨','٩','١٠','١١'];
@@ -171,30 +183,33 @@ scene.add(counterSpec);
 // MATERIALS (PBR)
 // ══════════════════════════════════════════
 function dialMat(color) {
-  const isKawthar = currentDial === 'kawthar';
+  const cd = currentDial;
+  const special = {
+    kawthar: { roughness:0.6, metalness:0.15, sheen:0.8, sheenColor:0xd4909a, sheenRoughness:0.3, clearcoat:0.4, clearcoatRoughness:0.3 },
+    najm:    { roughness:0.4, metalness:0.3, sheen:0.5, sheenColor:0x3050a0, sheenRoughness:0.2, clearcoat:0.7, clearcoatRoughness:0.1 }, // deep lacquer
+    dhuha:   { roughness:0.65, metalness:0.1, sheen:0.6, sheenColor:0xd4a040, sheenRoughness:0.4, clearcoat:0.3, clearcoatRoughness:0.2 }, // warm sunlit
+    qamar:   { roughness:0.5, metalness:0.25, sheen:0.4, sheenColor:0x8890a0, sheenRoughness:0.3, clearcoat:0.5, clearcoatRoughness:0.15 }, // cool lunar
+    fajr:    { roughness:0.7, metalness:0.05, sheen:0.5, sheenColor:0x9878b0, sheenRoughness:0.4, clearcoat:0.2, clearcoatRoughness:0.3 }, // soft dawn
+  };
+  const s = special[cd] || { roughness:0.88, metalness:0.0, sheen:0.25, sheenColor:0x706860, sheenRoughness:0.8, clearcoat:0, clearcoatRoughness:0 };
   const m = new THREE.MeshPhysicalMaterial({
-    color,
-    roughness: isKawthar ? 0.6 : 0.88,
-    metalness: isKawthar ? 0.15 : 0.0,
-    sheen: isKawthar ? 0.8 : 0.25,
-    sheenColor: new THREE.Color(isKawthar ? 0xd4909a : 0x706860),  // rose gold sheen for Kawthar
-    sheenRoughness: isKawthar ? 0.3 : 0.8,
-    clearcoat: isKawthar ? 0.4 : 0,
-    clearcoatRoughness: isKawthar ? 0.3 : 0,
+    color, roughness:s.roughness, metalness:s.metalness,
+    sheen:s.sheen, sheenColor:new THREE.Color(s.sheenColor), sheenRoughness:s.sheenRoughness,
+    clearcoat:s.clearcoat, clearcoatRoughness:s.clearcoatRoughness,
     emissive: 0x000000, emissiveIntensity: 0
   });
   m.envMapIntensity = 0;
   return m;
 }
 function metalMat(color) {
-  const isKawthar = currentDial === 'kawthar';
+  const precious = ['kawthar','dhuha','qamar'].includes(currentDial);
   return new THREE.MeshPhysicalMaterial({
     color,
-    roughness: isKawthar ? 0.1 : 0.15,
-    metalness: isKawthar ? 0.8 : 0.5,  // more metallic gold
+    roughness: precious ? 0.1 : 0.15,
+    metalness: precious ? 0.8 : 0.5,
     clearcoat: 1.0,
     clearcoatRoughness: 0.05,
-    reflectivity: isKawthar ? 1.0 : 0.9
+    reflectivity: precious ? 1.0 : 0.9
   });
 }
 function lumeMat(color) {
