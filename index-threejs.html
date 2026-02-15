@@ -188,7 +188,7 @@ function nomosHand(len, baseW, tailLen, depth) {
 function nomosLume(len, baseW, depth) {
   const cw = baseW * 0.35; // channel width
   const hw = cw / 2;
-  const startY = baseW * 0.5; // start just above pivot
+  const startY = len * 0.33; // start one-third up from base
   const triH = baseW; // match nomosHand triangle height
   const endY = len - triH; // stop at triangle base
   const s = new THREE.Shape();
