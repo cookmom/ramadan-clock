@@ -952,6 +952,8 @@ function buildQibla() {
         color: sorbet[colIdx],
         roughness: 0.25, metalness: 0.15,
         clearcoat: 0.3,
+        emissive: new THREE.Color(sorbet[colIdx]),
+        emissiveIntensity: 0,
         envMapIntensity: 0
       });
       const segMesh = new THREE.Mesh(new THREE.ShapeGeometry(segShape), segMat);
@@ -1443,15 +1445,32 @@ function animate(){
   updateHands();
   updateFlap();
   updateQibla();
-  // Spin subdial rings — driven by Qibla offset, align when facing Mecca
+  // Spin subdial rings — wild when off Qibla, decelerate and lock when aligned
   if(window._subdialRings && qiblaRotor) {
-    // How far off Qibla are we? 0 = perfectly aligned, 180 = opposite
     const qiblaOffset = ((qiblaBearing - compassHeading) % 360 + 360) % 360;
     const offNorm = Math.min(qiblaOffset, 360 - qiblaOffset) / 180; // 0=aligned, 1=opposite
+    const aligned = offNorm < 0.05; // within ~9°
+    const nearZone = offNorm < 0.15; // within ~27° — rings start slowing
+    
     window._subdialRings.forEach(r => {
-      // Target rotation: 0 when aligned, scattered when off
-      const targetZ = offNorm * Math.PI * 2 * r.speed * r.dir;
-      r.group.rotation.z += (targetZ - r.group.rotation.z) * 0.06; // smooth lerp
+      if(aligned) {
+        // Snap to nearest aligned position (nearest multiple of segment angle)
+        const segAngle = Math.PI * 2 / 8;
+        const nearest = Math.round(r.group.rotation.z / segAngle) * segAngle;
+        r.group.rotation.z += (nearest - r.group.rotation.z) * 0.12; // firm snap
+      } else {
+        // Continuous spin — speed proportional to offset, slows as you approach
+        const spinSpeed = offNorm * offNorm * r.speed * r.dir * 0.04; // quadratic falloff
+        r.group.rotation.z += spinSpeed;
+      }
+      
+      // Glow segments when aligned
+      r.group.children.forEach(child => {
+        if(child.material && child.material.emissive) {
+          const targetEmissive = aligned ? 0.25 : (nearZone ? 0.08 : 0);
+          child.material.emissiveIntensity += (targetEmissive - child.material.emissiveIntensity) * 0.05;
+        }
+      });
     });
   }
   
