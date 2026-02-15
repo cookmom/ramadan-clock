@@ -238,6 +238,12 @@ const ctx=cv.getContext('2d');
 let dpr=window.devicePixelRatio||1;
 let W,H,cx,cy,R;
 
+// ── Lume Bloom (offscreen canvas for glow effect) ──
+const bloomCv=document.createElement('canvas');
+const bloomCtx=bloomCv.getContext('2d');
+const BLOOM_SCALE=0.25; // render at 1/4 res for cheap blur
+const BLOOM_PASSES=3; // number of blur passes
+
 // ── Dial Color Systems ──
 const DIALS={
   tennis:  {bg:'#2e8b57',lume:'#c8e860',lumeDim:'#6aaa50',hand:'#f4f0e0',handStroke:'#ffffff',shadow:'rgba(0,40,20,.25)',minNum:'rgba(200,232,96,.35)',text:'rgba(255,255,240,.7)',textDim:'rgba(255,255,240,.35)',textMuted:'rgba(255,255,240,.25)',accent:'#f0e060',pillBg:'rgba(0,0,0,.08)',pillBorder:'rgba(255,255,240,.08)',cardBg:'rgba(20,60,35,.95)',cardBorder:'rgba(255,255,240,.1)'},
@@ -560,6 +566,7 @@ function resize(){
   dpr=window.devicePixelRatio||1;
   W=window.innerWidth*dpr;H=window.innerHeight*dpr;
   cv.width=W;cv.height=H;
+  bloomCv.width=Math.ceil(W*BLOOM_SCALE);bloomCv.height=Math.ceil(H*BLOOM_SCALE);
   cv.style.width=window.innerWidth+'px';
   cv.style.height=window.innerHeight+'px';
   cx=W/2;cy=H/2;
@@ -1463,7 +1470,7 @@ function releaseWakeLock(){
 }
 
 // ── Adhan Debug Log ──
-const _ADHAN_VER='v69-diallume';
+const _ADHAN_VER='v70-bloom';
 const _adhanLog=[];
 // Auto-show debug panel on load
 requestAnimationFrame(()=>{adhanDbg('ready');});
@@ -2167,6 +2174,26 @@ function draw(){
   drawIndices(c);
   drawNumerals(c);
   drawHands(c);
+
+  // Lume bloom — only in night/transition mode
+  if(modeBlend>0.05){
+    const bw=bloomCv.width,bh=bloomCv.height;
+    bloomCtx.clearRect(0,0,bw,bh);
+    // Downscale main canvas to bloom canvas
+    bloomCtx.drawImage(cv,0,0,bw,bh);
+    // Multi-pass box blur via CanvasRenderingContext2D.filter
+    bloomCtx.filter='blur('+Math.ceil(R*BLOOM_SCALE*0.06)+'px)';
+    for(let i=0;i<BLOOM_PASSES;i++){
+      bloomCtx.drawImage(bloomCv,0,0);
+    }
+    bloomCtx.filter='none';
+    // Composite bloom back additively (screen-like via lighter)
+    ctx.save();
+    ctx.globalCompositeOperation='lighter';
+    ctx.globalAlpha=modeBlend*0.35; // fade in with night mode
+    ctx.drawImage(bloomCv,0,0,bw,bh,0,0,W,H);
+    ctx.restore();
+  }
 
   ctx.restore();
   requestAnimationFrame(draw);
