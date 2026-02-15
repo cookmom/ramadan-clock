@@ -75,18 +75,18 @@ document.body.appendChild(renderer.domElement);
 const scene = new THREE.Scene();
 
 // ── Perspective camera (slight top-down angle for depth)
-const cam = new THREE.PerspectiveCamera(18, W/H, 1, 2000);
-cam.position.set(0, -30, 550);
+const cam = new THREE.PerspectiveCamera(24, W/H, 1, 2000);
+cam.position.set(0, -20, 450);
 cam.lookAt(0, 0, 0);
 
 // ══════════════════════════════════════════
 // LIGHTING
 // ══════════════════════════════════════════
-const ambLight = new THREE.AmbientLight(0xffffff, 0.6);
+const ambLight = new THREE.AmbientLight(0xffffff, 1.0);
 scene.add(ambLight);
 
-const dirLight = new THREE.DirectionalLight(0xffffff, 1.8);
-dirLight.position.set(-80, 120, 200);
+const dirLight = new THREE.DirectionalLight(0xffffff, 2.2);
+dirLight.position.set(-60, 100, 250);
 dirLight.castShadow = true;
 dirLight.shadow.mapSize.set(1024, 1024);
 dirLight.shadow.radius = 6;
@@ -96,8 +96,8 @@ sc.near = 1; sc.far = 600; sc.left = sc.bottom = -200; sc.right = sc.top = 200;
 scene.add(dirLight);
 
 // Subtle fill from bottom-right
-const fillLight = new THREE.DirectionalLight(0xffffff, 0.3);
-fillLight.position.set(60, -80, 150);
+const fillLight = new THREE.DirectionalLight(0xffffff, 0.6);
+fillLight.position.set(60, -60, 200);
 scene.add(fillLight);
 
 // ══════════════════════════════════════════
@@ -107,7 +107,7 @@ function dialMat(color) {
   return new THREE.MeshStandardMaterial({ color, roughness: 0.85, metalness: 0.0 });
 }
 function metalMat(color) {
-  return new THREE.MeshStandardMaterial({ color, roughness: 0.25, metalness: 0.9 });
+  return new THREE.MeshStandardMaterial({ color, roughness: 0.35, metalness: 0.6 });
 }
 function lumeMat(color) {
   return new THREE.MeshStandardMaterial({ color, roughness: 0.5, metalness: 0.1, emissive: color, emissiveIntensity: 0 });
@@ -187,9 +187,9 @@ scene.add(clockGroup);
 let dialMesh;
 function buildDial() {
   if(dialMesh) clockGroup.remove(dialMesh);
-  const geo = new THREE.CylinderGeometry(R*1.05, R*1.05, 3, 128);
+  // Large flat plane instead of cylinder — no visible edge
+  const geo = new THREE.PlaneGeometry(800, 800);
   dialMesh = new THREE.Mesh(geo, dialMat(DIALS[currentDial].bg));
-  dialMesh.rotation.x = Math.PI/2;
   dialMesh.position.z = -2;
   dialMesh.receiveShadow = true;
   clockGroup.add(dialMesh);
