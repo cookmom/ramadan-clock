@@ -185,7 +185,7 @@ function nomosLume(len, baseW, depth) {
   s.lineTo(hw, endY);
   s.lineTo(hw, startY);
   s.closePath();
-  return new THREE.ExtrudeGeometry(s, { depth: depth + 0.5, bevelEnabled: false });
+  return new THREE.ExtrudeGeometry(s, { depth: depth * 0.5, bevelEnabled: false });
 }
 
 function makeTextSprite(text, font, size, color) {
@@ -397,7 +397,7 @@ function buildHands() {
   const hlGeo = nomosLume(hL, hW, hD);
   hLumeMat_ = lumeMat(c.lume);
   const hlMesh = new THREE.Mesh(hlGeo, hLumeMat_);
-  hlMesh.position.z = -0.2;
+  hlMesh.position.z = 0.5;
   hourGroup.add(hlMesh);
   hourGroup.position.z = 5;
   clockGroup.add(hourGroup);
@@ -413,7 +413,7 @@ function buildHands() {
   const mlGeo = nomosLume(mL, mW, mD);
   mLumeMat_ = lumeMat(c.lume);
   const mlMesh = new THREE.Mesh(mlGeo, mLumeMat_);
-  mlMesh.position.z = -0.2;
+  mlMesh.position.z = 0.5;
   minGroup.add(mlMesh);
   minGroup.position.z = 7;
   clockGroup.add(minGroup);
