@@ -109,7 +109,7 @@ rectLight.position.set(0, 0, 300);
 rectLight.lookAt(0, 0, 0);
 scene.add(rectLight);
 
-const dirLight = new THREE.DirectionalLight(0xfff5e8, 1.1);
+const dirLight = new THREE.DirectionalLight(0xfff5e8, 1.2);
 dirLight.position.set(-40, 200, 200);
 dirLight.castShadow = true;
 dirLight.shadow.mapSize.set(2048, 2048);
@@ -481,8 +481,8 @@ function buildQibla() {
   const gaugeR = R*0.38 - 1;
   const gaugeGeo = new THREE.CircleGeometry(gaugeR, 64);
   const gaugeMat = new THREE.MeshPhysicalMaterial({ 
-    color: 0xaab0b8, roughness: 0.3, metalness: 0.7, 
-    clearcoat: 0.5, clearcoatRoughness: 0.2, reflectivity: 0.6
+    color: 0xb8b8b4, roughness: 0.35, metalness: 0.6, 
+    clearcoat: 0.4, clearcoatRoughness: 0.2, reflectivity: 0.5
   });
   const gaugeMesh = new THREE.Mesh(gaugeGeo, gaugeMat);
   gaugeMesh.position.y = -R*0.5;
