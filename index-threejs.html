@@ -330,47 +330,39 @@ bloomGroup.add(bloomBgMesh);
 let dialFaceMesh = null;
 let dialFaceTexture = null;
 
-function createDialFaceTexture(bgColor) {
-  const size = 1024;
+function createStippleTexture() {
+  // Full-screen stipple overlay — no circle mask, no color (just noise)
+  const size = 512;
   const cv = document.createElement('canvas');
   cv.width = size; cv.height = size;
   const ctx = cv.getContext('2d');
   
-  // Fill with dial bg color
-  ctx.fillStyle = bgColor;
-  ctx.fillRect(0, 0, size, size);
+  // Transparent base
+  ctx.clearRect(0, 0, size, size);
   
-  // Subtle stipple noise (like canvas version)
-  ctx.globalAlpha = 0.012;
-  for (let i = 0; i < 2000; i++) {
+  // Subtle stipple noise dots
+  for (let i = 0; i < 3000; i++) {
     const x = Math.random() * size, y = Math.random() * size;
-    ctx.fillStyle = Math.random() > 0.5 ? '#fff' : '#000';
+    ctx.fillStyle = Math.random() > 0.5 ? 'rgba(255,255,255,0.015)' : 'rgba(0,0,0,0.015)';
     ctx.fillRect(x, y, 1, 1);
   }
-  ctx.globalAlpha = 1;
   
-  // Mask to circle
-  const out = document.createElement('canvas');
-  out.width = size; out.height = size;
-  const octx = out.getContext('2d');
-  octx.beginPath();
-  octx.arc(size/2, size/2, size/2, 0, Math.PI * 2);
-  octx.clip();
-  octx.drawImage(cv, 0, 0);
-  
-  const tex = new THREE.CanvasTexture(out);
+  const tex = new THREE.CanvasTexture(cv);
   tex.minFilter = THREE.LinearFilter;
   tex.magFilter = THREE.LinearFilter;
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.RepeatWrapping;
   return tex;
 }
 
-function buildDialFace(bgColor) {
+function buildDialFace() {
   if (dialFaceMesh) faceGroup.remove(dialFaceMesh);
-  dialFaceTexture = createDialFaceTexture(bgColor);
-  const geo = new THREE.PlaneGeometry(R * 2, R * 2);
-  const mat = new THREE.MeshBasicMaterial({ map: dialFaceTexture, transparent: true });
+  // Stipple overlay covers full viewport — transparent with noise dots
+  dialFaceTexture = createStippleTexture();
+  const geo = new THREE.PlaneGeometry(W * 2, H * 2);
+  const mat = new THREE.MeshBasicMaterial({ map: dialFaceTexture, transparent: true, depthTest: false });
   dialFaceMesh = new THREE.Mesh(geo, mat);
-  dialFaceMesh.position.z = -1; // just above background
+  dialFaceMesh.position.z = -1;
   faceGroup.add(dialFaceMesh);
 }
 
@@ -411,8 +403,8 @@ function buildClock() {
   
   const c = getColors();
   
-  // Dial face — flat textured circle
-  buildDialFace(c.bg);
+  // Stipple texture overlay (flat, full-screen noise — no circle edge)
+  buildDialFace();
   
   // Hour indices (pill shapes with lume)
   for (let i = 0; i < 60; i++) {
@@ -696,12 +688,7 @@ function updateColors() {
   // Background
   bgMat.color = hexToVec3(c.bg);
   
-  // Dial face texture (regenerate on dial change for stipple + color match)
-  if (dialFaceMesh) {
-    dialFaceTexture = createDialFaceTexture(c.bg);
-    dialFaceMesh.material.map = dialFaceTexture;
-    dialFaceMesh.material.needsUpdate = true;
-  }
+  // (stipple texture is color-independent, no regeneration needed)
   
   // Hour markers
   hourMarkers.forEach(m => m.material.color = hexToVec3(c.hand));
