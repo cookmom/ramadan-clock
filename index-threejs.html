@@ -1138,7 +1138,7 @@ function buildStars(){
   moonGlowMesh.position.z = -0.5;
   moonGroup.add(moonGlowMesh);
   
-  moonGroup.position.set(70, -100, -25);
+  moonGroup.position.set(0, -100, -25);
   moonGroup.visible = false;
   scene.add(moonGroup);
 }
@@ -1546,8 +1546,8 @@ function animate(){
     moonGroup.visible = modeBlend > 0.1;
     
     // Rise from below-right to upper-right
-    const startY = -100, endY = 75;
-    const startX = 70, endX = 60;
+    const startY = -100, endY = 105;
+    const startX = 0, endX = 0;
     // Ease-out cubic for natural rise
     const eased = 1 - Math.pow(1 - moonBlend, 3);
     moonGroup.position.y = startY + (endY - startY) * eased;
