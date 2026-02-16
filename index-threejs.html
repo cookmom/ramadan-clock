@@ -198,19 +198,21 @@ scene.add(subSpot.target);
 function dialMat(color) {
   const cd = currentDial;
   const special = {
-    kawthar: { roughness:0.6, metalness:0.15, sheen:0.8, sheenColor:0xd4909a, sheenRoughness:0.3, clearcoat:0.6, clearcoatRoughness:0.3 }, // rose gold sheen — glazed candy clearcoat
-    qamar:   { roughness:0.35, metalness:0.4, sheen:0, sheenColor:0x000000, sheenRoughness:0.8, clearcoat:0.2, clearcoatRoughness:0.2 }, // silver — more metallic read
-    rainbow: { roughness:1.0, metalness:0.0, sheen:0, sheenColor:0x000000, sheenRoughness:0.8, clearcoat:0, clearcoatRoughness:0 }, // flat black
+    kawthar: { roughness:0.6, metalness:0.15, sheen:0.8, sheenColor:0xd4909a, sheenRoughness:0.3, clearcoat:0.6, clearcoatRoughness:0.3 },
+    qamar:   { roughness:0.35, metalness:0.4, sheen:0, sheenColor:0x000000, sheenRoughness:0.8, clearcoat:0.2, clearcoatRoughness:0.2 },
   };
-  const s = special[cd] || { roughness:1.0, metalness:0.0, sheen:0, sheenColor:0x000000, sheenRoughness:0.8, clearcoat:0, clearcoatRoughness:0 };
-  const isFlat = !special[cd]; // non-special dials get emissive fill for flat look
+  const s = special[cd];
+  if(!s) {
+    // Flat dials: MeshBasicMaterial — unlit, pure color, no washout
+    return new THREE.MeshBasicMaterial({ color });
+  }
+  // Special dials (kawthar=sheen, qamar=metallic): PBR with controlled IBL
   const m = new THREE.MeshPhysicalMaterial({
     color, roughness:s.roughness, metalness:s.metalness,
     sheen:s.sheen, sheenColor:new THREE.Color(s.sheenColor), sheenRoughness:s.sheenRoughness,
     clearcoat:s.clearcoat, clearcoatRoughness:s.clearcoatRoughness,
-    emissive: 0x000000, emissiveIntensity: 0
   });
-  m.envMapIntensity = s.metalness > 0.1 ? 0.08 : 0; // flat dials: ZERO IBL
+  m.envMapIntensity = 0.06;
   return m;
 }
 function metalMat(color) {
@@ -390,7 +392,7 @@ function buildDial() {
   // Lower disc — solid, darker, recessed
   const lowerGeo = new THREE.CylinderGeometry(caseR, caseR, DIAL_THICKNESS, 128);
   const lowerColor = new THREE.Color(DIALS[currentDial].bg).multiplyScalar(0.75);
-  const lowerMat = new THREE.MeshStandardMaterial({color:lowerColor, roughness:0.9, metalness:0}); lowerMat.envMapIntensity = 0; // recessed dial — barely there
+  const lowerMat = new THREE.MeshBasicMaterial({color:lowerColor}); // recessed dial — barely there
   dialLowerMesh = new THREE.Mesh(lowerGeo, lowerMat);
   dialLowerMesh.rotation.x = Math.PI/2;
   dialLowerMesh.position.z = -(DIAL_THICKNESS/2 + DIAL_GAP + DIAL_THICKNESS);
