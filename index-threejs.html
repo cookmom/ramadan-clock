@@ -246,9 +246,9 @@ function dialMat(color) {
   const special = {
     kawthar: { roughness:0.6, metalness:0.15, sheen:0.8, sheenColor:0xd4909a, sheenRoughness:0.3, clearcoat:0.6, clearcoatRoughness:0.3 }, // rose gold sheen — glazed candy clearcoat
     qamar:   { roughness:0.35, metalness:0.4, sheen:0, sheenColor:0x000000, sheenRoughness:0.8, clearcoat:0.2, clearcoatRoughness:0.2 }, // silver — more metallic read
-    rainbow: { roughness:0.85, metalness:0.0, sheen:0, sheenColor:0x000000, sheenRoughness:0.8, clearcoat:0, clearcoatRoughness:0 }, // flat black
+    rainbow: { roughness:1.0, metalness:0.0, sheen:0, sheenColor:0x000000, sheenRoughness:0.8, clearcoat:0, clearcoatRoughness:0 }, // flat black
   };
-  const s = special[cd] || { roughness:0.85, metalness:0.0, sheen:0, sheenColor:0x000000, sheenRoughness:0.8, clearcoat:0, clearcoatRoughness:0 };
+  const s = special[cd] || { roughness:1.0, metalness:0.0, sheen:0, sheenColor:0x000000, sheenRoughness:0.8, clearcoat:0, clearcoatRoughness:0 };
   const isFlat = !special[cd]; // non-special dials get emissive fill for flat look
   const m = new THREE.MeshPhysicalMaterial({
     color, roughness:s.roughness, metalness:s.metalness,
@@ -951,8 +951,8 @@ function buildQibla() {
   const innerR = gaugeR * 0.28;
   const innerMat = new THREE.MeshPhysicalMaterial({
     color: new THREE.Color(d.bg).multiplyScalar(0.95),
-    roughness: 0.35, metalness: 0.35,
-    clearcoat: 0.4, envMapIntensity: 0.3
+    roughness: 0.2, metalness: 0.35,
+    clearcoat: 0.5, envMapIntensity: 0.4
   });
   const innerDisc = new THREE.Mesh(new THREE.CircleGeometry(innerR, 48), innerMat);
   qiblaInnerRotor.add(innerDisc);
