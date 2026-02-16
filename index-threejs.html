@@ -158,8 +158,8 @@ let studioEnvMap;
   const envRT = pmrem.fromEquirectangular(hdrTex);
   studioEnvMap = envRT.texture;
   scene.environment = studioEnvMap;
-  scene.environmentIntensity = 0.15; // low global IBL — prevents dial washout
-  scene.environmentRotation = new THREE.Euler(0, 0, 0); // animated with phone tilt
+  scene.environmentIntensity = 0.25; // moderate — dial is BasicMaterial (unaffected), only PBR elements respond
+  scene.environmentRotation = new THREE.Euler(0.1, 0.3, 0); // start offset — softbox pre-positioned for hand reflections at rest
   hdrTex.dispose();
   pmrem.dispose();
 }
@@ -278,35 +278,28 @@ function dialMat(color) {
     qamar:   { roughness:0.35, metalness:0.4, sheen:0, sheenColor:0x000000, sheenRoughness:0.8, clearcoat:0.2, clearcoatRoughness:0.2 },
   };
   const s = special[cd] || { roughness:0.95, metalness:0.0, sheen:0, sheenColor:0x000000, sheenRoughness:0.8, clearcoat:0, clearcoatRoughness:0 };
-  const isSpecial = s.metalness > 0.1;
-  const m = new THREE.MeshPhysicalMaterial({
-    color, roughness:s.roughness, metalness:s.metalness,
-    sheen:s.sheen, sheenColor:new THREE.Color(s.sheenColor), sheenRoughness:s.sheenRoughness,
-    clearcoat:s.clearcoat, clearcoatRoughness:s.clearcoatRoughness,
-    roughnessMap: isSpecial ? metalGrainTex : dialGrainTex, // NOMOS sandblasted grain
-    bumpMap: numeralBumpTex, bumpScale: 0.4, // applied numeral depth
-  });
-  m.envMapIntensity = isSpecial ? 0.5 : 0.15;
-  return m;
+  // Dial = MeshBasicMaterial: unlit, zero light interaction.
+  // All light play happens on hands, markers, glass, subdial — not the dial face.
+  return new THREE.MeshBasicMaterial({ color });
 }
 function metalMat(color) {
   const precious = ['kawthar','dhuha','qamar','rainbow'].includes(currentDial);
   const m = new THREE.MeshPhysicalMaterial({
     color,
-    roughness: precious ? 0.1 : 0.15,
+    roughness: precious ? 0.05 : 0.08, // near-mirror polish — catches HDRI as bright streaks
     metalness: precious ? 0.8 : 0.6,
     clearcoat: 1.0,
     clearcoatRoughness: 0.05,
     reflectivity: precious ? 1.0 : 0.9
   });
-  m.envMapIntensity = precious ? 4.0 : 3.0; // high to compensate for scene.environmentIntensity=0.15 — hands are the hero reflection surface
+  m.envMapIntensity = precious ? 6.0 : 5.0; // HERO — hands must visibly catch and release light as you tilt
   return m;
 }
 function lumeMat(color) {
   const m = new THREE.MeshStandardMaterial({ color, roughness: 0.5, metalness: 0.0, emissive: color, emissiveIntensity: 0 }); m.envMapIntensity = 0; return m; // lume = paint, no reflections
 }
 function secMat(color) {
-  const m = new THREE.MeshStandardMaterial({ color, roughness: 0.25, metalness: 0.35, emissive: color, emissiveIntensity: 0 }); m.envMapIntensity = 1.5; return m; // second hand catches HDRI
+  const m = new THREE.MeshStandardMaterial({ color, roughness: 0.1, metalness: 0.4, emissive: color, emissiveIntensity: 0 }); m.envMapIntensity = 3.0; return m; // second hand — glossy lacquer finish
 }
 
 // ══════════════════════════════════════════
@@ -442,8 +435,22 @@ function onG(e){
   if(e.gamma===null)return;
   _gyroDebugCount++;
   if(_gyroDebugCount <= 3) console.log('[gyro] event:', e.gamma?.toFixed(1), e.beta?.toFixed(1));
-  tgx=Math.max(-1,Math.min(1,(e.gamma||0)/25));
-  tgy=Math.max(-1,Math.min(1,((e.beta||0)-45)/25));
+  // Auto-calibrate: first few readings establish the user's natural hold angle
+  if(!window._gyroCal) { window._gyroCal = { samples:[], done:false }; }
+  if(!window._gyroCal.done) {
+    window._gyroCal.samples.push({ g: e.gamma, b: e.beta });
+    if(window._gyroCal.samples.length >= 15) {
+      const avg = window._gyroCal.samples.reduce((a,s) => ({ g:a.g+s.g, b:a.b+s.b }), {g:0,b:0});
+      window._gyroCal.restGamma = avg.g / window._gyroCal.samples.length;
+      window._gyroCal.restBeta = avg.b / window._gyroCal.samples.length;
+      window._gyroCal.done = true;
+      console.log('[gyro] Calibrated rest position — gamma:', window._gyroCal.restGamma.toFixed(1), 'beta:', window._gyroCal.restBeta.toFixed(1));
+    }
+    return; // don't move until calibrated
+  }
+  const cal = window._gyroCal;
+  tgx=Math.max(-1,Math.min(1,((e.gamma||0) - cal.restGamma)/25));
+  tgy=Math.max(-1,Math.min(1,((e.beta||0) - cal.restBeta)/25));
   // Compass heading for qibla
   if(e.webkitCompassHeading !== undefined) {
     targetCompassHeading = e.webkitCompassHeading;
@@ -462,7 +469,7 @@ initGyro();
 // Background surround plane — flush with dial face, hole cut for gap
 const CLOCK_SCALE = EMBED ? 0.65 : 0.50;
 const bgCutoutR = R * 1.12 * CLOCK_SCALE; // flush with dial edge, no gap
-const bgPlaneMat = new THREE.MeshPhysicalMaterial({ color: 0x1a1a22, roughness: 1.0, metalness: 0, envMapIntensity: 0.1 }); // subtle IBL response
+const bgPlaneMat = new THREE.MeshBasicMaterial({ color: 0x1a1a22 }); // unlit — no light interaction
 const bgShape = new THREE.Shape();
 bgShape.moveTo(-1000, -1000); bgShape.lineTo(1000, -1000); bgShape.lineTo(1000, 1000); bgShape.lineTo(-1000, 1000); bgShape.closePath();
 const bgHole = new THREE.Path();
@@ -494,7 +501,7 @@ function buildDial() {
   // Lower disc — solid, darker, recessed
   const lowerGeo = new THREE.CylinderGeometry(caseR, caseR, DIAL_THICKNESS, 128);
   const lowerColor = new THREE.Color(DIALS[currentDial].bg).multiplyScalar(0.75);
-  const lowerMat = new THREE.MeshStandardMaterial({color:lowerColor, roughness:0.95, metalness:0}); lowerMat.envMapIntensity = 0.05; // recessed dial — barely there
+  const lowerMat = new THREE.MeshBasicMaterial({color:lowerColor}); // unlit // recessed dial — barely there
   dialLowerMesh = new THREE.Mesh(lowerGeo, lowerMat);
   dialLowerMesh.rotation.x = Math.PI/2;
   dialLowerMesh.position.z = -(DIAL_THICKNESS/2 + DIAL_GAP + DIAL_THICKNESS);
@@ -566,9 +573,9 @@ function buildMarkers() {
         // Simple small dots — rose gold
         const geo = new THREE.CircleGeometry(0.6, 10);
         const mat = new THREE.MeshStandardMaterial({
-          color: c.lume, roughness: 0.3, metalness: 0.3,
+          color: c.lume, roughness: 0.12, metalness: 0.5,
           emissive: c.lume, emissiveIntensity: 0
-        }); mat.envMapIntensity = 0.1; // applied markers catch some light
+        }); mat.envMapIntensity = 3.0; // applied markers — polished metal, visible tilt response
         const mesh = new THREE.Mesh(geo, mat);
         const midR = R * 0.95;
         mesh.position.x = Math.cos(ang)*midR;
@@ -605,7 +612,7 @@ function buildMarkers() {
       {
         const tH=R*0.036, tW=0.675, depth=1.5;
         const geo = new THREE.BoxGeometry(tW, tH, depth);
-        const mat = new THREE.MeshStandardMaterial({color:c.lume, roughness:0.5, metalness:0.2}); mat.envMapIntensity = 0.08; // tick marks — subtle
+        const mat = new THREE.MeshStandardMaterial({color:c.lume, roughness:0.15, metalness:0.4}); mat.envMapIntensity = 2.5; // tick marks — polished, catch light
         const mesh = new THREE.Mesh(geo, mat);
         const midR = (R - R*0.04 - tH/2) * 1.03;
         mesh.position.x = Math.cos(ang)*midR;
@@ -673,7 +680,7 @@ function buildNumerals() {
     const tex = new THREE.CanvasTexture(cv);
     tex.minFilter = THREE.LinearFilter;
     const geo = new THREE.PlaneGeometry(tw, th);
-    const faceMat = new THREE.MeshPhysicalMaterial({map:tex, transparent:true, metalness:0.5, roughness:0.2, color:0xffffff, depthWrite:false, clearcoat:0.3, clearcoatRoughness:0.2, emissive: new THREE.Color(c.lume), emissiveIntensity: 0}); faceMat.envMapIntensity = 1.5; // applied numerals catch HDRI like polished metal
+    const faceMat = new THREE.MeshPhysicalMaterial({map:tex, transparent:true, metalness:0.6, roughness:0.1, color:0xffffff, depthWrite:false, clearcoat:0.4, clearcoatRoughness:0.15, emissive: new THREE.Color(c.lume), emissiveIntensity: 0}); faceMat.envMapIntensity = 4.0; // applied numerals — polished stamped metal
     const mesh = new THREE.Mesh(geo, faceMat);
     mesh.position.x = Math.cos(ang)*r;
     mesh.position.y = Math.sin(ang)*r;
@@ -1018,7 +1025,7 @@ function buildQibla() {
   const innerMat = new THREE.MeshPhysicalMaterial({
     color: new THREE.Color(d.bg).multiplyScalar(0.95),
     roughness: 0.15, metalness: 0.6,
-    clearcoat: 0.5, envMapIntensity: 2.0
+    clearcoat: 0.5, envMapIntensity: 4.0 // subdial — polished register, catches light
   });
   const innerDisc = new THREE.Mesh(new THREE.CircleGeometry(innerR, 48), innerMat);
   qiblaInnerRotor.add(innerDisc);
@@ -1076,7 +1083,7 @@ function buildQibla() {
     specularColor: new THREE.Color(0xffffff),
     attenuationDistance: 20,  // how far light travels before tinting
     attenuationColor: new THREE.Color(0xf8f8ff), // very slight cool tint (sapphire)
-    envMapIntensity: 3.0
+    envMapIntensity: 5.0 // glass dome — visible bright edge that shifts with tilt
   });
   const glassMesh = new THREE.Mesh(glassDome, glassMat);
   glassMesh.position.y = -R*0.5;
@@ -1697,7 +1704,7 @@ function animate(){
   counterSpec.intensity = 1.0 * (1 - modeBlend * 0.7);
   subSpot.intensity = 8 * (1 - modeBlend * 0.5);
   // Reduce env intensity at night so lume glows dominate
-  if(scene.environmentIntensity !== undefined) scene.environmentIntensity = 0.15 * (1 - modeBlend * 0.7);
+  if(scene.environmentIntensity !== undefined) scene.environmentIntensity = 0.25 * (1 - modeBlend * 0.7);
   renderer.toneMappingExposure = 1.0 - modeBlend * 0.35;
   
   // Vignette at night
@@ -1781,10 +1788,10 @@ function animate(){
   cam.position.y = -30 + -gy*20;
   cam.lookAt(0,0,0);
   
-  // HDRI rotation with tilt — softboxes sweep across hands
+  // HDRI rotation with tilt — softboxes sweep across hands from pleasing rest position
   if(scene.environmentRotation) {
-    scene.environmentRotation.y = gx * 0.6;  // wider sweep for more visible reflection movement
-    scene.environmentRotation.x = gy * 0.3;  // vertical too
+    scene.environmentRotation.y = 0.3 + gx * 0.6;  // base offset + tilt sweep
+    scene.environmentRotation.x = 0.1 + gy * 0.3;
   }
   // Spec point follows tilt — the main visible highlight on hands
   specPoint.position.x = 30 + gx * 120;  // wider travel
