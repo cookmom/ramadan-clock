@@ -225,11 +225,9 @@ function dialMat(color) {
     color, roughness:s.roughness, metalness:s.metalness,
     sheen:s.sheen, sheenColor:new THREE.Color(s.sheenColor), sheenRoughness:s.sheenRoughness,
     clearcoat:s.clearcoat, clearcoatRoughness:s.clearcoatRoughness,
-    emissive: isFlat ? color : 0x000000, emissiveIntensity: isFlat ? 0.15 : 0
+    emissive: 0x000000, emissiveIntensity: 0
   });
-  // Dial surfaces: very subtle env reflection — just enough to break flatness
-  // Metallic dials (qamar) get more, flat dials get a whisper
-  m.envMapIntensity = s.metalness > 0.1 ? 0.1 : 0; // flat dials: zero IBL, metallic dials: subtle
+  m.envMapIntensity = s.metalness > 0.1 ? 0.08 : 0; // flat dials: zero IBL
   return m;
 }
 function metalMat(color) {
