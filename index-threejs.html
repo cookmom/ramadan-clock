@@ -508,22 +508,11 @@ function buildDial() {
   dialLowerMesh.receiveShadow = true;
   clockGroup.add(dialLowerMesh);
   
-  // Upper disc — extruded with hole cut through at 6 o'clock
-  const dialShape = new THREE.Shape();
-  dialShape.absarc(0, 0, caseR, 0, Math.PI*2, false);
-  const holePath = new THREE.Path();
-  holePath.absarc(0, subY, cutoutR, 0, Math.PI*2, true);
-  dialShape.holes.push(holePath);
-  
-  const geo = new THREE.ExtrudeGeometry(dialShape, {
-    depth: DIAL_THICKNESS,
-    bevelEnabled: false,
-    curveSegments: 128
-  });
+  // Upper disc — FLAT circle (no hole, no extrusion)
+  // Subdial overlays on top. No cutout = no hand clipping.
+  const geo = new THREE.CircleGeometry(caseR, 128);
   dialMesh = new THREE.Mesh(geo, dialMat(DIALS[currentDial].bg));
-  dialMesh.position.z = -(DIAL_THICKNESS + DIAL_GAP);
-  dialMesh.receiveShadow = true;
-  dialMesh.castShadow = true;
+  dialMesh.position.z = 0; // flat at origin
   clockGroup.add(dialMesh);
 }
 
@@ -716,7 +705,7 @@ function buildHands() {
   const hlMesh = new THREE.Mesh(hlGeo, hLumeMat_);
   hlMesh.position.z = 3.5;
   hourGroup.add(hlMesh);
-  hourGroup.position.z = 5;
+  hourGroup.position.z = 15;
   clockGroup.add(hourGroup);
   
   // Minute — NOMOS Club Campus sword hand
@@ -732,7 +721,7 @@ function buildHands() {
   const mlMesh = new THREE.Mesh(mlGeo, mLumeMat_);
   mlMesh.position.z = 4.5;
   minGroup.add(mlMesh);
-  minGroup.position.z = 7;
+  minGroup.position.z = 17;
   clockGroup.add(minGroup);
   
   // Second hand
@@ -751,7 +740,7 @@ function buildHands() {
   cwMesh.rotation.x = Math.PI/2;
   cwMesh.position.y = -sT*0.55;
   secGroup.add(cwMesh);
-  secGroup.position.z = 11;
+  secGroup.position.z = 20;
   clockGroup.add(secGroup);
   
   // Center cap (3D cylinder)
@@ -1066,30 +1055,39 @@ function buildQibla() {
   const glassDome = new THREE.SphereGeometry(
     glassR, 64, 32,
     0, Math.PI*2,
-    0, Math.PI*0.18   // slightly taller dome (~32° cap) — more glass volume for visible refraction
+    0, Math.PI*0.22   // taller dome (~40° cap) — more glass volume = more liquid distortion visible
   );
+  // ── Apple Liquid Glass effect ──
+  // Key insight: liquid glass = slightly frosted transmission + high thickness +
+  // strong dispersion + attenuation. NOT perfectly clear — the slight roughness
+  // creates that milky refractive swim as you tilt.
+  // Reference: ektogamat/apple-liquid-glass (MIT)
   const glassMat = new THREE.MeshPhysicalMaterial({
     color: 0xffffff,
-    roughness: 0.0,       // perfectly polished sapphire
+    roughness: 0.06,      // slight frost — the "liquid" quality (not mirror-clear)
     metalness: 0.0,
-    transmission: 0.95,   // slightly less than perfect — shows refraction
-    thickness: 5.0,       // thicker = MORE refraction distortion visible
-    ior: 1.77,            // sapphire crystal IOR
-    dispersion: 0.2,      // chromatic aberration at edges
+    transmission: 0.97,   // near-perfect transmission
+    thickness: 8.0,       // HIGH — drives visible refraction distortion of elements below
+    ior: 1.45,            // lower than sapphire (1.77) — softer, more spread-out distortion
+    dispersion: 0.5,      // strong chromatic aberration at edges — rainbow shimmer
     clearcoat: 1.0,
-    clearcoatRoughness: 0.0,
-    transparent: false,   // let transmission handle transparency, not opacity
-    specularIntensity: 2.0,
+    clearcoatRoughness: 0.02,
+    transparent: false,   // transmission handles it
+    specularIntensity: 2.5,
     specularColor: new THREE.Color(0xffffff),
-    attenuationDistance: 12,  // shorter = more visible color absorption
-    attenuationColor: new THREE.Color(0xeef0ff), // cooler sapphire tint
-    envMapIntensity: 6.0 // glass — bright edge reflections that shift with tilt
+    attenuationDistance: 8,   // shorter = more visible color tint through glass
+    attenuationColor: new THREE.Color(0xe8ecff), // cool blue-white sapphire tint
+    envMapIntensity: 7.0,     // cranked — liquid glass catches environment hard
+    sheen: 0.3,               // subtle surface sheen for that frosted-liquid look
+    sheenRoughness: 0.2,
+    sheenColor: new THREE.Color(0xddeeff),
   });
   const glassMesh = new THREE.Mesh(glassDome, glassMat);
   glassMesh.position.y = -R*0.5;
   glassMesh.position.z = 3;  // above subdial elements, under hands
   glassMesh.rotation.x = 0;
-  glassMesh.renderOrder = 999; // render last for proper transparency
+  glassMesh.renderOrder = 1; // render early — hands must draw ON TOP of glass
+  glassMesh.material.depthWrite = false; // don't block hands in depth buffer
   clockGroup.add(glassMesh);
   bezelMeshes.push(glassMesh);
 }
@@ -1773,18 +1771,7 @@ function animate(){
   
   // Parallax + interactive spec light
   gx+=(tgx-gx)*0.08; gy+=(tgy-gy)*0.08;
-  // TEMP DEBUG — red dot shows gyro state (remove after testing)
-  if(!window._gyroDot){
-    const d=document.createElement('div');
-    d.id='gyroDot';
-    d.style.cssText='position:fixed;top:8px;left:8px;width:12px;height:12px;border-radius:50%;z-index:9999;pointer-events:none;transition:background .3s';
-    d.style.background='red'; // red = no gyro data
-    document.body.appendChild(d);
-    window._gyroDot=d;
-  }
-  if(Math.abs(tgx)>0.01||Math.abs(tgy)>0.01){
-    window._gyroDot.style.background='lime'; // green = receiving data
-  }
+  // gyro debug dot removed
   cam.position.x = gx*25;
   cam.position.y = -30 + -gy*20;
   cam.lookAt(0,0,0);
