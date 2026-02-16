@@ -299,7 +299,7 @@ function metalMat(color) {
     clearcoatRoughness: 0.05,
     reflectivity: precious ? 1.0 : 0.9
   });
-  m.envMapIntensity = precious ? 3.0 : 2.0; // high to compensate for scene.environmentIntensity=0.15
+  m.envMapIntensity = precious ? 4.0 : 3.0; // high to compensate for scene.environmentIntensity=0.15 — hands are the hero reflection surface
   return m;
 }
 function lumeMat(color) {
@@ -1777,23 +1777,23 @@ function animate(){
   if(Math.abs(tgx)>0.01||Math.abs(tgy)>0.01){
     window._gyroDot.style.background='lime'; // green = receiving data
   }
-  cam.position.x = gx*15;
-  cam.position.y = -30 + -gy*12;
+  cam.position.x = gx*25;
+  cam.position.y = -30 + -gy*20;
   cam.lookAt(0,0,0);
   
-  // HDRI rotation with tilt — softboxes sweep across hands (the key NOMOS interaction)
+  // HDRI rotation with tilt — softboxes sweep across hands
   if(scene.environmentRotation) {
-    scene.environmentRotation.y = gx * 0.25; // horizontal tilt rotates env
-    scene.environmentRotation.x = gy * 0.12; // vertical tilt tilts env subtly
+    scene.environmentRotation.y = gx * 0.6;  // wider sweep for more visible reflection movement
+    scene.environmentRotation.x = gy * 0.3;  // vertical too
   }
-  // Spec point follows tilt — accent highlight
-  specPoint.position.x = 30 + gx * 80;
-  specPoint.position.y = 60 + gy * 60;
+  // Spec point follows tilt — the main visible highlight on hands
+  specPoint.position.x = 30 + gx * 120;  // wider travel
+  specPoint.position.y = 60 + gy * 90;
   // Subdial spot follows tilt
-  subSpot.position.x = 10 + gx * 50;
-  subSpot.position.y = -R*0.5 + 30 + gy * 40;
-  // Counter spec — opposite dance
-  counterSpec.position.x = -40 - gx * 60;
+  subSpot.position.x = 10 + gx * 70;
+  subSpot.position.y = -R*0.5 + 30 + gy * 50;
+  // Counter spec — opposite dance for depth
+  counterSpec.position.x = -40 - gx * 90;
   counterSpec.position.y = -30 - gy * 50;
   
   updateHands();
