@@ -740,7 +740,7 @@ function buildHands() {
   cwMesh.rotation.x = Math.PI/2;
   cwMesh.position.y = -sT*0.55;
   secGroup.add(cwMesh);
-  secGroup.position.z = 20;
+  secGroup.position.z = 23;  // must clear minute hand (z=17 + depth 5 = z=22)
   clockGroup.add(secGroup);
   
   // Center cap (3D cylinder)
