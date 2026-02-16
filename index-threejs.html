@@ -111,7 +111,7 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 3));
 renderer.setSize(W, H);
 renderer.shadowMap.enabled = false;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 0.8;
+renderer.toneMappingExposure = 1.0;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 document.body.appendChild(renderer.domElement);
 
@@ -141,16 +141,14 @@ composer.addPass(bloomPass);
 // ══════════════════════════════════════════
 // LIGHTING
 // ══════════════════════════════════════════
-const ambLight = new THREE.AmbientLight(0xffffff, 0.15);
-scene.add(ambLight);
-
-// Softbox rect light — product-shot fill
+// ══════════════════════════════════════════
+// LIGHTING — Clean watch photography setup
+// HDRI provides ambient + reflections. Direct lights add controlled accents.
+// ══════════════════════════════════════════
 const { RectAreaLightUniformsLib } = await import('three/addons/lights/RectAreaLightUniformsLib.js');
 RectAreaLightUniformsLib.init();
 
-// ── Studio HDRI environment map ──
-// ── Studio HDRI for reflections only (not scene-wide IBL) ──
-// Poly Haven "studio_small_08" — applied selectively to reflective materials
+// ── Studio HDRI ──
 let studioEnvMap;
 {
   const { RGBELoader } = await import('three/addons/loaders/RGBELoader.js');
@@ -161,50 +159,35 @@ let studioEnvMap;
   });
   const envRT = pmrem.fromEquirectangular(hdrTex);
   studioEnvMap = envRT.texture;
-  scene.environment = studioEnvMap; // global IBL — control per-material via envMapIntensity
+  scene.environment = studioEnvMap;
   hdrTex.dispose();
   pmrem.dispose();
 }
 
-const rectLight = new THREE.RectAreaLight(0xffffff, 0, 447, 447);
-rectLight.position.set(0, 0, 300);
-rectLight.lookAt(0, 0, 0);
-scene.add(rectLight);
+// Ambient — low fill, HDRI does most of the ambient work
+const ambLight = new THREE.AmbientLight(0xffffff, 0.08);
+scene.add(ambLight);
 
-// Key light — large rect for soft wrap, no shadow artifacts
-const keyLight = new THREE.RectAreaLight(0xfff5e8, 3.5, 250, 250);
+// Key light — large soft rect, upper-left (warm)
+const keyLight = new THREE.RectAreaLight(0xfff5e8, 2.0, 250, 250);
 keyLight.position.set(-50, 140, 250);
 keyLight.lookAt(0, 0, 0);
 scene.add(keyLight);
 
-// Subtle fill from bottom-right
-// Cool fill rect from right — warm/cool split
-const coolFill = new THREE.RectAreaLight(0xc8d8f0, 1.2, 200, 200);
-coolFill.position.set(120, 40, 150);
-coolFill.lookAt(0, 0, 0);
-scene.add(coolFill);
-
-// Accent spot — subtle warm pool on lower dial
-const spotLight = new THREE.SpotLight(0xffeedd, 1.5, 400, Math.PI*0.12, 0.7, 1.5);
-spotLight.position.set(20, -40, 250);
-spotLight.target.position.set(0, -R*0.3, 0);
-scene.add(spotLight);
-scene.add(spotLight.target);
-
-// Spec point — tight highlight on polished surfaces (tracks with tilt)
-const specPoint = new THREE.PointLight(0xffffff, 20, 300, 2);
+// Spec point — tight highlight that tracks with tilt
+const specPoint = new THREE.PointLight(0xffffff, 8, 300, 2);
 specPoint.position.set(30, 60, 180);
 scene.add(specPoint);
 
-// Soft counter-highlight — moves opposite to spec, wider wash
-const counterSpec = new THREE.PointLight(0xfff0e0, 6, 400, 2);
+// Counter spec — opposite side, softer
+const counterSpec = new THREE.PointLight(0xfff0e0, 3, 400, 2);
 counterSpec.position.set(-40, -30, 200);
 scene.add(counterSpec);
 
-// Focused subdial spotlight — tight cone for glass refraction
-const subSpot = new THREE.SpotLight(0xffffff, 30, 350, Math.PI/18, 0.6, 2);
+// Subdial spot — focused cone for glass refraction
+const subSpot = new THREE.SpotLight(0xffffff, 15, 350, Math.PI/18, 0.6, 2);
 subSpot.position.set(10, -R*0.5 + 30, 200);
-subSpot.target.position.set(0, -R*0.5, 0); // aimed at subdial center
+subSpot.target.position.set(0, -R*0.5, 0);
 scene.add(subSpot);
 scene.add(subSpot.target);
 
@@ -227,7 +210,7 @@ function dialMat(color) {
     clearcoat:s.clearcoat, clearcoatRoughness:s.clearcoatRoughness,
     emissive: 0x000000, emissiveIntensity: 0
   });
-  m.envMapIntensity = s.metalness > 0.1 ? 0.08 : 0; // flat dials: zero IBL
+  m.envMapIntensity = s.metalness > 0.1 ? 0.12 : 0.02; // flat dials: whisper of IBL for life
   return m;
 }
 function metalMat(color) {
@@ -1611,14 +1594,12 @@ function animate(){
   bloomPass.threshold = 0.85 - modeBlend * 0.25; // floor 0.6 — only hottest emissives bloom
   
   // Dim scene lights for night — let lume own the scene
-  ambLight.intensity = 0.15 * (1 - modeBlend * 0.85);
-  keyLight.intensity = 3.5 * (1 - modeBlend * 0.8);
-  coolFill.intensity = 1.2 * (1 - modeBlend * 0.9);
-  spotLight.intensity = 1.5 * (1 - modeBlend * 0.7);
-  specPoint.intensity = 20 * (1 - modeBlend * 0.6);
-  counterSpec.intensity = 6 * (1 - modeBlend * 0.7);
-  subSpot.intensity = 30 * (1 - modeBlend * 0.5);
-  renderer.toneMappingExposure = 0.8 - modeBlend * 0.3;
+  ambLight.intensity = 0.08 * (1 - modeBlend * 0.85);
+  keyLight.intensity = 2.0 * (1 - modeBlend * 0.85);
+  specPoint.intensity = 8 * (1 - modeBlend * 0.7);
+  counterSpec.intensity = 3 * (1 - modeBlend * 0.7);
+  subSpot.intensity = 15 * (1 - modeBlend * 0.5);
+  renderer.toneMappingExposure = 1.0 - modeBlend * 0.35;
   
   // Vignette at night
   vignetteEl.style.opacity = modeBlend * 0.8;
