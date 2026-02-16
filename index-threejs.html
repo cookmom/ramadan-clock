@@ -111,7 +111,7 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 3));
 renderer.setSize(W, H);
 renderer.shadowMap.enabled = false;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 0.5;
+renderer.toneMappingExposure = 1.2;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 document.body.appendChild(renderer.domElement);
 
@@ -141,7 +141,7 @@ composer.addPass(bloomPass);
 // ══════════════════════════════════════════
 // LIGHTING
 // ══════════════════════════════════════════
-const ambLight = new THREE.AmbientLight(0xffffff, 0.05); // HDRI provides ambient now
+const ambLight = new THREE.AmbientLight(0xffffff, 0.25); // direct ambient — HDRI is per-material only
 scene.add(ambLight);
 
 // Softbox rect light — product-shot fill
@@ -149,8 +149,9 @@ const { RectAreaLightUniformsLib } = await import('three/addons/lights/RectAreaL
 RectAreaLightUniformsLib.init();
 
 // ── Studio HDRI environment map ──
-// Poly Haven "studio_small_08" — controlled studio lighting, CC0
-// Real softboxes give metals and glass something convincing to reflect
+// ── Studio HDRI for reflections only (not scene-wide IBL) ──
+// Poly Haven "studio_small_08" — applied selectively to reflective materials
+let studioEnvMap;
 {
   const { RGBELoader } = await import('three/addons/loaders/RGBELoader.js');
   const pmrem = new THREE.PMREMGenerator(renderer);
@@ -159,7 +160,9 @@ RectAreaLightUniformsLib.init();
     new RGBELoader().load('studio.hdr', resolve, undefined, reject);
   });
   const envRT = pmrem.fromEquirectangular(hdrTex);
-  scene.environment = envRT.texture;
+  studioEnvMap = envRT.texture;
+  // NOT setting scene.environment — HDRI is too bright as global IBL
+  // Instead we assign envMap per-material on hands, subdial, glass
   hdrTex.dispose();
   pmrem.dispose();
 }
@@ -240,14 +243,15 @@ function metalMat(color) {
     clearcoatRoughness: 0.05,
     reflectivity: precious ? 1.0 : 0.9
   });
-  m.envMapIntensity = precious ? 0.3 : 0.2; // hands catch softbox reflections
+  m.envMapIntensity = precious ? 0.5 : 0.35; // hands are the heroes — real HDRI reflections
+  m.envMap = studioEnvMap;
   return m;
 }
 function lumeMat(color) {
-  const m = new THREE.MeshStandardMaterial({ color, roughness: 0.5, metalness: 0.0, emissive: color, emissiveIntensity: 0 }); m.envMapIntensity = 0.02; return m; // lume = paint, barely reflects
+  const m = new THREE.MeshStandardMaterial({ color, roughness: 0.5, metalness: 0.0, emissive: color, emissiveIntensity: 0 }); m.envMapIntensity = 0; return m; // lume = paint, no reflections
 }
 function secMat(color) {
-  const m = new THREE.MeshStandardMaterial({ color, roughness: 0.3, metalness: 0.3, emissive: color, emissiveIntensity: 0 }); m.envMapIntensity = 0.15; return m; // second hand catches a bit
+  const m = new THREE.MeshStandardMaterial({ color, roughness: 0.3, metalness: 0.3, emissive: color, emissiveIntensity: 0 }); m.envMapIntensity = 0.25; m.envMap = studioEnvMap; return m; // second hand catches HDRI
 }
 
 // ══════════════════════════════════════════
@@ -930,7 +934,7 @@ function buildQibla() {
   const innerMat = new THREE.MeshPhysicalMaterial({
     color: new THREE.Color(d.bg).multiplyScalar(0.95),
     roughness: 0.15, metalness: 0.6,
-    clearcoat: 0.5, envMapIntensity: 0.25
+    clearcoat: 0.5, envMapIntensity: 0.4, envMap: studioEnvMap
   });
   const innerDisc = new THREE.Mesh(new THREE.CircleGeometry(innerR, 48), innerMat);
   qiblaInnerRotor.add(innerDisc);
@@ -988,6 +992,7 @@ function buildQibla() {
     specularColor: new THREE.Color(0xffffff),
     attenuationDistance: 20,  // how far light travels before tinting
     attenuationColor: new THREE.Color(0xf8f8ff), // very slight cool tint (sapphire)
+    envMap: studioEnvMap, envMapIntensity: 1.0
   });
   const glassMesh = new THREE.Mesh(glassDome, glassMat);
   glassMesh.position.y = -R*0.5;
@@ -1610,14 +1615,14 @@ function animate(){
   bloomPass.threshold = 0.85 - modeBlend * 0.25; // floor 0.6 — only hottest emissives bloom
   
   // Dim scene lights for night — let lume own the scene
-  ambLight.intensity = 0.05 * (1 - modeBlend * 0.85);
+  ambLight.intensity = 0.25 * (1 - modeBlend * 0.85);
   keyLight.intensity = 3.5 * (1 - modeBlend * 0.8);
   coolFill.intensity = 1.2 * (1 - modeBlend * 0.9);
   spotLight.intensity = 1.5 * (1 - modeBlend * 0.7);
   specPoint.intensity = 20 * (1 - modeBlend * 0.6);
   counterSpec.intensity = 6 * (1 - modeBlend * 0.7);
   subSpot.intensity = 30 * (1 - modeBlend * 0.5);
-  renderer.toneMappingExposure = 0.5 - modeBlend * 0.2;
+  renderer.toneMappingExposure = 1.2 - modeBlend * 0.4;
   
   // Vignette at night
   vignetteEl.style.opacity = modeBlend * 0.8;
