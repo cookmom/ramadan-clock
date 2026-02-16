@@ -1082,9 +1082,9 @@ function buildFlap() {
 const STARS=[];
 {
   // Arc from left to right above the clock, bowing downward (sujud toward the dial)
-  const arcCenterY = R * 1.22;  // clearly above dial + bloom halo
-  const arcRadius = R * 0.8;    // spread of the arc
-  const arcDepth = R * 0.1;     // gentle sujud bow
+  const arcCenterY = R * 0.88;  // within viewport — nestled between 12 o'clock and screen edge
+  const arcRadius = R * 0.65;   // tighter arc
+  const arcDepth = R * 0.06;    // subtle sujud bow
   for(let i = 0; i < 11; i++) {
     const t = i / 10; // 0 to 1
     const ang = Math.PI * 0.15 + t * Math.PI * 0.7; // ~27° to ~153° — spread across top
