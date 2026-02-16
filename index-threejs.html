@@ -1090,7 +1090,7 @@ const STARS=[];
     const ang = Math.PI * 0.15 + t * Math.PI * 0.7; // ~27° to ~153° — spread across top
     const x = -Math.cos(ang) * arcRadius;
     const y = arcCenterY + Math.sin(ang) * arcDepth; // sujud: middle stars dip lower
-    const size = 0.8 + Math.sin(i * 1.7 + 0.5) * 0.3; // subtle size variation
+    const size = 1.4 + Math.sin(i * 1.7 + 0.5) * 0.4; // visible but delicate
     STARS.push({
       px: x, py: y,
       r: size,
@@ -1168,8 +1168,11 @@ function buildStars(){
   });
   
   // ── Hijri moon phase shadow ──
-  // Reuse the same phase from subdial
-  const phase = window._hijriMoonPhase || 0;
+  // Calculate independently — buildStars may run before buildQibla
+  const _ramStart = new Date(2026, 1, 17);
+  const _ramDays = 30;
+  const _dayOfR = Math.max(0, Math.min(_ramDays, Math.floor((new Date() - _ramStart) / 86400000) + 1));
+  const phase = _dayOfR / _ramDays; // 0→1 over the month
   // (already clipped to moon circle from outer save)
   mxN.fillStyle = 'rgba(5,5,10,0.92)'; // near-black shadow
   if(phase <= 0.5) {
@@ -1623,7 +1626,7 @@ function animate(){
   starMeshes.forEach((m,i)=>{
     const s=m.userData;if(!s)return;
     // Stagger: each star appears at a different modeBlend threshold
-    const starThreshold = 0.15 + (i / starMeshes.length) * 0.4; // 0.15 → 0.55
+    const starThreshold = 0.2 + (i / starMeshes.length) * 0.25; // 0.2 → 0.45 — all visible by modeBlend 0.6
     const starBlend = Math.max(0, Math.min(1, (modeBlend - starThreshold) / 0.15));
     const twinkle = (Math.sin(Date.now()*s.speed+s.offset)*0.3+0.7);
     m.material.opacity = starBlend * s.bright * twinkle;
