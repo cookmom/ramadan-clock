@@ -169,23 +169,23 @@ const ambLight = new THREE.AmbientLight(0xffffff, 0.08);
 scene.add(ambLight);
 
 // Key light — large soft rect, upper-left (warm)
-const keyLight = new THREE.RectAreaLight(0xfff5e8, 1.2, 200, 200);
-keyLight.position.set(-80, 160, 200); // more side/rim angle — less direct wash on dial face
+const keyLight = new THREE.RectAreaLight(0xfff5e8, 0.6, 200, 200);
+keyLight.position.set(-80, 160, 200); // rim angle
 keyLight.lookAt(0, 0, 0);
 scene.add(keyLight);
 
-// Spec point — tight highlight that tracks with tilt
-const specPoint = new THREE.PointLight(0xffffff, 8, 300, 2);
+// Spec point — gentle accent, HDRI does the real reflections
+const specPoint = new THREE.PointLight(0xffffff, 2, 300, 2);
 specPoint.position.set(30, 60, 180);
 scene.add(specPoint);
 
-// Counter spec — opposite side, softer
-const counterSpec = new THREE.PointLight(0xfff0e0, 3, 400, 2);
+// Counter spec — very subtle opposite warmth
+const counterSpec = new THREE.PointLight(0xfff0e0, 0.8, 400, 2);
 counterSpec.position.set(-40, -30, 200);
 scene.add(counterSpec);
 
 // Subdial spot — focused cone for glass refraction
-const subSpot = new THREE.SpotLight(0xffffff, 15, 350, Math.PI/18, 0.6, 2);
+const subSpot = new THREE.SpotLight(0xffffff, 5, 350, Math.PI/18, 0.6, 2);
 subSpot.position.set(10, -R*0.5 + 30, 200);
 subSpot.target.position.set(0, -R*0.5, 0);
 scene.add(subSpot);
@@ -223,7 +223,7 @@ function metalMat(color) {
     clearcoatRoughness: 0.05,
     reflectivity: precious ? 1.0 : 0.9
   });
-  m.envMapIntensity = precious ? 0.5 : 0.35; // hands catch HDRI but don't blow out
+  m.envMapIntensity = precious ? 0.7 : 0.5; // HDRI does the heavy lifting for hand reflections
   return m;
 }
 function lumeMat(color) {
@@ -1595,10 +1595,10 @@ function animate(){
   
   // Dim scene lights for night — let lume own the scene
   ambLight.intensity = 0.08 * (1 - modeBlend * 0.85);
-  keyLight.intensity = 1.2 * (1 - modeBlend * 0.85);
-  specPoint.intensity = 8 * (1 - modeBlend * 0.7);
-  counterSpec.intensity = 3 * (1 - modeBlend * 0.7);
-  subSpot.intensity = 15 * (1 - modeBlend * 0.5);
+  keyLight.intensity = 0.6 * (1 - modeBlend * 0.85);
+  specPoint.intensity = 2 * (1 - modeBlend * 0.7);
+  counterSpec.intensity = 0.8 * (1 - modeBlend * 0.7);
+  subSpot.intensity = 5 * (1 - modeBlend * 0.5);
   renderer.toneMappingExposure = 1.0 - modeBlend * 0.35;
   
   // Vignette at night
