@@ -740,20 +740,14 @@ function buildHands() {
   cwMesh.rotation.x = Math.PI/2;
   cwMesh.position.y = -sT*0.55;
   secGroup.add(cwMesh);
-  // Circular disc on top of second hand at pivot — visible cap that sits above all hands
-  const secCapGeo = new THREE.CylinderGeometry(R*0.025, R*0.025, 2, 32);
-  const secCapMesh = new THREE.Mesh(secCapGeo, secMat_);
-  secCapMesh.rotation.x = Math.PI/2;
-  secCapMesh.position.z = 1; // relative to secGroup, sits on top
-  secGroup.add(secCapMesh);
   secGroup.position.z = 23;  // must clear minute hand (z=17 + depth 5 = z=22)
   clockGroup.add(secGroup);
   
-  // Center cap (3D cylinder)
-  const capGeo = new THREE.CylinderGeometry(R*0.035, R*0.035, 8, 32);
+  // Center cap (3D cylinder) — must sit ON TOP of all hands including second hand
+  const capGeo = new THREE.CylinderGeometry(R*0.04, R*0.04, 8, 32);
   const capMesh = new THREE.Mesh(capGeo, metalMat(c.hand));
   capMesh.rotation.x = Math.PI/2;
-  capMesh.position.z = 13;
+  capMesh.position.z = 26;  // above second hand (z=23 + depth 2 = z=25)
   capMesh.castShadow = true;
   clockGroup.add(capMesh);
   markerMeshes.push(capMesh); // for cleanup
