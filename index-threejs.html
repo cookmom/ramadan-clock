@@ -798,11 +798,11 @@ function buildQibla() {
   const gaugeR = cutoutR - 1.5;
   const d = DIALS[currentDial];
   
-  // Base disc — slightly darker than dial, brushed metal with grain
+  // Base disc — subtle contrast from dial, polished metallic
   const baseMat = new THREE.MeshPhysicalMaterial({
-    color: new THREE.Color(d.bg).multiplyScalar(0.7),
-    roughness: 0.5, metalness: 0.4,
-    clearcoat: 0.2, envMapIntensity: 0.12,
+    color: new THREE.Color(d.bg).multiplyScalar(0.85),
+    roughness: 0.3, metalness: 0.5,
+    clearcoat: 0.4, envMapIntensity: 1.5,
     roughnessMap: metalGrainTex,
   });
   const baseDisc = new THREE.Mesh(new THREE.CircleGeometry(gaugeR, 64), baseMat);
@@ -905,9 +905,9 @@ function buildQibla() {
   // Rotor disc — slightly smaller, different tone
   const rotorR = gaugeR - 2;
   const rotorMat = new THREE.MeshPhysicalMaterial({
-    color: new THREE.Color(d.bg).multiplyScalar(0.85),
-    roughness: 0.45, metalness: 0.3,
-    clearcoat: 0.3, envMapIntensity: 0.15
+    color: new THREE.Color(d.bg).multiplyScalar(0.9),
+    roughness: 0.35, metalness: 0.4,
+    clearcoat: 0.4, envMapIntensity: 1.0
   });
   const rotorDisc = new THREE.Mesh(new THREE.CircleGeometry(rotorR, 64), rotorMat);
   qiblaRotor.add(rotorDisc);
@@ -986,14 +986,14 @@ function buildQibla() {
       // Offset color index per ring so alignment creates columns
       const colIdx = (s + ri * 0) % segCount; // same order — alignment = color match
       const fullColor = new THREE.Color(sorbet[colIdx]);
-      const dimColor = fullColor.clone().lerp(new THREE.Color(0x888888), 0.6); // desaturated
+      const dimColor = fullColor.clone().lerp(new THREE.Color(0x999999), 0.3); // lightly muted — keep color visible
       const segMat = new THREE.MeshPhysicalMaterial({
         color: dimColor,
         roughness: 0.25, metalness: 0.15,
-        clearcoat: 0.3,
+        clearcoat: 0.5,
         emissive: fullColor,
-        emissiveIntensity: 0,
-        envMapIntensity: 0.2
+        emissiveIntensity: 0.05,
+        envMapIntensity: 0.8
       });
       segMat.userData = { fullColor, dimColor };
       const segMesh = new THREE.Mesh(new THREE.ShapeGeometry(segShape), segMat);
@@ -1055,29 +1055,30 @@ function buildQibla() {
   const glassDome = new THREE.SphereGeometry(
     glassR, 64, 32,
     0, Math.PI*2,
-    0, Math.PI*0.22   // taller dome (~40° cap) — more glass volume = more liquid distortion visible
+    0, Math.PI*0.12   // subtle dome (~22° cap) — watch crystal, not fishbowl
   );
-  // ── Apple Liquid Glass effect ──
-  // Based on ektogamat/apple-liquid-glass (MIT) — the key is massive dispersion
-  // + full iridescence for that rainbow color-shifting surface sheen.
-  // Reference values: roughness 0.23, ior 1.8, thickness 2, dispersion 12,
-  // iridescence 1, iridescenceIOR 0.9, iridescenceThicknessRange [233, 434]
+  // ── Liquid Glass effect ──
+  // Two-layer approach: transmission for devices that support it,
+  // graceful fallback via low opacity + high env reflections.
+  // Based on ektogamat/apple-liquid-glass (MIT) recipe.
   const glassMat = new THREE.MeshPhysicalMaterial({
     color: 0xffffff,
-    roughness: 0.15,      // slightly frosted — the "liquid" quality
+    roughness: 0.12,
     metalness: 0.0,
-    transmission: 1.0,    // fully transparent via transmission (not opacity)
-    thickness: 3.0,       // moderate — enough distortion without obliterating subdial
-    ior: 1.8,             // from ektogamat — slightly higher than glass
-    dispersion: 8,        // MASSIVE chromatic rainbow fire (ektogamat uses 12, we dial back slightly)
-    clearcoat: 0.2,
-    clearcoatRoughness: 0.1,
-    transparent: false,
-    reflectivity: 0.4,
-    iridescence: 1.0,             // full thin-film color shifting
-    iridescenceIOR: 0.9,          // from ektogamat
-    iridescenceThicknessRange: [233, 434],  // nm range for color variation
-    envMapIntensity: 2.0,         // catches HDRI but doesn't overpower
+    transmission: 0.95,    // near-full transmission
+    thickness: 1.5,        // subtle refraction — don't obliterate subdial readability
+    ior: 1.5,              // standard glass — more predictable across devices than 1.8
+    dispersion: 3,         // moderate chromatic shimmer (not as aggressive as ektogamat's 12)
+    clearcoat: 1.0,
+    clearcoatRoughness: 0.05,
+    transparent: true,     // fallback: if transmission fails, opacity kicks in
+    opacity: 0.15,         // very subtle — only visible if transmission doesn't work
+    iridescence: 0.6,      // partial thin-film — subtle rainbow, not overpowering
+    iridescenceIOR: 1.3,
+    iridescenceThicknessRange: [200, 400],
+    envMapIntensity: 3.0,
+    specularIntensity: 1.5,
+    specularColor: new THREE.Color(0xffffff),
   });
   const glassMesh = new THREE.Mesh(glassDome, glassMat);
   glassMesh.position.y = -R*0.5;
