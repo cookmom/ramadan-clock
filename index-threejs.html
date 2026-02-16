@@ -1090,7 +1090,7 @@ const STARS=[];
     const ang = Math.PI * 0.15 + t * Math.PI * 0.7; // ~27° to ~153° — spread across top
     const x = -Math.cos(ang) * arcRadius;
     const y = arcCenterY + Math.sin(ang) * arcDepth; // sujud: middle stars dip lower
-    const size = 1.4 + Math.sin(i * 1.7 + 0.5) * 0.4; // visible but delicate
+    const size = 0.9 + Math.sin(i * 1.7 + 0.5) * 0.35; // small and delicate — like real stars
     STARS.push({
       px: x, py: y,
       r: size,
