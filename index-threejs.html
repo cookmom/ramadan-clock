@@ -395,20 +395,45 @@ let gx=0, gy=0, tgx=0, tgy=0;
 let gyroGranted = false;
 function initGyro(){
   if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission==='function'){
-    // iOS: need user gesture to request permission — retry on every tap until granted
-    function requestGyro(){
+    // iOS 13+: requires explicit permission via user gesture
+    async function requestGyro(){
       if(gyroGranted) return;
-      DeviceOrientationEvent.requestPermission().then(s=>{
+      try {
+        const s = await DeviceOrientationEvent.requestPermission();
         if(s==='granted'){
           gyroGranted=true;
           window.addEventListener('deviceorientation',onG);
+          console.log('[gyro] iOS permission granted');
+        } else {
+          console.log('[gyro] iOS permission denied:', s);
         }
-      }).catch(()=>{});
+      } catch(err) {
+        console.log('[gyro] iOS permission error:', err);
+      }
     }
-    document.addEventListener('click', requestGyro);
-    document.addEventListener('touchend', requestGyro);
-  } else { 
-    window.addEventListener('deviceorientation',onG); 
+    // Attach to both click and touchend — covers all iOS gestures
+    document.addEventListener('click', requestGyro, {once:false});
+    document.addEventListener('touchend', requestGyro, {once:false});
+    // Also try immediately in case already granted from a previous session
+    DeviceOrientationEvent.requestPermission().then(s=>{
+      if(s==='granted'){
+        gyroGranted=true;
+        window.addEventListener('deviceorientation',onG);
+        console.log('[gyro] iOS already granted');
+      }
+    }).catch(()=>{}); // Expected to fail without gesture — that's fine
+  } else if(typeof DeviceOrientationEvent!=='undefined') {
+    // Android + non-iOS — just listen
+    window.addEventListener('deviceorientation',onG);
+    // Verify events actually fire
+    let gotEvent = false;
+    function checkGyro(e) {
+      if(!gotEvent && e.gamma !== null) {
+        gotEvent = true;
+        console.log('[gyro] Events firing, gamma:', e.gamma);
+      }
+    }
+    window.addEventListener('deviceorientation', checkGyro);
   }
   window.addEventListener('mousemove',e=>{tgx=((e.clientX/W)-0.5)*2;tgy=((e.clientY/H)-0.5)*2;});
 }
