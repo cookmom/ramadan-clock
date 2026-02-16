@@ -148,7 +148,52 @@ scene.add(ambLight);
 const { RectAreaLightUniformsLib } = await import('three/addons/lights/RectAreaLightUniformsLib.js');
 RectAreaLightUniformsLib.init();
 
-// No env map — clean direct lighting only
+// ── Procedural studio environment map ──
+// Generates a minimal softbox studio: bright strips on neutral background
+// Gives metals something to reflect without loading an HDRI file
+{
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  pmrem.compileCubemapShader();
+  const envScene = new THREE.Scene();
+  envScene.background = new THREE.Color(0x1a1a1a); // dark studio walls
+
+  // Key softbox — large bright strip, upper-left (warm)
+  const keyGeo = new THREE.PlaneGeometry(200, 80);
+  const keyMat = new THREE.MeshBasicMaterial({ color: 0xfff8f0, side: THREE.DoubleSide });
+  const keyPlane = new THREE.Mesh(keyGeo, keyMat);
+  keyPlane.position.set(-60, 100, 150);
+  keyPlane.lookAt(0, 0, 0);
+  envScene.add(keyPlane);
+
+  // Fill softbox — wider, dimmer strip, right side (cool)
+  const fillGeo = new THREE.PlaneGeometry(250, 60);
+  const fillMat = new THREE.MeshBasicMaterial({ color: 0xd8e0f0, side: THREE.DoubleSide });
+  const fillPlane = new THREE.Mesh(fillGeo, fillMat);
+  fillPlane.position.set(100, 30, 120);
+  fillPlane.lookAt(0, 0, 0);
+  envScene.add(fillPlane);
+
+  // Rim accent — narrow strip below (subtle warmth for edge catch)
+  const rimGeo = new THREE.PlaneGeometry(300, 30);
+  const rimMat = new THREE.MeshBasicMaterial({ color: 0xfff0e0, side: THREE.DoubleSide });
+  const rimPlane = new THREE.Mesh(rimGeo, rimMat);
+  rimPlane.position.set(0, -80, 100);
+  rimPlane.lookAt(0, 0, 0);
+  envScene.add(rimPlane);
+
+  // Overhead wash — very wide, dim (ambient bounce)
+  const topGeo = new THREE.PlaneGeometry(400, 400);
+  const topMat = new THREE.MeshBasicMaterial({ color: 0x303030, side: THREE.DoubleSide });
+  const topPlane = new THREE.Mesh(topGeo, topMat);
+  topPlane.position.set(0, 0, 250);
+  topPlane.lookAt(0, 0, 0);
+  envScene.add(topPlane);
+
+  const envRT = pmrem.fromScene(envScene, 0.04); // slight blur for soft reflections
+  scene.environment = envRT.texture;
+  pmrem.dispose();
+  envScene.clear(); // free geometry
+}
 
 const rectLight = new THREE.RectAreaLight(0xffffff, 0, 447, 447);
 rectLight.position.set(0, 0, 300);
@@ -211,12 +256,14 @@ function dialMat(color) {
     clearcoat:s.clearcoat, clearcoatRoughness:s.clearcoatRoughness,
     emissive: isFlat ? color : 0x000000, emissiveIntensity: isFlat ? 0.15 : 0
   });
-  m.envMapIntensity = 0;
+  // Dial surfaces: very subtle env reflection — just enough to break flatness
+  // Metallic dials (qamar) get more, flat dials get a whisper
+  m.envMapIntensity = s.metalness > 0.1 ? 0.3 : 0.08;
   return m;
 }
 function metalMat(color) {
   const precious = ['kawthar','dhuha','qamar','rainbow'].includes(currentDial);
-  return new THREE.MeshPhysicalMaterial({
+  const m = new THREE.MeshPhysicalMaterial({
     color,
     roughness: precious ? 0.1 : 0.15,
     metalness: precious ? 0.8 : 0.6,
@@ -224,12 +271,14 @@ function metalMat(color) {
     clearcoatRoughness: 0.05,
     reflectivity: precious ? 1.0 : 0.9
   });
+  m.envMapIntensity = precious ? 0.6 : 0.4; // hands catch softbox reflections
+  return m;
 }
 function lumeMat(color) {
-  const m = new THREE.MeshStandardMaterial({ color, roughness: 0.5, metalness: 0.0, emissive: color, emissiveIntensity: 0 }); m.envMapIntensity = 0; return m;
+  const m = new THREE.MeshStandardMaterial({ color, roughness: 0.5, metalness: 0.0, emissive: color, emissiveIntensity: 0 }); m.envMapIntensity = 0.05; return m; // lume = paint, barely reflects
 }
 function secMat(color) {
-  const m = new THREE.MeshStandardMaterial({ color, roughness: 0.3, metalness: 0.3, emissive: color, emissiveIntensity: 0 }); m.envMapIntensity = 0; return m;
+  const m = new THREE.MeshStandardMaterial({ color, roughness: 0.3, metalness: 0.3, emissive: color, emissiveIntensity: 0 }); m.envMapIntensity = 0.35; return m; // second hand catches a bit
 }
 
 // ══════════════════════════════════════════
@@ -380,7 +429,7 @@ function buildDial() {
   // Lower disc — solid, darker, recessed
   const lowerGeo = new THREE.CylinderGeometry(caseR, caseR, DIAL_THICKNESS, 128);
   const lowerColor = new THREE.Color(DIALS[currentDial].bg).multiplyScalar(0.75);
-  const lowerMat = new THREE.MeshStandardMaterial({color:lowerColor, roughness:0.9, metalness:0}); lowerMat.envMapIntensity = 0;
+  const lowerMat = new THREE.MeshStandardMaterial({color:lowerColor, roughness:0.9, metalness:0}); lowerMat.envMapIntensity = 0.05; // recessed dial — barely there
   dialLowerMesh = new THREE.Mesh(lowerGeo, lowerMat);
   dialLowerMesh.rotation.x = Math.PI/2;
   dialLowerMesh.position.z = -(DIAL_THICKNESS/2 + DIAL_GAP + DIAL_THICKNESS);
@@ -454,7 +503,7 @@ function buildMarkers() {
         const mat = new THREE.MeshStandardMaterial({
           color: c.lume, roughness: 0.3, metalness: 0.3,
           emissive: c.lume, emissiveIntensity: 0
-        }); mat.envMapIntensity = 0;
+        }); mat.envMapIntensity = 0.2; // applied markers catch some light
         const mesh = new THREE.Mesh(geo, mat);
         const midR = R * 0.95;
         mesh.position.x = Math.cos(ang)*midR;
@@ -491,7 +540,7 @@ function buildMarkers() {
       {
         const tH=R*0.036, tW=0.675, depth=1.5;
         const geo = new THREE.BoxGeometry(tW, tH, depth);
-        const mat = new THREE.MeshStandardMaterial({color:c.lume, roughness:0.5, metalness:0.2}); mat.envMapIntensity = 0;
+        const mat = new THREE.MeshStandardMaterial({color:c.lume, roughness:0.5, metalness:0.2}); mat.envMapIntensity = 0.15; // tick marks — subtle
         const mesh = new THREE.Mesh(geo, mat);
         const midR = (R - R*0.04 - tH/2) * 1.03;
         mesh.position.x = Math.cos(ang)*midR;
@@ -559,7 +608,7 @@ function buildNumerals() {
     const tex = new THREE.CanvasTexture(cv);
     tex.minFilter = THREE.LinearFilter;
     const geo = new THREE.PlaneGeometry(tw, th);
-    const faceMat = new THREE.MeshStandardMaterial({map:tex, transparent:true, metalness:0.0, roughness:0.9, color:0xffffff, depthWrite:false, emissive: new THREE.Color(c.lume), emissiveIntensity: 0}); faceMat.envMapIntensity = 0;
+    const faceMat = new THREE.MeshStandardMaterial({map:tex, transparent:true, metalness:0.0, roughness:0.9, color:0xffffff, depthWrite:false, emissive: new THREE.Color(c.lume), emissiveIntensity: 0}); faceMat.envMapIntensity = 0; // numerals stay matte — printed, not applied
     const mesh = new THREE.Mesh(geo, faceMat);
     mesh.position.x = Math.cos(ang)*r;
     mesh.position.y = Math.sin(ang)*r;
@@ -692,7 +741,7 @@ function buildQibla() {
   const baseMat = new THREE.MeshPhysicalMaterial({
     color: new THREE.Color(d.bg).multiplyScalar(0.7),
     roughness: 0.5, metalness: 0.4,
-    clearcoat: 0.2, envMapIntensity: 0
+    clearcoat: 0.2, envMapIntensity: 0.25
   });
   const baseDisc = new THREE.Mesh(new THREE.CircleGeometry(gaugeR, 64), baseMat);
   qiblaGroup.add(baseDisc);
@@ -711,7 +760,7 @@ function buildQibla() {
   const moonMat = new THREE.MeshPhysicalMaterial({
     color: 0xf8f4e8, roughness: 0.6, metalness: 0.05,
     emissive: 0xf8f4e8, emissiveIntensity: 0.05,
-    envMapIntensity: 0
+    envMapIntensity: 0.1
   });
   const moonDisc = new THREE.Mesh(new THREE.CircleGeometry(moonR, 64), moonMat);
   moonDisc.position.z = 0.1;
@@ -796,7 +845,7 @@ function buildQibla() {
   const rotorMat = new THREE.MeshPhysicalMaterial({
     color: new THREE.Color(d.bg).multiplyScalar(0.85),
     roughness: 0.45, metalness: 0.3,
-    clearcoat: 0.3, envMapIntensity: 0
+    clearcoat: 0.3, envMapIntensity: 0.3
   });
   const rotorDisc = new THREE.Mesh(new THREE.CircleGeometry(rotorR, 64), rotorMat);
   qiblaRotor.add(rotorDisc);
@@ -810,7 +859,7 @@ function buildQibla() {
     const tGeo = new THREE.BoxGeometry(tickW, isNorth ? tickLen*1.4 : tickLen, 0.3);
     const tColor = isNorth ? 0xf0f0f0 : new THREE.Color(d.lume).multiplyScalar(0.6);
     const tMat = new THREE.MeshPhysicalMaterial({
-      color: tColor, roughness: 0.3, metalness: 0.1, envMapIntensity: 0,
+      color: tColor, roughness: 0.3, metalness: 0.1, envMapIntensity: 0.15,
       emissive: tColor, emissiveIntensity: 0
     });
     const tick = new THREE.Mesh(tGeo, tMat);
@@ -827,7 +876,7 @@ function buildQibla() {
     const mtGeo = new THREE.BoxGeometry(0.3, tickLen*0.5, 0.2);
     const mtMat = new THREE.MeshPhysicalMaterial({
       color: new THREE.Color(d.lume).multiplyScalar(0.4),
-      roughness: 0.4, metalness: 0.1, envMapIntensity: 0
+      roughness: 0.4, metalness: 0.1, envMapIntensity: 0.1
     });
     const mt = new THREE.Mesh(mtGeo, mtMat);
     const mtr = rotorR - tickLen*0.3;
@@ -882,7 +931,7 @@ function buildQibla() {
         clearcoat: 0.3,
         emissive: fullColor,
         emissiveIntensity: 0,
-        envMapIntensity: 0
+        envMapIntensity: 0.2
       });
       segMat.userData = { fullColor, dimColor };
       const segMesh = new THREE.Mesh(new THREE.ShapeGeometry(segShape), segMat);
@@ -903,7 +952,7 @@ function buildQibla() {
   const innerMat = new THREE.MeshPhysicalMaterial({
     color: new THREE.Color(d.bg).multiplyScalar(0.95),
     roughness: 0.35, metalness: 0.35,
-    clearcoat: 0.4, envMapIntensity: 0
+    clearcoat: 0.4, envMapIntensity: 0.3
   });
   const innerDisc = new THREE.Mesh(new THREE.CircleGeometry(innerR, 48), innerMat);
   qiblaInnerRotor.add(innerDisc);
@@ -921,7 +970,7 @@ function buildQibla() {
     color: new THREE.Color(d.hand),
     roughness: 0.3, metalness: 0.2,
     emissive: new THREE.Color(d.hand), emissiveIntensity: 0.15,
-    envMapIntensity: 0
+    envMapIntensity: 0.25
   });
   const triMesh = new THREE.Mesh(triGeo, triMat);
   triMesh.position.set(0, innerR*0.35, 0.3);
