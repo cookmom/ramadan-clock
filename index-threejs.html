@@ -405,8 +405,7 @@ initGyro();
 // Background plane (fills screen, matches dial color)
 // Background surround plane — flush with dial face, hole cut for gap
 const CLOCK_SCALE = EMBED ? 0.65 : 0.50;
-const bgPlaneGap = 0.5; // visible gap in world units between dial edge and surround
-const bgCutoutR = (R * 1.12 * CLOCK_SCALE) + bgPlaneGap; // caseR in world space + gap
+const bgCutoutR = R * 1.12 * CLOCK_SCALE; // flush with dial edge, no gap
 const bgPlaneMat = new THREE.MeshPhysicalMaterial({ color: 0x1a1a22, roughness: 1.0, metalness: 0.0, envMapIntensity: 0.08 });
 const bgShape = new THREE.Shape();
 bgShape.moveTo(-1000, -1000); bgShape.lineTo(1000, -1000); bgShape.lineTo(1000, 1000); bgShape.lineTo(-1000, 1000); bgShape.closePath();
@@ -1375,7 +1374,7 @@ function buildAll(){
   while(clockGroup.children.length) clockGroup.remove(clockGroup.children[0]);
   const dialBg = new THREE.Color(DIALS[currentDial].bg);
   bgPlaneMat.color.copy(dialBg);
-  if(!EMBED) scene.background = new THREE.Color(0x000000); // dark void behind gap
+  if(!EMBED) scene.background = dialBg.clone();
   buildDial();
   buildBezel();
   buildMarkers();
