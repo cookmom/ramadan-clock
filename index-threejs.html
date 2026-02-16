@@ -165,7 +165,7 @@ let studioEnvMap;
 }
 
 // Ambient — minimal shadow fill
-const ambLight = new THREE.AmbientLight(0xffffff, 0.06);
+const ambLight = new THREE.AmbientLight(0xffffff, 0.12);
 scene.add(ambLight);
 
 // Key light — soft rect from upper-left (warm, even illumination)
@@ -184,9 +184,9 @@ const counterSpec = new THREE.PointLight(0xfff0e0, 1.0, 400, 2);
 counterSpec.position.set(-40, -30, 200);
 scene.add(counterSpec);
 
-// Subdial spot — tight cone for glass sparkle
-const subSpot = new THREE.SpotLight(0xffffff, 8, 350, Math.PI/18, 0.6, 2);
-subSpot.position.set(10, -R*0.5 + 30, 200);
+// Subdial spot — wider cone to illuminate subdial face + glass sparkle
+const subSpot = new THREE.SpotLight(0xffffff, 12, 400, Math.PI/8, 0.5, 1.5);
+subSpot.position.set(5, -R*0.5 + 20, 150);
 subSpot.target.position.set(0, -R*0.5, 0);
 scene.add(subSpot);
 scene.add(subSpot.target);
@@ -987,10 +987,10 @@ function buildQibla() {
       const fullColor = new THREE.Color(sorbet[colIdx]);
       const dimColor = fullColor.clone(); // full color — the Ressence rings should pop
       const segMat = new THREE.MeshPhysicalMaterial({
-        color: dimColor,
-        roughness: 0.2, metalness: 0.3,
-        clearcoat: 0.6, envMapIntensity: 3.0,
-        emissive: fullColor, emissiveIntensity: 0.12,
+        color: fullColor,
+        roughness: 0.5, metalness: 0.0,
+        clearcoat: 0.8, envMapIntensity: 1.0,
+        emissive: fullColor, emissiveIntensity: 0.2,
       });
       segMat.userData = { fullColor, dimColor };
       const segMesh = new THREE.Mesh(new THREE.ShapeGeometry(segShape), segMat);

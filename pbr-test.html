@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html><head><style>body{margin:0;background:#1a1a22}</style></head>
+<body><script type="importmap">{"imports":{"three":"https://esm.sh/three@0.170.0"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import {RGBELoader} from 'https://esm.sh/three@0.170.0/examples/jsm/loaders/RGBELoader.js';
+
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(390,844);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.0;
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+const cam = new THREE.PerspectiveCamera(32, 390/844, 1, 500);
+cam.position.set(0,0,100);
+
+// HDRI
+new RGBELoader().load('studio.hdr', tex => {
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  const envMap = pmrem.fromEquirectangular(tex).texture;
+  scene.environment = envMap;
+  scene.environmentIntensity = 0.6;
+  tex.dispose();
+  pmrem.dispose();
+  
+  // Test spheres — each tests a different PBR feature
+  const sphereGeo = new THREE.SphereGeometry(8, 64, 32);
+  
+  // Row 1: metals
+  const tests = [
+    { name:'polished_metal', mat: {color:0xcccccc, metalness:1.0, roughness:0.05, envMapIntensity:3.0} },
+    { name:'brushed_metal', mat: {color:0xaaaaaa, metalness:0.8, roughness:0.3, envMapIntensity:2.0} },
+    { name:'matte_dial', mat: {color:0x8878a8, metalness:0.0, roughness:0.9, envMapIntensity:0.5} },
+    { name:'clearcoat', mat: {color:0x68b890, metalness:0.5, roughness:0.4, clearcoat:1.0, clearcoatRoughness:0.05, envMapIntensity:2.0} },
+    { name:'transmission', mat: {color:0xffffff, transmission:0.95, ior:1.5, thickness:2, roughness:0.1, envMapIntensity:2.0} },
+    { name:'iridescence', mat: {color:0xffffff, transmission:0.9, iridescence:1.0, iridescenceIOR:0.9, dispersion:5, roughness:0.15, envMapIntensity:2.0} },
+  ];
+  
+  tests.forEach((t, i) => {
+    const col = i % 3;
+    const row = Math.floor(i / 3);
+    const mat = new THREE.MeshPhysicalMaterial(t.mat);
+    const mesh = new THREE.Mesh(sphereGeo, mat);
+    mesh.position.set((col - 1) * 22, (0.5 - row) * 22 + 10, 0);
+    scene.add(mesh);
+  });
+  
+  // Labels
+  const bg = new THREE.Mesh(
+    new THREE.PlaneGeometry(80, 12),
+    new THREE.MeshBasicMaterial({color:0x1a1a22})
+  );
+  bg.position.set(0, -18, 0);
+  scene.add(bg);
+  
+  // Light
+  const light = new THREE.DirectionalLight(0xffffff, 2);
+  light.position.set(20, 40, 60);
+  scene.add(light);
+  scene.add(new THREE.AmbientLight(0xffffff, 0.1));
+  
+  renderer.render(scene, cam);
+  document.title = 'RENDERED';
+});
+</script></body></html>
