@@ -1082,9 +1082,9 @@ function buildFlap() {
 const STARS=[];
 {
   // Arc from left to right above the clock, bowing downward (sujud toward the dial)
-  const arcCenterY = R * 1.25;  // above the dial
-  const arcRadius = R * 0.85;   // spread of the arc
-  const arcDepth = R * 0.15;    // how much the arc dips in the middle (prostration)
+  const arcCenterY = R * 1.08;  // just above dial edge
+  const arcRadius = R * 0.75;   // spread of the arc
+  const arcDepth = R * 0.12;    // how much the arc dips in the middle (prostration)
   for(let i = 0; i < 11; i++) {
     const t = i / 10; // 0 to 1
     const ang = Math.PI * 0.15 + t * Math.PI * 0.7; // ~27° to ~153° — spread across top
@@ -1124,9 +1124,13 @@ function buildStars(){
   const mxN = moonCvN.getContext('2d');
   const mcx = 128, mcy = 128, mcr = 124;
   
+  // Clip everything to circle — no debris outside the moon disc
+  mxN.save();
+  mxN.beginPath(); mxN.arc(mcx, mcy, mcr, 0, Math.PI*2); mxN.clip();
+  
   // Base moon color — warm lunar grey
   mxN.fillStyle = '#e8e4d8';
-  mxN.beginPath(); mxN.arc(mcx, mcy, mcr, 0, Math.PI*2); mxN.fill();
+  mxN.fillRect(0, 0, 256, 256);
   
   // Subtle surface variation (maria/highlands)
   const surfGrad = mxN.createRadialGradient(100, 90, 10, mcx, mcy, mcr);
@@ -1166,8 +1170,7 @@ function buildStars(){
   // ── Hijri moon phase shadow ──
   // Reuse the same phase from subdial
   const phase = window._hijriMoonPhase || 0;
-  mxN.save();
-  mxN.beginPath(); mxN.arc(mcx, mcy, mcr, 0, Math.PI*2); mxN.clip();
+  // (already clipped to moon circle from outer save)
   mxN.fillStyle = 'rgba(5,5,10,0.92)'; // near-black shadow
   if(phase <= 0.5) {
     // Waxing: shadow on left, shrinking
@@ -1186,7 +1189,6 @@ function buildStars(){
     mxN.ellipse(mcx, mcy, Math.abs(bulge) || 1, mcr, 0, Math.PI/2, -Math.PI/2, illum > 0.5);
     mxN.fill();
   }
-  mxN.restore();
   
   // Soft limb darkening — edge of moon sphere
   const limbGrad = mxN.createRadialGradient(mcx, mcy, mcr * 0.7, mcx, mcy, mcr);
@@ -1194,6 +1196,7 @@ function buildStars(){
   limbGrad.addColorStop(1, 'rgba(0,0,0,0.2)');
   mxN.fillStyle = limbGrad;
   mxN.beginPath(); mxN.arc(mcx, mcy, mcr, 0, Math.PI*2); mxN.fill();
+  mxN.restore(); // release global moon clip
   
   const moonTexN = new THREE.CanvasTexture(moonCvN);
   
@@ -1231,7 +1234,7 @@ function buildStars(){
   moonGlowMesh.position.z = -0.5;
   moonGroup.add(moonGlowMesh);
   
-  moonGroup.position.set(0, -100, -25);
+  moonGroup.position.set(55, -60, -15);
   moonGroup.visible = false;
   scene.add(moonGroup);
 }
@@ -1639,8 +1642,8 @@ function animate(){
     moonGroup.visible = modeBlend > 0.1;
     
     // Rise from below-right to upper-right
-    const startY = -100, endY = 105;
-    const startX = 0, endX = 0;
+    const startY = -60, endY = 62;   // settles just above dial at ~R*0.78
+    const startX = 55, endX = 55;   // offset right — classic watch photography composition
     // Ease-out cubic for natural rise
     const eased = 1 - Math.pow(1 - moonBlend, 3);
     moonGroup.position.y = startY + (endY - startY) * eased;
