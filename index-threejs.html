@@ -169,8 +169,8 @@ const ambLight = new THREE.AmbientLight(0xffffff, 0.08);
 scene.add(ambLight);
 
 // Key light — large soft rect, upper-left (warm)
-const keyLight = new THREE.RectAreaLight(0xfff5e8, 2.0, 250, 250);
-keyLight.position.set(-50, 140, 250);
+const keyLight = new THREE.RectAreaLight(0xfff5e8, 1.2, 200, 200);
+keyLight.position.set(-80, 160, 200); // more side/rim angle — less direct wash on dial face
 keyLight.lookAt(0, 0, 0);
 scene.add(keyLight);
 
@@ -210,7 +210,7 @@ function dialMat(color) {
     clearcoat:s.clearcoat, clearcoatRoughness:s.clearcoatRoughness,
     emissive: 0x000000, emissiveIntensity: 0
   });
-  m.envMapIntensity = s.metalness > 0.1 ? 0.12 : 0.02; // flat dials: whisper of IBL for life
+  m.envMapIntensity = s.metalness > 0.1 ? 0.08 : 0; // flat dials: ZERO IBL
   return m;
 }
 function metalMat(color) {
@@ -1595,7 +1595,7 @@ function animate(){
   
   // Dim scene lights for night — let lume own the scene
   ambLight.intensity = 0.08 * (1 - modeBlend * 0.85);
-  keyLight.intensity = 2.0 * (1 - modeBlend * 0.85);
+  keyLight.intensity = 1.2 * (1 - modeBlend * 0.85);
   specPoint.intensity = 8 * (1 - modeBlend * 0.7);
   counterSpec.intensity = 3 * (1 - modeBlend * 0.7);
   subSpot.intensity = 15 * (1 - modeBlend * 0.5);
