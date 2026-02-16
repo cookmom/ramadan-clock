@@ -437,8 +437,11 @@ function initGyro(){
   }
   window.addEventListener('mousemove',e=>{tgx=((e.clientX/W)-0.5)*2;tgy=((e.clientY/H)-0.5)*2;});
 }
+let _gyroDebugCount = 0;
 function onG(e){
   if(e.gamma===null)return;
+  _gyroDebugCount++;
+  if(_gyroDebugCount <= 3) console.log('[gyro] event:', e.gamma?.toFixed(1), e.beta?.toFixed(1));
   tgx=Math.max(-1,Math.min(1,(e.gamma||0)/25));
   tgy=Math.max(-1,Math.min(1,((e.beta||0)-45)/25));
   // Compass heading for qibla
@@ -1762,6 +1765,18 @@ function animate(){
   
   // Parallax + interactive spec light
   gx+=(tgx-gx)*0.08; gy+=(tgy-gy)*0.08;
+  // TEMP DEBUG — red dot shows gyro state (remove after testing)
+  if(!window._gyroDot){
+    const d=document.createElement('div');
+    d.id='gyroDot';
+    d.style.cssText='position:fixed;top:8px;left:8px;width:12px;height:12px;border-radius:50%;z-index:9999;pointer-events:none;transition:background .3s';
+    d.style.background='red'; // red = no gyro data
+    document.body.appendChild(d);
+    window._gyroDot=d;
+  }
+  if(Math.abs(tgx)>0.01||Math.abs(tgy)>0.01){
+    window._gyroDot.style.background='lime'; // green = receiving data
+  }
   cam.position.x = gx*15;
   cam.position.y = -30 + -gy*12;
   cam.lookAt(0,0,0);
