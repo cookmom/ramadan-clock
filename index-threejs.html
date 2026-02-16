@@ -798,9 +798,12 @@ function buildQibla() {
   const gaugeR = cutoutR - 1.5;
   const d = DIALS[currentDial];
   
-  // Base disc — MeshBasicMaterial, subtle contrast from main dial
-  const baseMat = new THREE.MeshBasicMaterial({
-    color: new THREE.Color(d.bg).multiplyScalar(0.88),
+  // Base disc — brushed metallic, subtle contrast from dial
+  const baseMat = new THREE.MeshPhysicalMaterial({
+    color: new THREE.Color(d.bg).multiplyScalar(0.82),
+    roughness: 0.45, metalness: 0.5,
+    clearcoat: 0.3, envMapIntensity: 2.0,
+    roughnessMap: metalGrainTex,
   });
   const baseDisc = new THREE.Mesh(new THREE.CircleGeometry(gaugeR, 64), baseMat);
   qiblaGroup.add(baseDisc);
@@ -901,8 +904,10 @@ function buildQibla() {
   
   // Rotor disc — slightly smaller, different tone
   const rotorR = gaugeR - 2;
-  const rotorMat = new THREE.MeshBasicMaterial({
-    color: new THREE.Color(d.bg).multiplyScalar(0.9),
+  const rotorMat = new THREE.MeshPhysicalMaterial({
+    color: new THREE.Color(d.bg).multiplyScalar(0.88),
+    roughness: 0.35, metalness: 0.4,
+    clearcoat: 0.4, envMapIntensity: 1.5,
   });
   const rotorDisc = new THREE.Mesh(new THREE.CircleGeometry(rotorR, 64), rotorMat);
   qiblaRotor.add(rotorDisc);
@@ -915,8 +920,8 @@ function buildQibla() {
     const isNorth = i === 0;
     const tGeo = new THREE.BoxGeometry(tickW, isNorth ? tickLen*1.4 : tickLen, 0.3);
     const tColor = isNorth ? 0xf0f0f0 : new THREE.Color(d.lume).multiplyScalar(0.8);
-    const tMat = new THREE.MeshBasicMaterial({
-      color: tColor
+    const tMat = new THREE.MeshPhysicalMaterial({
+      color: tColor, roughness: 0.2, metalness: 0.3, envMapIntensity: 1.5
     });
     const tick = new THREE.Mesh(tGeo, tMat);
     const tr = rotorR - tickLen*0.55;
@@ -930,8 +935,9 @@ function buildQibla() {
     if(i % 2 === 0) continue; // skip cardinals
     const ang = (i/8) * Math.PI * 2;
     const mtGeo = new THREE.BoxGeometry(0.3, tickLen*0.5, 0.2);
-    const mtMat = new THREE.MeshBasicMaterial({
+    const mtMat = new THREE.MeshPhysicalMaterial({
       color: new THREE.Color(d.lume).multiplyScalar(0.5),
+      roughness: 0.3, metalness: 0.2, envMapIntensity: 1.0,
     });
     const mt = new THREE.Mesh(mtGeo, mtMat);
     const mtr = rotorR - tickLen*0.3;
@@ -980,8 +986,11 @@ function buildQibla() {
       const colIdx = (s + ri * 0) % segCount; // same order — alignment = color match
       const fullColor = new THREE.Color(sorbet[colIdx]);
       const dimColor = fullColor.clone(); // full color — the Ressence rings should pop
-      const segMat = new THREE.MeshBasicMaterial({
+      const segMat = new THREE.MeshPhysicalMaterial({
         color: dimColor,
+        roughness: 0.25, metalness: 0.2,
+        clearcoat: 0.5, envMapIntensity: 1.2,
+        emissive: fullColor, emissiveIntensity: 0.08,
       });
       segMat.userData = { fullColor, dimColor };
       const segMesh = new THREE.Mesh(new THREE.ShapeGeometry(segShape), segMat);
@@ -999,8 +1008,10 @@ function buildQibla() {
   qiblaInnerRotor.position.z = 1;
   
   const innerR = gaugeR * 0.28;
-  const innerMat = new THREE.MeshBasicMaterial({
-    color: new THREE.Color(d.bg).multiplyScalar(0.75), // darker disc for inner rotor contrast
+  const innerMat = new THREE.MeshPhysicalMaterial({
+    color: new THREE.Color(d.bg).multiplyScalar(0.78),
+    roughness: 0.15, metalness: 0.6,
+    clearcoat: 0.5, envMapIntensity: 3.0,
   });
   const innerDisc = new THREE.Mesh(new THREE.CircleGeometry(innerR, 48), innerMat);
   qiblaInnerRotor.add(innerDisc);
@@ -1014,8 +1025,11 @@ function buildQibla() {
   triShape.lineTo(triW/2, -triH/2);
   triShape.closePath();
   const triGeo = new THREE.ExtrudeGeometry(triShape, {depth:0.5, bevelEnabled:false});
-  const triMat = new THREE.MeshBasicMaterial({
+  const triMat = new THREE.MeshPhysicalMaterial({
     color: new THREE.Color(d.hand),
+    roughness: 0.2, metalness: 0.3,
+    emissive: new THREE.Color(d.hand), emissiveIntensity: 0.15,
+    envMapIntensity: 1.5,
   });
   const triMesh = new THREE.Mesh(triGeo, triMat);
   triMesh.position.set(0, innerR*0.35, 0.3);
