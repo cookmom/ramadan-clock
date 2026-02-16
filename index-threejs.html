@@ -1108,7 +1108,7 @@ function buildStars(){
   // Moon — flat disc, MeshBasicMaterial with HDR color
   const moonGeo = new THREE.CircleGeometry(moonR, 48);
   const moonMat = new THREE.MeshBasicMaterial({
-    color: new THREE.Color(3.0, 2.9, 2.6),
+    color: new THREE.Color(1.8, 1.75, 1.6),
     transparent: true, opacity: 0, depthWrite: false,
   });
   moonMesh = new THREE.Mesh(moonGeo, moonMat);
@@ -1118,7 +1118,7 @@ function buildStars(){
   const glowGeo = new THREE.CircleGeometry(moonR * 4, 48);
   // Use ShaderMaterial for radial falloff
   const glowMat = new THREE.MeshBasicMaterial({
-    color: new THREE.Color(2.0, 1.8, 1.5),
+    color: new THREE.Color(1.5, 1.4, 1.2),
     transparent: true, opacity: 0, depthWrite: false,
   });
   moonGlowMesh = new THREE.Mesh(glowGeo, glowMat);
@@ -1486,9 +1486,9 @@ function animate(){
   }
   
   // Bloom ramps up in night mode — soft, dreamy glow
-  bloomPass.strength = modeBlend * 1.2;
-  bloomPass.radius = 0.5 + modeBlend * 0.4;
-  bloomPass.threshold = 0.85 - modeBlend * 0.35; // lower threshold at night = more bloom
+  bloomPass.strength = modeBlend * 0.8;
+  bloomPass.radius = 0.4 + modeBlend * 0.3;
+  bloomPass.threshold = 0.85 - modeBlend * 0.25; // floor 0.6 — only hottest emissives bloom
   
   // Dim scene lights for night — let lume own the scene
   ambLight.intensity = 0.3 * (1 - modeBlend * 0.85);
@@ -1521,7 +1521,7 @@ function animate(){
     // Stars scale up as they appear
     const sc = 0.5 + starBlend * 1.0;
     m.scale.setScalar(sc);
-    const starCol = new THREE.Color(2.0, 2.0, 1.8); // HDR star white
+    const starCol = new THREE.Color(1.3, 1.3, 1.15); // subtle HDR — bright but not nuclear
     starCol.lerp(new THREE.Color(lumeEmCol).multiplyScalar(1.5), modeBlend * 0.3);
     m.material.color.copy(starCol);
   });
@@ -1544,14 +1544,14 @@ function animate(){
     if(moonMesh) {
       moonMesh.material.opacity = moonBlend;
       // HDR moon tinted slightly toward lume
-      const mc = new THREE.Color(2.5, 2.4, 2.2);
-      mc.lerp(new THREE.Color(lumeEmCol).multiplyScalar(2.0), 0.15);
+      const mc = new THREE.Color(1.6, 1.55, 1.45);
+      mc.lerp(new THREE.Color(lumeEmCol).multiplyScalar(1.2), 0.15);
       moonMesh.material.color.copy(mc);
     }
     if(moonGlowMesh) {
-      moonGlowMesh.material.opacity = moonBlend * 0.12;
-      const gc = new THREE.Color(1.5, 1.4, 1.2);
-      gc.lerp(new THREE.Color(lumeEmCol).multiplyScalar(1.5), 0.2);
+      moonGlowMesh.material.opacity = moonBlend * 0.08;
+      const gc = new THREE.Color(1.2, 1.15, 1.0);
+      gc.lerp(new THREE.Color(lumeEmCol).multiplyScalar(1.2), 0.2);
       moonGlowMesh.material.color.copy(gc);
     }
     
