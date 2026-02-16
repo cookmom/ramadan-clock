@@ -139,16 +139,14 @@ const bloomPass = new UnrealBloomPass(
 composer.addPass(bloomPass);
 
 // ══════════════════════════════════════════
-// LIGHTING
-// ══════════════════════════════════════════
-// ══════════════════════════════════════════
-// LIGHTING — Clean watch photography setup
-// HDRI provides ambient + reflections. Direct lights add controlled accents.
+// LIGHTING — NOMOS-style watch photography
+// Low-intensity HDRI for hand reflections. Env rotates with tilt.
+// Dial stays calm (BasicMaterial). Hands catch sweeping softbox light.
 // ══════════════════════════════════════════
 const { RectAreaLightUniformsLib } = await import('three/addons/lights/RectAreaLightUniformsLib.js');
 RectAreaLightUniformsLib.init();
 
-// ── Studio HDRI ──
+// ── Studio HDRI at controlled intensity ──
 let studioEnvMap;
 {
   const { RGBELoader } = await import('three/addons/loaders/RGBELoader.js');
@@ -160,32 +158,34 @@ let studioEnvMap;
   const envRT = pmrem.fromEquirectangular(hdrTex);
   studioEnvMap = envRT.texture;
   scene.environment = studioEnvMap;
+  scene.environmentIntensity = 0.15; // low global IBL — prevents dial washout
+  scene.environmentRotation = new THREE.Euler(0, 0, 0); // animated with phone tilt
   hdrTex.dispose();
   pmrem.dispose();
 }
 
-// Ambient — low fill, HDRI does most of the ambient work
-const ambLight = new THREE.AmbientLight(0xffffff, 0.08);
+// Ambient — minimal shadow fill
+const ambLight = new THREE.AmbientLight(0xffffff, 0.06);
 scene.add(ambLight);
 
-// Key light — large soft rect, upper-left (warm)
-const keyLight = new THREE.RectAreaLight(0xfff5e8, 0.6, 200, 200);
-keyLight.position.set(-80, 160, 200); // rim angle
+// Key light — soft rect from upper-left (warm, even illumination)
+const keyLight = new THREE.RectAreaLight(0xfff8f0, 1.0, 250, 250);
+keyLight.position.set(-60, 150, 220);
 keyLight.lookAt(0, 0, 0);
 scene.add(keyLight);
 
-// Spec point — gentle accent, HDRI does the real reflections
-const specPoint = new THREE.PointLight(0xffffff, 2, 300, 2);
+// Spec point — tilt-tracking accent highlight on hands
+const specPoint = new THREE.PointLight(0xffffff, 3, 300, 2);
 specPoint.position.set(30, 60, 180);
 scene.add(specPoint);
 
-// Counter spec — very subtle opposite warmth
-const counterSpec = new THREE.PointLight(0xfff0e0, 0.8, 400, 2);
+// Counter spec — opposite warmth for depth
+const counterSpec = new THREE.PointLight(0xfff0e0, 1.0, 400, 2);
 counterSpec.position.set(-40, -30, 200);
 scene.add(counterSpec);
 
-// Subdial spot — focused cone for glass refraction
-const subSpot = new THREE.SpotLight(0xffffff, 5, 350, Math.PI/18, 0.6, 2);
+// Subdial spot — tight cone for glass sparkle
+const subSpot = new THREE.SpotLight(0xffffff, 8, 350, Math.PI/18, 0.6, 2);
 subSpot.position.set(10, -R*0.5 + 30, 200);
 subSpot.target.position.set(0, -R*0.5, 0);
 scene.add(subSpot);
@@ -196,10 +196,22 @@ scene.add(subSpot.target);
 // MATERIALS (PBR)
 // ══════════════════════════════════════════
 function dialMat(color) {
-  // All dials use MeshBasicMaterial — unlit, pure color match with background
-  // This guarantees dial color accuracy regardless of HDRI/lighting
-  // Hands, subdial, glass are PBR and catch HDRI reflections
-  return new THREE.MeshBasicMaterial({ color });
+  const cd = currentDial;
+  const special = {
+    kawthar: { roughness:0.6, metalness:0.15, sheen:0.8, sheenColor:0xd4909a, sheenRoughness:0.3, clearcoat:0.6, clearcoatRoughness:0.3 },
+    qamar:   { roughness:0.35, metalness:0.4, sheen:0, sheenColor:0x000000, sheenRoughness:0.8, clearcoat:0.2, clearcoatRoughness:0.2 },
+  };
+  const s = special[cd] || { roughness:0.95, metalness:0.0, sheen:0, sheenColor:0x000000, sheenRoughness:0.8, clearcoat:0, clearcoatRoughness:0 };
+  const m = new THREE.MeshPhysicalMaterial({
+    color, roughness:s.roughness, metalness:s.metalness,
+    sheen:s.sheen, sheenColor:new THREE.Color(s.sheenColor), sheenRoughness:s.sheenRoughness,
+    clearcoat:s.clearcoat, clearcoatRoughness:s.clearcoatRoughness,
+  });
+  // With scene.environmentIntensity=0.15, these values are pre-multiplied:
+  // flat dial: 0.15 * 0.15 = 0.02 effective (whisper of life)
+  // qamar:     0.15 * 0.5  = 0.075 effective (subtle metallic)
+  m.envMapIntensity = s.metalness > 0.1 ? 0.5 : 0.15;
+  return m;
 }
 function metalMat(color) {
   const precious = ['kawthar','dhuha','qamar','rainbow'].includes(currentDial);
@@ -211,14 +223,14 @@ function metalMat(color) {
     clearcoatRoughness: 0.05,
     reflectivity: precious ? 1.0 : 0.9
   });
-  m.envMapIntensity = precious ? 0.7 : 0.5; // HDRI does the heavy lifting for hand reflections
+  m.envMapIntensity = precious ? 3.0 : 2.0; // high to compensate for scene.environmentIntensity=0.15
   return m;
 }
 function lumeMat(color) {
   const m = new THREE.MeshStandardMaterial({ color, roughness: 0.5, metalness: 0.0, emissive: color, emissiveIntensity: 0 }); m.envMapIntensity = 0; return m; // lume = paint, no reflections
 }
 function secMat(color) {
-  const m = new THREE.MeshStandardMaterial({ color, roughness: 0.25, metalness: 0.35, emissive: color, emissiveIntensity: 0 }); m.envMapIntensity = 0.3; return m; // second hand catches HDRI
+  const m = new THREE.MeshStandardMaterial({ color, roughness: 0.25, metalness: 0.35, emissive: color, emissiveIntensity: 0 }); m.envMapIntensity = 1.5; return m; // second hand catches HDRI
 }
 
 // ══════════════════════════════════════════
@@ -346,7 +358,7 @@ initGyro();
 // Background surround plane — flush with dial face, hole cut for gap
 const CLOCK_SCALE = EMBED ? 0.65 : 0.50;
 const bgCutoutR = R * 1.12 * CLOCK_SCALE; // flush with dial edge, no gap
-const bgPlaneMat = new THREE.MeshBasicMaterial({ color: 0x1a1a22 }); // BasicMaterial = exact color, no IBL washout
+const bgPlaneMat = new THREE.MeshPhysicalMaterial({ color: 0x1a1a22, roughness: 1.0, metalness: 0, envMapIntensity: 0.1 }); // subtle IBL response
 const bgShape = new THREE.Shape();
 bgShape.moveTo(-1000, -1000); bgShape.lineTo(1000, -1000); bgShape.lineTo(1000, 1000); bgShape.lineTo(-1000, 1000); bgShape.closePath();
 const bgHole = new THREE.Path();
@@ -378,7 +390,7 @@ function buildDial() {
   // Lower disc — solid, darker, recessed
   const lowerGeo = new THREE.CylinderGeometry(caseR, caseR, DIAL_THICKNESS, 128);
   const lowerColor = new THREE.Color(DIALS[currentDial].bg).multiplyScalar(0.75);
-  const lowerMat = new THREE.MeshBasicMaterial({color:lowerColor}); // recessed dial — barely there
+  const lowerMat = new THREE.MeshStandardMaterial({color:lowerColor, roughness:0.95, metalness:0}); lowerMat.envMapIntensity = 0.05; // recessed dial — barely there
   dialLowerMesh = new THREE.Mesh(lowerGeo, lowerMat);
   dialLowerMesh.rotation.x = Math.PI/2;
   dialLowerMesh.position.z = -(DIAL_THICKNESS/2 + DIAL_GAP + DIAL_THICKNESS);
@@ -901,7 +913,7 @@ function buildQibla() {
   const innerMat = new THREE.MeshPhysicalMaterial({
     color: new THREE.Color(d.bg).multiplyScalar(0.95),
     roughness: 0.15, metalness: 0.6,
-    clearcoat: 0.5, envMapIntensity: 0.4
+    clearcoat: 0.5, envMapIntensity: 2.0
   });
   const innerDisc = new THREE.Mesh(new THREE.CircleGeometry(innerR, 48), innerMat);
   qiblaInnerRotor.add(innerDisc);
@@ -959,7 +971,7 @@ function buildQibla() {
     specularColor: new THREE.Color(0xffffff),
     attenuationDistance: 20,  // how far light travels before tinting
     attenuationColor: new THREE.Color(0xf8f8ff), // very slight cool tint (sapphire)
-    envMapIntensity: 0.6
+    envMapIntensity: 3.0
   });
   const glassMesh = new THREE.Mesh(glassDome, glassMat);
   glassMesh.position.y = -R*0.5;
@@ -1574,11 +1586,13 @@ function animate(){
   bloomPass.threshold = 0.85 - modeBlend * 0.25; // floor 0.6 — only hottest emissives bloom
   
   // Dim scene lights for night — let lume own the scene
-  ambLight.intensity = 0.08 * (1 - modeBlend * 0.85);
-  keyLight.intensity = 0.6 * (1 - modeBlend * 0.85);
-  specPoint.intensity = 2 * (1 - modeBlend * 0.7);
-  counterSpec.intensity = 0.8 * (1 - modeBlend * 0.7);
-  subSpot.intensity = 5 * (1 - modeBlend * 0.5);
+  ambLight.intensity = 0.06 * (1 - modeBlend * 0.85);
+  keyLight.intensity = 1.0 * (1 - modeBlend * 0.85);
+  specPoint.intensity = 3 * (1 - modeBlend * 0.7);
+  counterSpec.intensity = 1.0 * (1 - modeBlend * 0.7);
+  subSpot.intensity = 8 * (1 - modeBlend * 0.5);
+  // Reduce env intensity at night so lume glows dominate
+  if(scene.environmentIntensity !== undefined) scene.environmentIntensity = 0.15 * (1 - modeBlend * 0.7);
   renderer.toneMappingExposure = 1.0 - modeBlend * 0.35;
   
   // Vignette at night
@@ -1650,13 +1664,18 @@ function animate(){
   cam.position.y = -30 + -gy*12;
   cam.lookAt(0,0,0);
   
-  // Spec point follows tilt — highlight glides across dial like turning a watch under a lamp
+  // HDRI rotation with tilt — softboxes sweep across hands (the key NOMOS interaction)
+  if(scene.environmentRotation) {
+    scene.environmentRotation.y = gx * 0.25; // horizontal tilt rotates env
+    scene.environmentRotation.x = gy * 0.12; // vertical tilt tilts env subtly
+  }
+  // Spec point follows tilt — accent highlight
   specPoint.position.x = 30 + gx * 80;
   specPoint.position.y = 60 + gy * 60;
-  // Subdial spotlight follows tilt — offset from center
+  // Subdial spot follows tilt
   subSpot.position.x = 10 + gx * 50;
   subSpot.position.y = -R*0.5 + 30 + gy * 40;
-  // Counter light moves opposite — dual-highlight dance
+  // Counter spec — opposite dance
   counterSpec.position.x = -40 - gx * 60;
   counterSpec.position.y = -30 - gy * 50;
   
