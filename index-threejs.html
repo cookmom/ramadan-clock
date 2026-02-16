@@ -1082,9 +1082,9 @@ function buildFlap() {
 const STARS=[];
 {
   // Arc from left to right above the clock, bowing downward (sujud toward the dial)
-  const arcCenterY = R * 0.68;  // below the moon — stars bow lower
+  const arcCenterY = R * 0.95;  // raised — outer stars near viewport edge
   const arcRadius = R * 0.7;    // wide spread
-  const arcDepth = R * 0.18;    // deep bow — stars prostrate toward the dial
+  const arcDepth = R * 0.12;    // concave bow — lowest point clears dial face
   for(let i = 0; i < 11; i++) {
     const t = i / 10; // 0 to 1
     const ang = Math.PI * 0.15 + t * Math.PI * 0.7; // ~27° to ~153° — spread across top
@@ -1672,7 +1672,7 @@ function animate(){
     moonGroup.visible = modeBlend > 0.1;
     
     // Rise from below-right to upper-right
-    const startY = -60, endY = 72;   // center of the star arc
+    const startY = -60, endY = 80;   // above the star arc
     const startX = 0, endX = 0;     // centered — moon crowns the prostration arc
     // Ease-out cubic for natural rise
     const eased = 1 - Math.pow(1 - moonBlend, 3);
