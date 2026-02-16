@@ -1077,27 +1077,39 @@ function buildFlap() {
   clockGroup.add(flapSprite);
 }
 
-// Stars (Surah Yusuf 12:4)
-// 11 stars positioned in the dark corners/edges around the clock
+// Stars (Surah Yusuf 12:4) — 11 stars in a sujud (prostration) arc above the clock
+// "I saw eleven stars and the sun and the moon — I saw them prostrating to me."
 const STARS=[];
-const starPositions = [
-  {x:-0.48, y:0.48}, {x:0.48, y:0.48},   // top corners
-  {x:-0.48, y:-0.48}, {x:0.48, y:-0.48},  // bottom corners
-  {x:-0.5, y:0.15}, {x:0.5, y:0.15},      // left/right mid-upper
-  {x:-0.5, y:-0.15}, {x:0.5, y:-0.15},    // left/right mid-lower
-  {x:0, y:0.5},                             // top center
-  {x:-0.3, y:-0.5}, {x:0.3, y:-0.5},      // bottom left/right
-];
-for(let i=0;i<11;i++){STARS.push({x:starPositions[i].x+0.5,y:0.5-starPositions[i].y,r:1.0+Math.sin(i*1.7)*0.5,speed:0.0009+i*0.00008,offset:i*0.57,bright:0.7+Math.sin(i*2.3)*0.2});}
+{
+  // Arc from left to right above the clock, bowing downward (sujud toward the dial)
+  const arcCenterY = R * 1.25;  // above the dial
+  const arcRadius = R * 0.85;   // spread of the arc
+  const arcDepth = R * 0.15;    // how much the arc dips in the middle (prostration)
+  for(let i = 0; i < 11; i++) {
+    const t = i / 10; // 0 to 1
+    const ang = Math.PI * 0.15 + t * Math.PI * 0.7; // ~27° to ~153° — spread across top
+    const x = -Math.cos(ang) * arcRadius;
+    const y = arcCenterY + Math.sin(ang) * arcDepth; // sujud: middle stars dip lower
+    const size = 0.8 + Math.sin(i * 1.7 + 0.5) * 0.3; // subtle size variation
+    STARS.push({
+      px: x, py: y,
+      r: size,
+      speed: 0.0008 + i * 0.00006,
+      offset: i * 0.57,
+      bright: 0.75 + Math.sin(i * 2.3) * 0.2
+    });
+  }
+}
 let starMeshes=[];
 let moonGroup, moonMesh, moonGlowMesh;
 
 function buildStars(){
   starMeshes.forEach(m=>scene.remove(m)); starMeshes=[];
   STARS.forEach(s=>{
-    const m=new THREE.Mesh(new THREE.CircleGeometry(s.r*3,16),new THREE.MeshBasicMaterial({color:0xfffff0,transparent:true,opacity:0}));
-    m.position.x=(s.x-0.5)*180; m.position.y=(0.5-s.y)*280;
-    m.position.z=-10; m.userData=s; scene.add(m); starMeshes.push(m);
+    const m=new THREE.Mesh(new THREE.CircleGeometry(s.r, 16), new THREE.MeshBasicMaterial({color:0xfffff0, transparent:true, opacity:0}));
+    m.position.x = s.px;
+    m.position.y = s.py;
+    m.position.z = -10; m.userData=s; scene.add(m); starMeshes.push(m);
   });
   
   // 3D Moon — rises during night transition
@@ -1531,8 +1543,8 @@ function animate(){
     const starBlend = Math.max(0, Math.min(1, (modeBlend - starThreshold) / 0.15));
     const twinkle = (Math.sin(Date.now()*s.speed+s.offset)*0.3+0.7);
     m.material.opacity = starBlend * s.bright * twinkle;
-    // Stars scale up as they appear
-    const sc = 0.5 + starBlend * 1.0;
+    // Stars gently scale in
+    const sc = 0.6 + starBlend * 0.4;
     m.scale.setScalar(sc);
     const starCol = new THREE.Color(1.8, 1.8, 1.6); // visible HDR — elegant not blinding
     starCol.lerp(new THREE.Color(lumeEmCol).multiplyScalar(1.5), modeBlend * 0.3);
