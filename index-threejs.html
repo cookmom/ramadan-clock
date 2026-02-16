@@ -1082,15 +1082,15 @@ function buildFlap() {
 const STARS=[];
 {
   // Arc from left to right above the clock, bowing downward (sujud toward the dial)
-  const arcCenterY = R * 0.88;  // within viewport — nestled between 12 o'clock and screen edge
-  const arcRadius = R * 0.65;   // tighter arc
-  const arcDepth = R * 0.06;    // subtle sujud bow
+  const arcCenterY = R * 0.82;  // above dial face
+  const arcRadius = R * 0.7;    // wide spread
+  const arcDepth = R * 0.18;    // deep bow — stars prostrate toward the dial
   for(let i = 0; i < 11; i++) {
     const t = i / 10; // 0 to 1
     const ang = Math.PI * 0.15 + t * Math.PI * 0.7; // ~27° to ~153° — spread across top
     const x = -Math.cos(ang) * arcRadius;
     const y = arcCenterY + Math.sin(ang) * arcDepth; // sujud: middle stars dip lower
-    const size = 0.9 + Math.sin(i * 1.7 + 0.5) * 0.35; // small and delicate — like real stars
+    const size = 0.55 + Math.sin(i * 1.7 + 0.5) * 0.2; // tiny twinkling points
     STARS.push({
       px: x, py: y,
       r: size,
@@ -1264,7 +1264,7 @@ function buildStars(){
   moonGlowMesh.position.z = -0.5;
   moonGroup.add(moonGlowMesh);
   
-  moonGroup.position.set(55, -60, -15);
+  moonGroup.position.set(0, -60, -15);
   moonGroup.visible = false;
   scene.add(moonGroup);
 }
@@ -1672,8 +1672,8 @@ function animate(){
     moonGroup.visible = modeBlend > 0.1;
     
     // Rise from below-right to upper-right
-    const startY = -60, endY = 62;   // settles just above dial at ~R*0.78
-    const startX = 55, endX = 55;   // offset right — classic watch photography composition
+    const startY = -60, endY = 72;   // center of the star arc
+    const startX = 0, endX = 0;     // centered — moon crowns the prostration arc
     // Ease-out cubic for natural rise
     const eased = 1 - Math.pow(1 - moonBlend, 3);
     moonGroup.position.y = startY + (endY - startY) * eased;
