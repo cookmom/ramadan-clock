@@ -1117,10 +1117,91 @@ function buildStars(){
   moonGroup = new THREE.Group();
   
   const moonR = 10;
-  // Moon — flat disc, MeshBasicMaterial with HDR color
+  
+  // ── Procedural moon texture with craters + Hijri phase shadow ──
+  const moonCvN = document.createElement('canvas');
+  moonCvN.width = 256; moonCvN.height = 256;
+  const mxN = moonCvN.getContext('2d');
+  const mcx = 128, mcy = 128, mcr = 124;
+  
+  // Base moon color — warm lunar grey
+  mxN.fillStyle = '#e8e4d8';
+  mxN.beginPath(); mxN.arc(mcx, mcy, mcr, 0, Math.PI*2); mxN.fill();
+  
+  // Subtle surface variation (maria/highlands)
+  const surfGrad = mxN.createRadialGradient(100, 90, 10, mcx, mcy, mcr);
+  surfGrad.addColorStop(0, 'rgba(180,175,160,0.3)');
+  surfGrad.addColorStop(0.5, 'rgba(200,195,180,0.15)');
+  surfGrad.addColorStop(1, 'rgba(220,215,200,0)');
+  mxN.fillStyle = surfGrad;
+  mxN.beginPath(); mxN.arc(mcx, mcy, mcr, 0, Math.PI*2); mxN.fill();
+  
+  // Craters — seeded pseudo-random
+  const craters = [
+    {x:95, y:80, r:18, d:0.12},   // Tycho-like
+    {x:155, y:105, r:22, d:0.10},  // Copernicus-like  
+    {x:130, y:155, r:15, d:0.08},
+    {x:75, y:135, r:12, d:0.10},
+    {x:165, y:65, r:10, d:0.07},
+    {x:110, y:60, r:8, d:0.09},
+    {x:145, y:180, r:14, d:0.06},
+    {x:85, y:170, r:9, d:0.08},
+    {x:170, y:145, r:7, d:0.07},
+    {x:120, y:120, r:6, d:0.05},
+  ];
+  craters.forEach(c => {
+    // Shadow inside crater
+    const cGrad = mxN.createRadialGradient(c.x - c.r*0.2, c.y - c.r*0.2, 0, c.x, c.y, c.r);
+    cGrad.addColorStop(0, `rgba(140,135,120,${c.d})`);
+    cGrad.addColorStop(0.6, `rgba(160,155,140,${c.d * 0.5})`);
+    cGrad.addColorStop(1, 'rgba(200,195,180,0)');
+    mxN.fillStyle = cGrad;
+    mxN.beginPath(); mxN.arc(c.x, c.y, c.r, 0, Math.PI*2); mxN.fill();
+    // Rim highlight
+    mxN.strokeStyle = `rgba(245,240,230,${c.d * 0.4})`;
+    mxN.lineWidth = 0.8;
+    mxN.beginPath(); mxN.arc(c.x, c.y, c.r * 0.9, -0.5, 1.2); mxN.stroke();
+  });
+  
+  // ── Hijri moon phase shadow ──
+  // Reuse the same phase from subdial
+  const phase = window._hijriMoonPhase || 0;
+  mxN.save();
+  mxN.beginPath(); mxN.arc(mcx, mcy, mcr, 0, Math.PI*2); mxN.clip();
+  mxN.fillStyle = 'rgba(5,5,10,0.92)'; // near-black shadow
+  if(phase <= 0.5) {
+    // Waxing: shadow on left, shrinking
+    const illum = phase * 2; // 0→1
+    mxN.beginPath();
+    mxN.arc(mcx, mcy, mcr, Math.PI/2, -Math.PI/2); // left half
+    const bulge = (1 - illum * 2) * mcr; // positive=shadow wider, negative=lit wider
+    mxN.ellipse(mcx, mcy, Math.abs(bulge) || 1, mcr, 0, -Math.PI/2, Math.PI/2, illum > 0.5);
+    mxN.fill();
+  } else {
+    // Waning: shadow on right, growing
+    const illum = (1 - phase) * 2; // 1→0
+    mxN.beginPath();
+    mxN.arc(mcx, mcy, mcr, -Math.PI/2, Math.PI/2); // right half
+    const bulge = (1 - illum * 2) * mcr;
+    mxN.ellipse(mcx, mcy, Math.abs(bulge) || 1, mcr, 0, Math.PI/2, -Math.PI/2, illum > 0.5);
+    mxN.fill();
+  }
+  mxN.restore();
+  
+  // Soft limb darkening — edge of moon sphere
+  const limbGrad = mxN.createRadialGradient(mcx, mcy, mcr * 0.7, mcx, mcy, mcr);
+  limbGrad.addColorStop(0, 'rgba(0,0,0,0)');
+  limbGrad.addColorStop(1, 'rgba(0,0,0,0.2)');
+  mxN.fillStyle = limbGrad;
+  mxN.beginPath(); mxN.arc(mcx, mcy, mcr, 0, Math.PI*2); mxN.fill();
+  
+  const moonTexN = new THREE.CanvasTexture(moonCvN);
+  
+  // Moon mesh with texture
   const moonGeo = new THREE.CircleGeometry(moonR, 48);
   const moonMat = new THREE.MeshBasicMaterial({
-    color: new THREE.Color(1.8, 1.75, 1.6),
+    map: moonTexN,
+    color: new THREE.Color(1.6, 1.55, 1.45), // slight HDR for bloom
     transparent: true, opacity: 0, depthWrite: false,
   });
   moonMesh = new THREE.Mesh(moonGeo, moonMat);
