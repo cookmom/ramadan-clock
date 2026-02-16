@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Lookdev Tilt Test</title>
+<style>
+body{margin:0;background:#111;color:#fff;font:14px/1.4 Inter,system-ui}
+#status{position:fixed;top:10px;left:10px;z-index:100;background:rgba(0,0,0,0.8);padding:8px 12px;border-radius:8px;font-size:12px}
+canvas{display:block}
+</style>
+</head><body>
+<div id="status">Loading clock...</div>
+<script type="importmap">
+{ "imports": { "three": "https://esm.sh/three@0.170.0", "three/addons/": "https://esm.sh/three@0.170.0/examples/jsm/" } }
+</script>
+<script type="module">
+// This page loads the clock and runs automated tilt sweeps,
+// capturing frames that get posted to our test server.
+
+const status = document.getElementById('status');
+
+// Load the actual clock script by fetching and eval'ing it
+// (We serve this from the same origin as the clock)
+const resp = await fetch('/index-threejs.html');
+const html = await resp.text();
+
+// Create a temporary container
+document.body.innerHTML = '<div id="status" style="position:fixed;top:10px;left:10px;z-index:100;background:rgba(0,0,0,0.8);padding:8px 12px;border-radius:8px;font-size:12px;color:#fff"></div>' + 
+  html.match(/<body[^>]*>([\s\S]*)<\/body>/)?.[1] || '';
+
+// The clock will initialize itself. Wait for canvas to appear.
+const waitForCanvas = () => new Promise(resolve => {
+  const check = () => {
+    const c = document.querySelector('canvas');
+    if (c && c.width > 0) resolve(c);
+    else setTimeout(check, 200);
+  };
+  check();
+});
+
+const canvas = await waitForCanvas();
+document.getElementById('status').textContent = 'Clock loaded. Starting tilt sweep...';
+
+// Wait for hooks
+await new Promise(r => {
+  const check = () => window._tiltTestReady ? r() : setTimeout(check, 200);
+  check();
+});
+
+// Sweep through tilt positions
+const positions = [];
+for (let i = -10; i <= 10; i++) {
+  positions.push({ gx: i * 0.08, gy: 0, name: `h${i}` });
+}
+
+const statusEl = document.getElementById('status');
+
+for (let i = 0; i < positions.length; i++) {
+  const p = positions[i];
+  window._setTilt(p.gx, p.gy);
+  
+  // Wait 3 frames
+  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(r))));
+  
+  statusEl.textContent = `Sweep ${i+1}/${positions.length} (gx=${p.gx.toFixed(2)})`;
+  
+  // Capture
+  const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+  fetch('/__capture', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ dial: 'slate', position: p.name, image: dataUrl })
+  }).catch(() => {});
+  
+  await new Promise(r => setTimeout(r, 100));
+}
+
+statusEl.textContent = '✅ Sweep complete!';
+fetch('/__done', { method: 'POST' }).catch(() => {});
+</script>
+</body></html>

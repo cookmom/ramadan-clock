@@ -195,6 +195,82 @@ scene.add(subSpot.target);
 // ══════════════════════════════════════════
 // MATERIALS (PBR)
 // ══════════════════════════════════════════
+
+// ── Procedural grain texture (NOMOS-style sandblasted dial finish) ──
+// Generates a roughness map with fine per-pixel noise so the dial
+// responds subtly to tilt as HDRI sweeps across the micro-texture.
+function makeGrainTexture(size = 512, baseVal = 235, spread = 20) {
+  const c = document.createElement('canvas');
+  c.width = c.height = size;
+  const ctx = c.getContext('2d');
+  const img = ctx.createImageData(size, size);
+  for (let i = 0; i < img.data.length; i += 4) {
+    const v = Math.max(0, Math.min(255, baseVal + (Math.random() - 0.5) * spread));
+    img.data[i] = img.data[i+1] = img.data[i+2] = v;
+    img.data[i+3] = 255;
+  }
+  ctx.putImageData(img, 0, 0);
+  const tex = new THREE.CanvasTexture(c);
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(2, 2); // tile for finer grain
+  return tex;
+}
+const dialGrainTex = makeGrainTexture(512, 235, 20);     // standard dials: high roughness grain
+const metalGrainTex = makeGrainTexture(256, 140, 15);    // qamar/kawthar: subtler, lower roughness grain
+
+// ── Procedural bump map for applied numerals ──
+// Renders numeral outlines to a canvas, used as bumpMap to fake depth
+function makeNumeralBumpMap(numerals, font, size = 512) {
+  const c = document.createElement('canvas');
+  c.width = c.height = size;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, size, size);
+  // Numerals will be painted white = raised
+  ctx.fillStyle = '#fff';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  const R = size * 0.42; // numeral ring radius
+  const cx = size / 2, cy = size / 2;
+  const positions = { // hour -> angle (0=12 o'clock, clockwise)
+    12: 0, 2: 60, 10: 300, // Arabic numerals
+    // 4 (IV) and 8 (VIII) handled as Roman — skip for bump (they're separate meshes)
+  };
+  ctx.font = `bold ${size * 0.09}px Inter, sans-serif`;
+  for (const [hour, angleDeg] of Object.entries(positions)) {
+    const a = (angleDeg - 90) * Math.PI / 180;
+    const x = cx + Math.cos(a) * R;
+    const y = cy + Math.sin(a) * R;
+    ctx.fillText(hour.toString(), x, y);
+  }
+  // Roman numerals
+  ctx.font = `${size * 0.07}px Inter, sans-serif`;
+  const romans = { 'VIII': 240, 'IV': 120 };
+  for (const [text, angleDeg] of Object.entries(romans)) {
+    const a = (angleDeg - 90) * Math.PI / 180;
+    const x = cx + Math.cos(a) * R;
+    const y = cy + Math.sin(a) * R;
+    ctx.fillText(text, x, y);
+  }
+  // Stick markers at odd hours (1,3,5,7,9,11)
+  const stickHours = [1, 3, 5, 7, 9, 11];
+  for (const h of stickHours) {
+    if (h === 6) continue; // subdial
+    const a = (h * 30 - 90) * Math.PI / 180;
+    const inner = R - size * 0.03;
+    const outer = R + size * 0.015;
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = size * 0.006;
+    ctx.beginPath();
+    ctx.moveTo(cx + Math.cos(a) * inner, cy + Math.sin(a) * inner);
+    ctx.lineTo(cx + Math.cos(a) * outer, cy + Math.sin(a) * outer);
+    ctx.stroke();
+  }
+  const tex = new THREE.CanvasTexture(c);
+  return tex;
+}
+const numeralBumpTex = makeNumeralBumpMap();
+
 function dialMat(color) {
   const cd = currentDial;
   const special = {
@@ -202,15 +278,15 @@ function dialMat(color) {
     qamar:   { roughness:0.35, metalness:0.4, sheen:0, sheenColor:0x000000, sheenRoughness:0.8, clearcoat:0.2, clearcoatRoughness:0.2 },
   };
   const s = special[cd] || { roughness:0.95, metalness:0.0, sheen:0, sheenColor:0x000000, sheenRoughness:0.8, clearcoat:0, clearcoatRoughness:0 };
+  const isSpecial = s.metalness > 0.1;
   const m = new THREE.MeshPhysicalMaterial({
     color, roughness:s.roughness, metalness:s.metalness,
     sheen:s.sheen, sheenColor:new THREE.Color(s.sheenColor), sheenRoughness:s.sheenRoughness,
     clearcoat:s.clearcoat, clearcoatRoughness:s.clearcoatRoughness,
+    roughnessMap: isSpecial ? metalGrainTex : dialGrainTex, // NOMOS sandblasted grain
+    bumpMap: numeralBumpTex, bumpScale: 0.4, // applied numeral depth
   });
-  // With scene.environmentIntensity=0.15, these values are pre-multiplied:
-  // flat dial: 0.15 * 0.15 = 0.02 effective (whisper of life)
-  // qamar:     0.15 * 0.5  = 0.075 effective (subtle metallic)
-  m.envMapIntensity = s.metalness > 0.1 ? 0.5 : 0.15;
+  m.envMapIntensity = isSpecial ? 0.5 : 0.15;
   return m;
 }
 function metalMat(color) {
@@ -569,11 +645,11 @@ function buildNumerals() {
     const tex = new THREE.CanvasTexture(cv);
     tex.minFilter = THREE.LinearFilter;
     const geo = new THREE.PlaneGeometry(tw, th);
-    const faceMat = new THREE.MeshStandardMaterial({map:tex, transparent:true, metalness:0.0, roughness:0.9, color:0xffffff, depthWrite:false, emissive: new THREE.Color(c.lume), emissiveIntensity: 0}); faceMat.envMapIntensity = 0; // numerals stay matte — printed, not applied
+    const faceMat = new THREE.MeshPhysicalMaterial({map:tex, transparent:true, metalness:0.5, roughness:0.2, color:0xffffff, depthWrite:false, clearcoat:0.3, clearcoatRoughness:0.2, emissive: new THREE.Color(c.lume), emissiveIntensity: 0}); faceMat.envMapIntensity = 1.5; // applied numerals catch HDRI like polished metal
     const mesh = new THREE.Mesh(geo, faceMat);
     mesh.position.x = Math.cos(ang)*r;
     mesh.position.y = Math.sin(ang)*r;
-    mesh.position.z = 3;
+    mesh.position.z = 3.5; // raised slightly — applied numerals sit proud of dial
     clockGroup.add(mesh);
     numeralSprites.push(mesh);
     numeralMats.push(faceMat);
@@ -693,16 +769,17 @@ function buildQibla() {
   if(qiblaGroup) clockGroup.remove(qiblaGroup);
   qiblaGroup = new THREE.Group();
   qiblaGroup.position.y = -R*0.5;
-  qiblaGroup.position.z = 1;
+  qiblaGroup.position.z = -0.5; // recessed into dial — real watch subdial depth
   
   const gaugeR = cutoutR - 1.5;
   const d = DIALS[currentDial];
   
-  // Base disc — slightly darker than dial, brushed metal
+  // Base disc — slightly darker than dial, brushed metal with grain
   const baseMat = new THREE.MeshPhysicalMaterial({
     color: new THREE.Color(d.bg).multiplyScalar(0.7),
     roughness: 0.5, metalness: 0.4,
-    clearcoat: 0.2, envMapIntensity: 0.12
+    clearcoat: 0.2, envMapIntensity: 0.12,
+    roughnessMap: metalGrainTex,
   });
   const baseDisc = new THREE.Mesh(new THREE.CircleGeometry(gaugeR, 64), baseMat);
   qiblaGroup.add(baseDisc);
