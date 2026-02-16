@@ -1082,9 +1082,9 @@ function buildFlap() {
 const STARS=[];
 {
   // Arc from left to right above the clock, bowing downward (sujud toward the dial)
-  const arcCenterY = R * 1.08;  // just above dial edge
-  const arcRadius = R * 0.75;   // spread of the arc
-  const arcDepth = R * 0.12;    // how much the arc dips in the middle (prostration)
+  const arcCenterY = R * 1.22;  // clearly above dial + bloom halo
+  const arcRadius = R * 0.8;    // spread of the arc
+  const arcDepth = R * 0.1;     // gentle sujud bow
   for(let i = 0; i < 11; i++) {
     const t = i / 10; // 0 to 1
     const ang = Math.PI * 0.15 + t * Math.PI * 0.7; // ~27° to ~153° — spread across top
@@ -1660,7 +1660,7 @@ function animate(){
     // Stars gently scale in
     const sc = 0.6 + starBlend * 0.4;
     m.scale.setScalar(sc);
-    const starCol = new THREE.Color(1.8, 1.8, 1.6); // visible HDR — elegant not blinding
+    const starCol = new THREE.Color(2.2, 2.2, 1.9); // HDR for bloom pickup
     starCol.lerp(new THREE.Color(lumeEmCol).multiplyScalar(1.5), modeBlend * 0.3);
     m.material.color.copy(starCol);
   });
