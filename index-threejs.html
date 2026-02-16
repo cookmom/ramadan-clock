@@ -148,51 +148,20 @@ scene.add(ambLight);
 const { RectAreaLightUniformsLib } = await import('three/addons/lights/RectAreaLightUniformsLib.js');
 RectAreaLightUniformsLib.init();
 
-// ── Procedural studio environment map ──
-// Generates a minimal softbox studio: bright strips on neutral background
-// Gives metals something to reflect without loading an HDRI file
+// ── Studio HDRI environment map ──
+// Poly Haven "studio_small_08" — controlled studio lighting, CC0
+// Real softboxes give metals and glass something convincing to reflect
 {
+  const { RGBELoader } = await import('three/addons/loaders/RGBELoader.js');
   const pmrem = new THREE.PMREMGenerator(renderer);
-  pmrem.compileCubemapShader();
-  const envScene = new THREE.Scene();
-  envScene.background = new THREE.Color(0x1a1a1a); // dark studio walls
-
-  // Key softbox — large bright strip, upper-left (warm)
-  const keyGeo = new THREE.PlaneGeometry(200, 80);
-  const keyMat = new THREE.MeshBasicMaterial({ color: 0xfff8f0, side: THREE.DoubleSide });
-  const keyPlane = new THREE.Mesh(keyGeo, keyMat);
-  keyPlane.position.set(-60, 100, 150);
-  keyPlane.lookAt(0, 0, 0);
-  envScene.add(keyPlane);
-
-  // Fill softbox — wider, dimmer strip, right side (cool)
-  const fillGeo = new THREE.PlaneGeometry(250, 60);
-  const fillMat = new THREE.MeshBasicMaterial({ color: 0xd8e0f0, side: THREE.DoubleSide });
-  const fillPlane = new THREE.Mesh(fillGeo, fillMat);
-  fillPlane.position.set(100, 30, 120);
-  fillPlane.lookAt(0, 0, 0);
-  envScene.add(fillPlane);
-
-  // Rim accent — narrow strip below (subtle warmth for edge catch)
-  const rimGeo = new THREE.PlaneGeometry(300, 30);
-  const rimMat = new THREE.MeshBasicMaterial({ color: 0xfff0e0, side: THREE.DoubleSide });
-  const rimPlane = new THREE.Mesh(rimGeo, rimMat);
-  rimPlane.position.set(0, -80, 100);
-  rimPlane.lookAt(0, 0, 0);
-  envScene.add(rimPlane);
-
-  // Overhead wash — very wide, dim (ambient bounce)
-  const topGeo = new THREE.PlaneGeometry(400, 400);
-  const topMat = new THREE.MeshBasicMaterial({ color: 0x303030, side: THREE.DoubleSide });
-  const topPlane = new THREE.Mesh(topGeo, topMat);
-  topPlane.position.set(0, 0, 250);
-  topPlane.lookAt(0, 0, 0);
-  envScene.add(topPlane);
-
-  const envRT = pmrem.fromScene(envScene, 0.04); // slight blur for soft reflections
+  pmrem.compileEquirectangularShader();
+  const hdrTex = await new Promise((resolve, reject) => {
+    new RGBELoader().load('studio.hdr', resolve, undefined, reject);
+  });
+  const envRT = pmrem.fromEquirectangular(hdrTex);
   scene.environment = envRT.texture;
+  hdrTex.dispose();
   pmrem.dispose();
-  envScene.clear(); // free geometry
 }
 
 const rectLight = new THREE.RectAreaLight(0xffffff, 0, 447, 447);
