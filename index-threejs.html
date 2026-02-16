@@ -196,24 +196,10 @@ scene.add(subSpot.target);
 // MATERIALS (PBR)
 // ══════════════════════════════════════════
 function dialMat(color) {
-  const cd = currentDial;
-  const special = {
-    kawthar: { roughness:0.6, metalness:0.15, sheen:0.8, sheenColor:0xd4909a, sheenRoughness:0.3, clearcoat:0.6, clearcoatRoughness:0.3 },
-    qamar:   { roughness:0.35, metalness:0.4, sheen:0, sheenColor:0x000000, sheenRoughness:0.8, clearcoat:0.2, clearcoatRoughness:0.2 },
-  };
-  const s = special[cd];
-  if(!s) {
-    // Flat dials: MeshBasicMaterial — unlit, pure color, no washout
-    return new THREE.MeshBasicMaterial({ color });
-  }
-  // Special dials (kawthar=sheen, qamar=metallic): PBR with controlled IBL
-  const m = new THREE.MeshPhysicalMaterial({
-    color, roughness:s.roughness, metalness:s.metalness,
-    sheen:s.sheen, sheenColor:new THREE.Color(s.sheenColor), sheenRoughness:s.sheenRoughness,
-    clearcoat:s.clearcoat, clearcoatRoughness:s.clearcoatRoughness,
-  });
-  m.envMapIntensity = 0.06;
-  return m;
+  // All dials use MeshBasicMaterial — unlit, pure color match with background
+  // This guarantees dial color accuracy regardless of HDRI/lighting
+  // Hands, subdial, glass are PBR and catch HDRI reflections
+  return new THREE.MeshBasicMaterial({ color });
 }
 function metalMat(color) {
   const precious = ['kawthar','dhuha','qamar','rainbow'].includes(currentDial);
