@@ -161,8 +161,7 @@ let studioEnvMap;
   });
   const envRT = pmrem.fromEquirectangular(hdrTex);
   studioEnvMap = envRT.texture;
-  // NOT setting scene.environment — HDRI is too bright as global IBL
-  // Instead we assign envMap per-material on hands, subdial, glass
+  scene.environment = studioEnvMap; // global IBL — control per-material via envMapIntensity
   hdrTex.dispose();
   pmrem.dispose();
 }
@@ -230,7 +229,7 @@ function dialMat(color) {
   });
   // Dial surfaces: very subtle env reflection — just enough to break flatness
   // Metallic dials (qamar) get more, flat dials get a whisper
-  m.envMapIntensity = s.metalness > 0.1 ? 0.15 : 0.03;
+  m.envMapIntensity = s.metalness > 0.1 ? 0.1 : 0; // flat dials: zero IBL, metallic dials: subtle
   return m;
 }
 function metalMat(color) {
@@ -243,15 +242,14 @@ function metalMat(color) {
     clearcoatRoughness: 0.05,
     reflectivity: precious ? 1.0 : 0.9
   });
-  m.envMapIntensity = precious ? 0.5 : 0.35; // hands are the heroes — real HDRI reflections
-  m.envMap = studioEnvMap;
+  m.envMapIntensity = precious ? 0.8 : 0.6; // hands are the heroes — real HDRI reflections
   return m;
 }
 function lumeMat(color) {
   const m = new THREE.MeshStandardMaterial({ color, roughness: 0.5, metalness: 0.0, emissive: color, emissiveIntensity: 0 }); m.envMapIntensity = 0; return m; // lume = paint, no reflections
 }
 function secMat(color) {
-  const m = new THREE.MeshStandardMaterial({ color, roughness: 0.3, metalness: 0.3, emissive: color, emissiveIntensity: 0 }); m.envMapIntensity = 0.25; m.envMap = studioEnvMap; return m; // second hand catches HDRI
+  const m = new THREE.MeshStandardMaterial({ color, roughness: 0.3, metalness: 0.3, emissive: color, emissiveIntensity: 0 }); m.envMapIntensity = 0.4; return m; // second hand catches HDRI
 }
 
 // ══════════════════════════════════════════
@@ -379,7 +377,7 @@ initGyro();
 // Background surround plane — flush with dial face, hole cut for gap
 const CLOCK_SCALE = EMBED ? 0.65 : 0.50;
 const bgCutoutR = R * 1.12 * CLOCK_SCALE; // flush with dial edge, no gap
-const bgPlaneMat = new THREE.MeshPhysicalMaterial({ color: 0x1a1a22, roughness: 1.0, metalness: 0.0, envMapIntensity: 0 }); // same matte as dial, responds to direct light only
+const bgPlaneMat = new THREE.MeshPhysicalMaterial({ color: 0x1a1a22, roughness: 1.0, metalness: 0.0, envMapIntensity: 0 }); // zero IBL — stays true to color
 const bgShape = new THREE.Shape();
 bgShape.moveTo(-1000, -1000); bgShape.lineTo(1000, -1000); bgShape.lineTo(1000, 1000); bgShape.lineTo(-1000, 1000); bgShape.closePath();
 const bgHole = new THREE.Path();
@@ -411,7 +409,7 @@ function buildDial() {
   // Lower disc — solid, darker, recessed
   const lowerGeo = new THREE.CylinderGeometry(caseR, caseR, DIAL_THICKNESS, 128);
   const lowerColor = new THREE.Color(DIALS[currentDial].bg).multiplyScalar(0.75);
-  const lowerMat = new THREE.MeshStandardMaterial({color:lowerColor, roughness:0.9, metalness:0}); lowerMat.envMapIntensity = 0.02; // recessed dial — barely there
+  const lowerMat = new THREE.MeshStandardMaterial({color:lowerColor, roughness:0.9, metalness:0}); lowerMat.envMapIntensity = 0; // recessed dial — barely there
   dialLowerMesh = new THREE.Mesh(lowerGeo, lowerMat);
   dialLowerMesh.rotation.x = Math.PI/2;
   dialLowerMesh.position.z = -(DIAL_THICKNESS/2 + DIAL_GAP + DIAL_THICKNESS);
@@ -934,7 +932,7 @@ function buildQibla() {
   const innerMat = new THREE.MeshPhysicalMaterial({
     color: new THREE.Color(d.bg).multiplyScalar(0.95),
     roughness: 0.15, metalness: 0.6,
-    clearcoat: 0.5, envMapIntensity: 0.4, envMap: studioEnvMap
+    clearcoat: 0.5, envMapIntensity: 0.6
   });
   const innerDisc = new THREE.Mesh(new THREE.CircleGeometry(innerR, 48), innerMat);
   qiblaInnerRotor.add(innerDisc);
@@ -992,7 +990,7 @@ function buildQibla() {
     specularColor: new THREE.Color(0xffffff),
     attenuationDistance: 20,  // how far light travels before tinting
     attenuationColor: new THREE.Color(0xf8f8ff), // very slight cool tint (sapphire)
-    envMap: studioEnvMap, envMapIntensity: 1.0
+    envMapIntensity: 1.5
   });
   const glassMesh = new THREE.Mesh(glassDome, glassMat);
   glassMesh.position.y = -R*0.5;
