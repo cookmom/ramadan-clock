@@ -199,11 +199,11 @@ scene.add(subSpot.target);
 function dialMat(color) {
   const cd = currentDial;
   const special = {
-    kawthar: { roughness:0.6, metalness:0.15, sheen:0.8, sheenColor:0xd4909a, sheenRoughness:0.3, clearcoat:0.4, clearcoatRoughness:0.3 }, // rose gold sheen
-    qamar:   { roughness:0.7, metalness:0.15, sheen:0, sheenColor:0x000000, sheenRoughness:0.8, clearcoat:0.2, clearcoatRoughness:0.2 }, // subtle silver metallic
+    kawthar: { roughness:0.6, metalness:0.15, sheen:0.8, sheenColor:0xd4909a, sheenRoughness:0.3, clearcoat:0.6, clearcoatRoughness:0.3 }, // rose gold sheen — glazed candy clearcoat
+    qamar:   { roughness:0.35, metalness:0.4, sheen:0, sheenColor:0x000000, sheenRoughness:0.8, clearcoat:0.2, clearcoatRoughness:0.2 }, // silver — more metallic read
     rainbow: { roughness:0.85, metalness:0.0, sheen:0, sheenColor:0x000000, sheenRoughness:0.8, clearcoat:0, clearcoatRoughness:0 }, // flat black
   };
-  const s = special[cd] || { roughness:1.0, metalness:0.0, sheen:0, sheenColor:0x000000, sheenRoughness:0.8, clearcoat:0, clearcoatRoughness:0 };
+  const s = special[cd] || { roughness:0.85, metalness:0.0, sheen:0, sheenColor:0x000000, sheenRoughness:0.8, clearcoat:0, clearcoatRoughness:0 };
   const isFlat = !special[cd]; // non-special dials get emissive fill for flat look
   const m = new THREE.MeshPhysicalMaterial({
     color, roughness:s.roughness, metalness:s.metalness,
@@ -219,17 +219,17 @@ function metalMat(color) {
   return new THREE.MeshPhysicalMaterial({
     color,
     roughness: precious ? 0.1 : 0.15,
-    metalness: precious ? 0.8 : 0.5,
+    metalness: precious ? 0.8 : 0.6,
     clearcoat: 1.0,
     clearcoatRoughness: 0.05,
     reflectivity: precious ? 1.0 : 0.9
   });
 }
 function lumeMat(color) {
-  const m = new THREE.MeshStandardMaterial({ color, roughness: 0.5, metalness: 0.1, emissive: color, emissiveIntensity: 0 }); m.envMapIntensity = 0; return m;
+  const m = new THREE.MeshStandardMaterial({ color, roughness: 0.5, metalness: 0.0, emissive: color, emissiveIntensity: 0 }); m.envMapIntensity = 0; return m;
 }
 function secMat(color) {
-  const m = new THREE.MeshStandardMaterial({ color, roughness: 0.3, metalness: 0.15, emissive: color, emissiveIntensity: 0 }); m.envMapIntensity = 0; return m;
+  const m = new THREE.MeshStandardMaterial({ color, roughness: 0.3, metalness: 0.3, emissive: color, emissiveIntensity: 0 }); m.envMapIntensity = 0; return m;
 }
 
 // ══════════════════════════════════════════
