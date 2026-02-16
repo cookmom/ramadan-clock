@@ -1066,28 +1066,28 @@ function buildQibla() {
   const glassDome = new THREE.SphereGeometry(
     glassR, 64, 32,
     0, Math.PI*2,
-    0, Math.PI*0.12   // very shallow dome (~22° cap, stays under hands)
+    0, Math.PI*0.18   // slightly taller dome (~32° cap) — more glass volume for visible refraction
   );
   const glassMat = new THREE.MeshPhysicalMaterial({
     color: 0xffffff,
     roughness: 0.0,       // perfectly polished sapphire
     metalness: 0.0,
-    transmission: 0.98,   // nearly perfectly clear
-    thickness: 3.5,       // thicker = more refraction visible with focused spot
+    transmission: 0.95,   // slightly less than perfect — shows refraction
+    thickness: 5.0,       // thicker = MORE refraction distortion visible
     ior: 1.77,            // sapphire crystal IOR
-    dispersion: 0.15,     // subtle chromatic aberration at edges
+    dispersion: 0.2,      // chromatic aberration at edges
     clearcoat: 1.0,
     clearcoatRoughness: 0.0,
     transparent: false,   // let transmission handle transparency, not opacity
-    specularIntensity: 1.5,
+    specularIntensity: 2.0,
     specularColor: new THREE.Color(0xffffff),
-    attenuationDistance: 20,  // how far light travels before tinting
-    attenuationColor: new THREE.Color(0xf8f8ff), // very slight cool tint (sapphire)
-    envMapIntensity: 5.0 // glass dome — visible bright edge that shifts with tilt
+    attenuationDistance: 12,  // shorter = more visible color absorption
+    attenuationColor: new THREE.Color(0xeef0ff), // cooler sapphire tint
+    envMapIntensity: 6.0 // glass — bright edge reflections that shift with tilt
   });
   const glassMesh = new THREE.Mesh(glassDome, glassMat);
   glassMesh.position.y = -R*0.5;
-  glassMesh.position.z = 2;  // low profile, under hands
+  glassMesh.position.z = 3;  // above subdial elements, under hands
   glassMesh.rotation.x = 0;
   glassMesh.renderOrder = 999; // render last for proper transparency
   clockGroup.add(glassMesh);
