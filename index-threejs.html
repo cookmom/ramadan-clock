@@ -488,8 +488,8 @@ scene.add(clockGroup);
 // Dial face
 let dialMesh;
 let dialLowerMesh;
-const DIAL_THICKNESS = 10;
-const DIAL_GAP = 3; // gap between upper and lower disc
+const DIAL_THICKNESS = 0.5; // thin disc — no more cutout walls clipping hands
+const DIAL_GAP = 0.5; // minimal gap — thin disc means no visible cutout walls
 let cutoutR = R*0.38;
 function buildDial() {
   if(dialMesh) clockGroup.remove(dialMesh);
