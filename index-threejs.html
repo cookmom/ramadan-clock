@@ -1169,29 +1169,56 @@ function buildStars(){
   
   // ── Hijri moon phase shadow ──
   // Calculate independently — buildStars may run before buildQibla
-  const _ramStart = new Date(2026, 1, 17);
-  const _ramDays = 30;
-  const _dayOfR = Math.max(0, Math.min(_ramDays, Math.floor((new Date() - _ramStart) / 86400000) + 1));
-  const phase = _dayOfR / _ramDays; // 0→1 over the month
-  // (already clipped to moon circle from outer save)
-  mxN.fillStyle = 'rgba(5,5,10,0.92)'; // near-black shadow
-  if(phase <= 0.5) {
-    // Waxing: shadow on left, shrinking
-    const illum = phase * 2; // 0→1
-    mxN.beginPath();
-    mxN.arc(mcx, mcy, mcr, Math.PI/2, -Math.PI/2); // left half
-    const bulge = (1 - illum * 2) * mcr; // positive=shadow wider, negative=lit wider
-    mxN.ellipse(mcx, mcy, Math.abs(bulge) || 1, mcr, 0, -Math.PI/2, Math.PI/2, illum > 0.5);
-    mxN.fill();
+  // Synodic month calculation — works year-round, not just Ramadan
+  // Known new moon: Jan 29, 2026 12:36 UTC (astronomical)
+  const KNOWN_NEW_MOON = new Date(Date.UTC(2026, 0, 29, 12, 36));
+  const SYNODIC = 29.53059; // days
+  const daysSinceNew = (Date.now() - KNOWN_NEW_MOON.getTime()) / 86400000;
+  const phase = ((daysSinceNew % SYNODIC) + SYNODIC) % SYNODIC / SYNODIC; // 0→1
+  // Phase rendering — pixel-based for reliability
+  // phase 0 = new moon (dark), 0.5 = full moon, 1.0 = dark again
+  // illumination: 0→1→0 over the month
+  const illum = phase <= 0.5 ? phase * 2 : (1 - phase) * 2; // 0→1→0
+  const waxing = phase <= 0.5; // right side lit first (Northern hemisphere Hijri)
+  
+  // Draw shadow overlay using compositing
+  const shadowCv = document.createElement('canvas');
+  shadowCv.width = 256; shadowCv.height = 256;
+  const sx = shadowCv.getContext('2d');
+  
+  // Fill with shadow
+  sx.fillStyle = 'rgba(5,5,10,0.93)';
+  sx.beginPath(); sx.arc(mcx, mcy, mcr + 1, 0, Math.PI * 2); sx.fill();
+  
+  // Cut out the illuminated portion
+  sx.globalCompositeOperation = 'destination-out';
+  sx.fillStyle = '#fff';
+  sx.beginPath();
+  
+  if(illum < 0.01) {
+    // New moon — all dark, cut nothing
+  } else if(illum > 0.99) {
+    // Full moon — cut everything
+    sx.arc(mcx, mcy, mcr + 1, 0, Math.PI * 2);
+    sx.fill();
   } else {
-    // Waning: shadow on right, growing
-    const illum = (1 - phase) * 2; // 1→0
-    mxN.beginPath();
-    mxN.arc(mcx, mcy, mcr, -Math.PI/2, Math.PI/2); // right half
-    const bulge = (1 - illum * 2) * mcr;
-    mxN.ellipse(mcx, mcy, Math.abs(bulge) || 1, mcr, 0, Math.PI/2, -Math.PI/2, illum > 0.5);
-    mxN.fill();
+    // Crescent/gibbous — half circle + terminator ellipse
+    const litSide = waxing ? 1 : -1; // +1 = right lit, -1 = left lit
+    // Always draw the lit half-circle
+    const startAng = litSide > 0 ? -Math.PI/2 : Math.PI/2;
+    const endAng = litSide > 0 ? Math.PI/2 : -Math.PI/2;
+    sx.arc(mcx, mcy, mcr, startAng, endAng);
+    // Terminator: ellipse width controls crescent shape
+    // illum 0→0.5: crescent (terminator on lit side), 0.5→1: gibbous (terminator on dark side)
+    const tWidth = Math.abs(illum * 2 - 1) * mcr;
+    const ccw = illum < 0.5; // crescent: cut less, gibbous: cut more
+    sx.ellipse(mcx, mcy, tWidth || 0.5, mcr, 0, endAng, startAng, ccw);
+    sx.closePath();
+    sx.fill();
   }
+  
+  // Apply shadow to moon
+  mxN.drawImage(shadowCv, 0, 0);
   
   // Soft limb darkening — edge of moon sphere
   const limbGrad = mxN.createRadialGradient(mcx, mcy, mcr * 0.7, mcx, mcy, mcr);
