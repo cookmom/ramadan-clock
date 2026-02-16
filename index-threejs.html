@@ -1325,20 +1325,12 @@ function buildBezel() {
 }
 
 function buildAll(){
-  // Clear clockGroup
   while(clockGroup.children.length) clockGroup.remove(clockGroup.children[0]);
   const dialBg = new THREE.Color(DIALS[currentDial].bg);
   bgPlaneMat.color.copy(dialBg);
   if(!EMBED) scene.background = dialBg.clone();
-  buildDial();
-  buildBezel();
-  buildMarkers();
-  buildNumerals();
-  buildHands();
-  buildQibla();
-  buildFlap();
-  buildStars();
-  updateSurah();
+  const steps = [['dial',buildDial],['bezel',buildBezel],['markers',buildMarkers],['numerals',buildNumerals],['hands',buildHands],['qibla',buildQibla],['flap',buildFlap],['stars',buildStars],['surah',updateSurah]];
+  for(const [name,fn] of steps) { try { fn(); } catch(e) { console.error(`buildAll: ${name} failed:`, e); } }
 }
 // Wait for fonts then build (Lateef for Arabic numerals)
 document.fonts.ready.then(()=>buildAll());
@@ -1542,13 +1534,13 @@ function animate(){
   
   // Dial surface picks up faint lume ambient bounce
   if(dialMesh && dialMesh.material) {
-    // Darken dial surface at night — lighter dials need more darkening
     const dayColor = new THREE.Color(DIALS[currentDial].bg);
     const nightDialColor = dayColor.clone().lerp(new THREE.Color(0x080810), modeBlend * 0.92);
     dialMesh.material.color.copy(nightDialColor);
-    dialMesh.material.emissive = dialMesh.material.emissive || new THREE.Color(0);
-    dialMesh.material.emissive.copy(lumeEmCol).multiplyScalar(0.08);
-    dialMesh.material.emissiveIntensity = modeBlend;
+    if(dialMesh.material.emissive) { // PBR materials only (kawthar, qamar)
+      dialMesh.material.emissive.copy(lumeEmCol).multiplyScalar(0.08);
+      dialMesh.material.emissiveIntensity = modeBlend;
+    }
   }
   // Darken lower dial too
   if(dialLowerMesh && dialLowerMesh.material) {
