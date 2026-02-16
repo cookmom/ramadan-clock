@@ -1772,8 +1772,9 @@ function animate(){
   // Parallax + interactive spec light
   gx+=(tgx-gx)*0.08; gy+=(tgy-gy)*0.08;
   // gyro debug dot removed
-  cam.position.x = gx*25;
-  cam.position.y = -30 + -gy*20;
+  // Camera stays fixed — no parallax (Tawfeeq preference)
+  cam.position.x = 0;
+  cam.position.y = -3;
   cam.lookAt(0,0,0);
   
   // HDRI rotation with tilt — softboxes sweep across hands from pleasing rest position
