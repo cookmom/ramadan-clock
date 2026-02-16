@@ -111,7 +111,7 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 3));
 renderer.setSize(W, H);
 renderer.shadowMap.enabled = false;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.2;
+renderer.toneMappingExposure = 0.8;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 document.body.appendChild(renderer.domElement);
 
@@ -141,7 +141,7 @@ composer.addPass(bloomPass);
 // ══════════════════════════════════════════
 // LIGHTING
 // ══════════════════════════════════════════
-const ambLight = new THREE.AmbientLight(0xffffff, 0.25); // direct ambient — HDRI is per-material only
+const ambLight = new THREE.AmbientLight(0xffffff, 0.15);
 scene.add(ambLight);
 
 // Softbox rect light — product-shot fill
@@ -242,14 +242,14 @@ function metalMat(color) {
     clearcoatRoughness: 0.05,
     reflectivity: precious ? 1.0 : 0.9
   });
-  m.envMapIntensity = precious ? 1.2 : 1.0; // hands are the heroes — cranked HDRI reflections
+  m.envMapIntensity = precious ? 0.5 : 0.35; // hands catch HDRI but don't blow out
   return m;
 }
 function lumeMat(color) {
   const m = new THREE.MeshStandardMaterial({ color, roughness: 0.5, metalness: 0.0, emissive: color, emissiveIntensity: 0 }); m.envMapIntensity = 0; return m; // lume = paint, no reflections
 }
 function secMat(color) {
-  const m = new THREE.MeshStandardMaterial({ color, roughness: 0.2, metalness: 0.4, emissive: color, emissiveIntensity: 0 }); m.envMapIntensity = 0.8; return m; // second hand catches HDRI
+  const m = new THREE.MeshStandardMaterial({ color, roughness: 0.25, metalness: 0.35, emissive: color, emissiveIntensity: 0 }); m.envMapIntensity = 0.3; return m; // second hand catches HDRI
 }
 
 // ══════════════════════════════════════════
@@ -377,7 +377,7 @@ initGyro();
 // Background surround plane — flush with dial face, hole cut for gap
 const CLOCK_SCALE = EMBED ? 0.65 : 0.50;
 const bgCutoutR = R * 1.12 * CLOCK_SCALE; // flush with dial edge, no gap
-const bgPlaneMat = new THREE.MeshPhysicalMaterial({ color: 0x1a1a22, roughness: 1.0, metalness: 0.0, envMapIntensity: 0 }); // zero IBL — stays true to color
+const bgPlaneMat = new THREE.MeshBasicMaterial({ color: 0x1a1a22 }); // BasicMaterial = exact color, no IBL washout
 const bgShape = new THREE.Shape();
 bgShape.moveTo(-1000, -1000); bgShape.lineTo(1000, -1000); bgShape.lineTo(1000, 1000); bgShape.lineTo(-1000, 1000); bgShape.closePath();
 const bgHole = new THREE.Path();
@@ -932,7 +932,7 @@ function buildQibla() {
   const innerMat = new THREE.MeshPhysicalMaterial({
     color: new THREE.Color(d.bg).multiplyScalar(0.95),
     roughness: 0.15, metalness: 0.6,
-    clearcoat: 0.5, envMapIntensity: 1.0
+    clearcoat: 0.5, envMapIntensity: 0.4
   });
   const innerDisc = new THREE.Mesh(new THREE.CircleGeometry(innerR, 48), innerMat);
   qiblaInnerRotor.add(innerDisc);
@@ -990,7 +990,7 @@ function buildQibla() {
     specularColor: new THREE.Color(0xffffff),
     attenuationDistance: 20,  // how far light travels before tinting
     attenuationColor: new THREE.Color(0xf8f8ff), // very slight cool tint (sapphire)
-    envMapIntensity: 1.5
+    envMapIntensity: 0.6
   });
   const glassMesh = new THREE.Mesh(glassDome, glassMat);
   glassMesh.position.y = -R*0.5;
@@ -1613,14 +1613,14 @@ function animate(){
   bloomPass.threshold = 0.85 - modeBlend * 0.25; // floor 0.6 — only hottest emissives bloom
   
   // Dim scene lights for night — let lume own the scene
-  ambLight.intensity = 0.25 * (1 - modeBlend * 0.85);
+  ambLight.intensity = 0.15 * (1 - modeBlend * 0.85);
   keyLight.intensity = 3.5 * (1 - modeBlend * 0.8);
   coolFill.intensity = 1.2 * (1 - modeBlend * 0.9);
   spotLight.intensity = 1.5 * (1 - modeBlend * 0.7);
   specPoint.intensity = 20 * (1 - modeBlend * 0.6);
   counterSpec.intensity = 6 * (1 - modeBlend * 0.7);
   subSpot.intensity = 30 * (1 - modeBlend * 0.5);
-  renderer.toneMappingExposure = 1.2 - modeBlend * 0.4;
+  renderer.toneMappingExposure = 0.8 - modeBlend * 0.3;
   
   // Vignette at night
   vignetteEl.style.opacity = modeBlend * 0.8;
