@@ -1698,7 +1698,7 @@ function animate(){
   }
   
   // BG color blend
-  const nightBg = new THREE.Color(DIALS[currentDial].bg).lerp(new THREE.Color(0x060608), modeBlend);
+  const nightBg = new THREE.Color(DIALS[currentDial].bg).lerp(new THREE.Color(0x0a0e18), modeBlend); // deep midnight — not void black
   if(!EMBED) scene.background = nightBg;
   bgPlaneMat.color.copy(nightBg);
   
