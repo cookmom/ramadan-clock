@@ -798,10 +798,9 @@ function buildQibla() {
   const gaugeR = cutoutR - 1.5;
   const d = DIALS[currentDial];
   
-  // Base disc — MeshBasicMaterial like dial face, guaranteed visible
-  // Slightly darker than dial to define the subdial area
+  // Base disc — MeshBasicMaterial, subtle contrast from main dial
   const baseMat = new THREE.MeshBasicMaterial({
-    color: new THREE.Color(d.bg).multiplyScalar(0.8),
+    color: new THREE.Color(d.bg).multiplyScalar(0.88),
   });
   const baseDisc = new THREE.Mesh(new THREE.CircleGeometry(gaugeR, 64), baseMat);
   qiblaGroup.add(baseDisc);
@@ -903,7 +902,7 @@ function buildQibla() {
   // Rotor disc — slightly smaller, different tone
   const rotorR = gaugeR - 2;
   const rotorMat = new THREE.MeshBasicMaterial({
-    color: new THREE.Color(d.bg).multiplyScalar(0.85),
+    color: new THREE.Color(d.bg).multiplyScalar(0.9),
   });
   const rotorDisc = new THREE.Mesh(new THREE.CircleGeometry(rotorR, 64), rotorMat);
   qiblaRotor.add(rotorDisc);
@@ -980,7 +979,7 @@ function buildQibla() {
       // Offset color index per ring so alignment creates columns
       const colIdx = (s + ri * 0) % segCount; // same order — alignment = color match
       const fullColor = new THREE.Color(sorbet[colIdx]);
-      const dimColor = fullColor.clone().lerp(new THREE.Color(d.bg), 0.2); // lightly tinted — keep colors alive
+      const dimColor = fullColor.clone(); // full color — the Ressence rings should pop
       const segMat = new THREE.MeshBasicMaterial({
         color: dimColor,
       });
@@ -1070,7 +1069,7 @@ function buildQibla() {
   glassMesh.rotation.x = 0;
   glassMesh.renderOrder = 10;
   glassMesh.material.depthWrite = false;
-  glassMesh.visible = false; // TEMPORARILY HIDDEN — get subdial right first, then add glass back
+  glassMesh.visible = true;
   clockGroup.add(glassMesh);
   bezelMeshes.push(glassMesh);
 }
