@@ -804,7 +804,7 @@ function buildQibla() {
   if(qiblaGroup) clockGroup.remove(qiblaGroup);
   qiblaGroup = new THREE.Group();
   qiblaGroup.position.y = -R*0.5;
-  qiblaGroup.position.z = -0.5; // recessed into dial — real watch subdial depth
+  qiblaGroup.position.z = 0; // flush with dial — avoids hand clipping at cutout edge
   
   const gaugeR = cutoutR - 1.5;
   const d = DIALS[currentDial];
