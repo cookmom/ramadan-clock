@@ -1201,14 +1201,14 @@ function buildStars(){
   const moonGeo = new THREE.CircleGeometry(moonR, 48);
   const moonMat = new THREE.MeshBasicMaterial({
     map: moonTexN,
-    color: new THREE.Color(1.6, 1.55, 1.45), // slight HDR for bloom
+    color: new THREE.Color(1.15, 1.12, 1.05), // barely HDR — moon glows, doesn't blast
     transparent: true, opacity: 0, depthWrite: false,
   });
   moonMesh = new THREE.Mesh(moonGeo, moonMat);
   moonGroup.add(moonMesh);
   
   // Soft radial glow — larger, subtle
-  const glowGeo = new THREE.CircleGeometry(moonR * 4, 48);
+  const glowGeo = new THREE.CircleGeometry(moonR * 2.5, 48);
   // Radial gradient texture for soft atmospheric falloff
   const glowCv = document.createElement('canvas');
   glowCv.width = 128; glowCv.height = 128;
@@ -1650,12 +1650,12 @@ function animate(){
     if(moonMesh) {
       moonMesh.material.opacity = moonBlend;
       // HDR moon tinted slightly toward lume
-      const mc = new THREE.Color(1.6, 1.55, 1.45);
-      mc.lerp(new THREE.Color(lumeEmCol).multiplyScalar(1.2), 0.15);
+      const mc = new THREE.Color(1.15, 1.12, 1.05);
+      mc.lerp(new THREE.Color(lumeEmCol).multiplyScalar(0.8), 0.1);
       moonMesh.material.color.copy(mc);
     }
     if(moonGlowMesh) {
-      moonGlowMesh.material.opacity = moonBlend * 0.35; // higher because radial gradient handles falloff
+      moonGlowMesh.material.opacity = moonBlend * 0.15;
       const gc = new THREE.Color(1.2, 1.15, 1.0);
       gc.lerp(new THREE.Color(lumeEmCol).multiplyScalar(1.2), 0.2);
       moonGlowMesh.material.color.copy(gc);
