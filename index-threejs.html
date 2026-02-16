@@ -1058,35 +1058,32 @@ function buildQibla() {
     0, Math.PI*0.22   // taller dome (~40° cap) — more glass volume = more liquid distortion visible
   );
   // ── Apple Liquid Glass effect ──
-  // Key insight: liquid glass = slightly frosted transmission + high thickness +
-  // strong dispersion + attenuation. NOT perfectly clear — the slight roughness
-  // creates that milky refractive swim as you tilt.
-  // Reference: ektogamat/apple-liquid-glass (MIT)
+  // Based on ektogamat/apple-liquid-glass (MIT) — the key is massive dispersion
+  // + full iridescence for that rainbow color-shifting surface sheen.
+  // Reference values: roughness 0.23, ior 1.8, thickness 2, dispersion 12,
+  // iridescence 1, iridescenceIOR 0.9, iridescenceThicknessRange [233, 434]
   const glassMat = new THREE.MeshPhysicalMaterial({
     color: 0xffffff,
-    roughness: 0.06,      // slight frost — the "liquid" quality (not mirror-clear)
+    roughness: 0.15,      // slightly frosted — the "liquid" quality
     metalness: 0.0,
-    transmission: 0.97,   // near-perfect transmission
-    thickness: 8.0,       // HIGH — drives visible refraction distortion of elements below
-    ior: 1.45,            // lower than sapphire (1.77) — softer, more spread-out distortion
-    dispersion: 0.5,      // strong chromatic aberration at edges — rainbow shimmer
-    clearcoat: 1.0,
-    clearcoatRoughness: 0.02,
-    transparent: false,   // transmission handles it
-    specularIntensity: 2.5,
-    specularColor: new THREE.Color(0xffffff),
-    attenuationDistance: 8,   // shorter = more visible color tint through glass
-    attenuationColor: new THREE.Color(0xe8ecff), // cool blue-white sapphire tint
-    envMapIntensity: 7.0,     // cranked — liquid glass catches environment hard
-    sheen: 0.3,               // subtle surface sheen for that frosted-liquid look
-    sheenRoughness: 0.2,
-    sheenColor: new THREE.Color(0xddeeff),
+    transmission: 1.0,    // fully transparent via transmission (not opacity)
+    thickness: 3.0,       // moderate — enough distortion without obliterating subdial
+    ior: 1.8,             // from ektogamat — slightly higher than glass
+    dispersion: 8,        // MASSIVE chromatic rainbow fire (ektogamat uses 12, we dial back slightly)
+    clearcoat: 0.2,
+    clearcoatRoughness: 0.1,
+    transparent: false,
+    reflectivity: 0.4,
+    iridescence: 1.0,             // full thin-film color shifting
+    iridescenceIOR: 0.9,          // from ektogamat
+    iridescenceThicknessRange: [233, 434],  // nm range for color variation
+    envMapIntensity: 2.0,         // catches HDRI but doesn't overpower
   });
   const glassMesh = new THREE.Mesh(glassDome, glassMat);
   glassMesh.position.y = -R*0.5;
-  glassMesh.position.z = 3;  // above subdial elements, under hands
+  glassMesh.position.z = 2;  // just above subdial elements (max z ~1.3)
   glassMesh.rotation.x = 0;
-  glassMesh.renderOrder = 1; // render early — hands must draw ON TOP of glass
+  glassMesh.renderOrder = 10; // render AFTER subdial elements so transmission can sample them
   glassMesh.material.depthWrite = false; // don't block hands in depth buffer
   clockGroup.add(glassMesh);
   bezelMeshes.push(glassMesh);
