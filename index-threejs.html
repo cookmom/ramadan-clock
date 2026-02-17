@@ -582,9 +582,14 @@ function buildDial() {
   dialLowerMesh.receiveShadow = true;
   clockGroup.add(dialLowerMesh);
   
-  // Upper disc — FLAT circle (no hole, no extrusion)
-  // Subdial overlays on top. No cutout = no hand clipping.
-  const geo = new THREE.CircleGeometry(caseR, 128);
+  // Upper disc — flat circle with subdial cutout
+  const dialShape = new THREE.Shape();
+  dialShape.absarc(0, 0, caseR, 0, Math.PI*2, false);
+  // Cut hole for subdial
+  const holePath = new THREE.Path();
+  holePath.absarc(0, subY, cutoutR, 0, Math.PI*2, true);
+  dialShape.holes.push(holePath);
+  const geo = new THREE.ShapeGeometry(dialShape, 128);
   dialMesh = new THREE.Mesh(geo, dialMat(DIALS[currentDial].bg));
   dialMesh.position.z = 0; // flat at origin
   clockGroup.add(dialMesh);
@@ -884,7 +889,7 @@ function buildQibla() {
   if(qiblaGroup) clockGroup.remove(qiblaGroup);
   qiblaGroup = new THREE.Group();
   qiblaGroup.position.y = -R*0.5;
-  qiblaGroup.position.z = 0; // flush with dial — avoids hand clipping at cutout edge
+  qiblaGroup.position.z = 0; // flush with dial — cutout prevents z-fighting
   
   const gaugeR = cutoutR - 1.5;
   const d = DIALS[currentDial];
