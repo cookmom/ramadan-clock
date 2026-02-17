@@ -2037,7 +2037,11 @@ function animate(){
     });
   }
   
-  const bgHex = '#'+bgPlaneMat.color.getHexString();
+  // Sample actual rendered pixel from canvas corner — matches PBR-lit appearance
+  const _gl = renderer.getContext();
+  const _px = new Uint8Array(4);
+  _gl.readPixels(0, 0, 1, 1, _gl.RGBA, _gl.UNSIGNED_BYTE, _px);
+  const bgHex = '#'+((1<<24)|(_px[0]<<16)|(_px[1]<<8)|_px[2]).toString(16).slice(1);
   document.querySelector('meta[name="theme-color"]').content=bgHex;
   document.documentElement.style.background = document.body.style.background = bgHex; // keep notch/Dynamic Island synced
   
