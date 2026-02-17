@@ -23,10 +23,21 @@ canvas{display:block;width:100%;height:100%}
 #modeToggle{position:fixed;top:calc(env(safe-area-inset-top,12px) + 12px);right:16px;z-index:10;opacity:0;transition:opacity .4s;pointer-events:none;cursor:pointer;background:none;border:none;padding:8px}
 #modeToggle.visible{opacity:1;pointer-events:auto}
 #modeToggle svg{width:22px;height:22px;stroke-width:1;fill:none;stroke:currentColor;transition:color .4s}
+#prayerBar{position:fixed;top:calc(env(safe-area-inset-top,12px) + 12px);left:16px;right:60px;font-family:'Inter',system-ui,sans-serif;font-size:11px;font-weight:300;letter-spacing:.8px;text-align:left;opacity:0;transition:opacity .4s;z-index:10;pointer-events:none}
+#prayerBar.visible{opacity:1}
+#prayerTimes{opacity:0.7}
+#dialInfo{position:fixed;bottom:calc(env(safe-area-inset-bottom,0px) + 70px);left:0;right:0;text-align:center;font-family:'Inter',system-ui,sans-serif;opacity:0;transition:opacity .4s;z-index:10;pointer-events:none}
+#dialInfo.visible{opacity:1;pointer-events:auto}
+#dialName{font-size:12px;font-weight:400;letter-spacing:1px;text-transform:uppercase}
+#dialSurah{font-size:10px;font-weight:200;letter-spacing:1.5px;margin-top:3px;opacity:0.6;display:inline}
+#listenBtn{background:none;border:none;padding:2px 6px;cursor:pointer;opacity:0.5;transition:opacity .2s;vertical-align:middle}
+#listenBtn:hover,#listenBtn:active{opacity:1}
+#listenBtn svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.5}
 </style>
 </head>
 <body>
 <div id="vignette"></div>
+<div id="prayerBar"><span id="prayerTimes"></span></div>
 <button id="modeToggle" aria-label="Toggle day/night"><svg id="modeIcon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5" /><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg></button>
 <div id="info"><div class="hijri" id="hijri"></div><div class="greg" id="greg"></div><div class="surah" id="surah"></div></div>
 <div id="dialBar">
@@ -41,8 +52,9 @@ canvas{display:block;width:100%;height:100%}
   <div class="dial-dot" data-dial="qamar" style="border-color:#c0c4cc"></div>
   <div class="dial-dot" data-dial="ward" style="border-color:#d89098"></div>
   <div class="dial-dot" data-dial="lilas" style="border-color:#8878a8"></div>
-  <div class="dial-dot" data-dial="rainbow" style="border-color:#1a1a1a;background:linear-gradient(135deg,#ff4040,#ff8c00,#ffd700,#40c040,#4090ff,#8040c0)"></div>
+  <!-- <div class="dial-dot" data-dial="rainbow" style="border-color:#1a1a1a;background:linear-gradient(135deg,#ff4040,#ff8c00,#ffd700,#40c040,#4090ff,#8040c0)"></div> -->
 </div>
+<div id="dialInfo"><span id="dialName"></span><br><span id="dialSurah"></span><button id="listenBtn" aria-label="Listen to surah"><svg viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg></button></div>
 
 <script type="importmap">
 { "imports": { "three": "https://esm.sh/three@0.170.0", "three/addons/": "https://esm.sh/three@0.170.0/examples/jsm/" } }
@@ -346,6 +358,56 @@ function makeNumeralBumpMap(numerals, font, size = 512) {
 }
 const numeralBumpTex = makeNumeralBumpMap();
 
+// ── Procedural galvanized dial texture (NOMOS-style fine grain) ──
+function makeDialTextures() {
+  const sz = 512;
+  // Normal map — fine grain bumps
+  const nCvs = document.createElement('canvas'); nCvs.width = nCvs.height = sz;
+  const nCtx = nCvs.getContext('2d');
+  const nData = nCtx.createImageData(sz, sz);
+  // Roughness map — subtle variation
+  const rCvs = document.createElement('canvas'); rCvs.width = rCvs.height = sz;
+  const rCtx = rCvs.getContext('2d');
+  const rData = rCtx.createImageData(sz, sz);
+  
+  // Seed-based pseudo-random for consistency
+  let seed = 42;
+  function rand() { seed = (seed * 16807 + 0) % 2147483647; return (seed - 1) / 2147483646; }
+  
+  for (let i = 0; i < sz * sz; i++) {
+    const idx = i * 4;
+    // Fine grain normal perturbation (galvanized texture)
+    const nx = (rand() - 0.5) * 0.15; // subtle X perturbation
+    const ny = (rand() - 0.5) * 0.15; // subtle Y perturbation
+    nData.data[idx]     = Math.floor((nx + 0.5) * 255); // R = X
+    nData.data[idx + 1] = Math.floor((ny + 0.5) * 255); // G = Y
+    nData.data[idx + 2] = 255; // B = Z (mostly up)
+    nData.data[idx + 3] = 255;
+    
+    // Roughness variation (0.85-1.0 range for matte galvanized look)
+    const rv = 0.85 + rand() * 0.15;
+    const rvByte = Math.floor(rv * 255);
+    rData.data[idx] = rvByte;
+    rData.data[idx + 1] = rvByte;
+    rData.data[idx + 2] = rvByte;
+    rData.data[idx + 3] = 255;
+  }
+  
+  nCtx.putImageData(nData, 0, 0);
+  rCtx.putImageData(rData, 0, 0);
+  
+  const normalMap = new THREE.CanvasTexture(nCvs);
+  normalMap.wrapS = normalMap.wrapT = THREE.RepeatWrapping;
+  normalMap.repeat.set(3, 3); // tile for finer grain
+  
+  const roughnessMap = new THREE.CanvasTexture(rCvs);
+  roughnessMap.wrapS = roughnessMap.wrapT = THREE.RepeatWrapping;
+  roughnessMap.repeat.set(3, 3);
+  
+  return { normalMap, roughnessMap };
+}
+const dialTextures = makeDialTextures();
+
 function dialMat(color) {
   const cd = currentDial;
   const special = {
@@ -353,16 +415,19 @@ function dialMat(color) {
     qamar:   { roughness:0.35, metalness:0.4, sheen:0, sheenColor:0x000000, sheenRoughness:0.8, clearcoat:0.2, clearcoatRoughness:0.2 },
   };
   const s = special[cd] || { roughness:0.95, metalness:0.0, sheen:0, sheenColor:0x000000, sheenRoughness:0.8, clearcoat:0, clearcoatRoughness:0 };
-  // Dial = PBR — responds to lighting, environment, exposure
+  // Dial = PBR with galvanized grain texture
   const m = new THREE.MeshPhysicalMaterial({
     color,
     roughness: s.roughness,
     metalness: s.metalness,
     clearcoat: s.clearcoat,
     clearcoatRoughness: s.clearcoatRoughness,
+    normalMap: dialTextures.normalMap,
+    normalScale: new THREE.Vector2(0.3, 0.3), // subtle grain — not aggressive
+    roughnessMap: dialTextures.roughnessMap,
   });
   if (s.sheen > 0) { m.sheen = s.sheen; m.sheenColor = new THREE.Color(s.sheenColor); m.sheenRoughness = s.sheenRoughness; }
-  m.envMapIntensity = 0.3; // subtle environment, mostly diffuse
+  m.envMapIntensity = 0.4; // slightly bumped — grain catches more light
   return m;
 }
 function metalMat(color) {
@@ -551,7 +616,16 @@ initGyro();
 // Background surround plane — flush with dial face, hole cut for gap
 const CLOCK_SCALE = EMBED ? 0.65 : 0.50;
 const bgCutoutR = R * 1.12 * CLOCK_SCALE; // flush with dial edge, no gap
-const bgPlaneMat = new THREE.MeshBasicMaterial({ color: 0x18181e }); // unlit — background
+// Background = PBR with fine leather/matte texture
+const bgPlaneMat = new THREE.MeshPhysicalMaterial({
+  color: 0x18181e,
+  roughness: 0.92,
+  metalness: 0.0,
+  normalMap: dialTextures.normalMap,
+  normalScale: new THREE.Vector2(0.2, 0.2), // subtler than dial
+  roughnessMap: dialTextures.roughnessMap,
+  envMapIntensity: 0.15,
+});
 const bgShape = new THREE.Shape();
 bgShape.moveTo(-1000, -1000); bgShape.lineTo(1000, -1000); bgShape.lineTo(1000, 1000); bgShape.lineTo(-1000, 1000); bgShape.closePath();
 const bgHole = new THREE.Path();
@@ -767,16 +841,19 @@ function buildNumerals() {
     const geo = new THREE.ExtrudeGeometry(shapes, extrudeSettings);
     geo.computeVertexNormals();
     
+    // Same rhodium-plated finish as the minute hands
+    const precious = ['kawthar','dhuha','qamar','rainbow'].includes(currentDial);
     const faceMat = new THREE.MeshPhysicalMaterial({
-      color: new THREE.Color(c.lume),
-      metalness: 0.6,
-      roughness: 0.08,
-      clearcoat: 0.5,
-      clearcoatRoughness: 0.1,
-      envMapIntensity: 4.0,
+      color: new THREE.Color(c.hand),
+      roughness: precious ? 0.05 : 0.08,
+      metalness: precious ? 0.8 : 0.6,
+      clearcoat: 1.0,
+      clearcoatRoughness: 0.05,
+      reflectivity: precious ? 1.0 : 0.9,
       emissive: new THREE.Color(c.lume),
-      emissiveIntensity: 0, // lume activates in night mode
+      emissiveIntensity: 0,
     });
+    faceMat.envMapIntensity = precious ? 6.0 : 5.0;
     
     const mesh = new THREE.Mesh(geo, faceMat);
     mesh.position.x = Math.cos(ang) * r;
@@ -799,9 +876,9 @@ function buildHands() {
   
   const c = DIALS[currentDial];
   
-  // Hour — NOMOS Club Campus sword hand
+  // Hour — NOMOS Club Campus sword hand (slimmed to match reference)
   hourGroup = new THREE.Group();
-  const hL=R*0.75, hW=R*0.05, hT=R*0.05, hD=4;
+  const hL=R*0.75, hW=R*0.035, hT=R*0.04, hD=4;
   const hGeo = nomosHand(hL, hW, hT, hD);
   hourMat_ = metalMat(c.hand);
   const hMesh = new THREE.Mesh(hGeo, hourMat_);
@@ -816,9 +893,9 @@ function buildHands() {
   hourGroup.position.z = 15;
   clockGroup.add(hourGroup);
   
-  // Minute — NOMOS Club Campus sword hand
+  // Minute — NOMOS Club Campus sword hand (slimmed to match reference)
   minGroup = new THREE.Group();
-  const mL=R*0.925, mW=R*0.05, mT=R*0.07, mD=5;
+  const mL=R*0.925, mW=R*0.035, mT=R*0.055, mD=5;
   const mGeo = nomosHand(mL, mW, mT, mD);
   minMat_ = metalMat(c.hand);
   const mMesh = new THREE.Mesh(mGeo, minMat_);
@@ -1549,6 +1626,17 @@ function buildAll(){
   document.documentElement.style.background = document.body.style.background = '#' + dialBg.getHexString(); // extend to notch/Dynamic Island
   const steps = [['dial',buildDial],['bezel',buildBezel],['markers',buildMarkers],['numerals',buildNumerals],['hands',buildHands],['qibla',buildQibla],['flap',buildFlap],['stars',buildStars],['surah',updateSurah]];
   for(const [name,fn] of steps) { try { fn(); } catch(e) { console.error(`buildAll: ${name} failed:`, e); } }
+  // Update dial info panel
+  const c = DIALS[currentDial];
+  const dn = document.getElementById('dialName');
+  const ds = document.getElementById('dialSurah');
+  const lb = document.getElementById('listenBtn');
+  if(dn) { dn.textContent = currentDial.charAt(0).toUpperCase() + currentDial.slice(1); dn.style.color = c.text; }
+  if(ds) { ds.textContent = c.surah || ''; ds.style.color = c.text; }
+  if(lb) { lb.style.color = c.text; }
+  // Update prayer times color
+  const pt = document.getElementById('prayerTimes');
+  if(pt) pt.style.color = c.text;
 }
 // Wait for fonts then build (Lateef for Arabic numerals)
 document.fonts.ready.then(()=>buildAll());
@@ -1639,9 +1727,13 @@ async function fetchPrayer(){
   const d=new Date(), dd=`${d.getDate()}-${d.getMonth()+1}-${d.getFullYear()}`;
   const r=await fetch(`https://api.aladhan.com/v1/timingsByCity/${dd}?city=LosAngeles&country=US&method=2`);
   const j=await r.json();if(j.code===200){PD=j.data.timings;
-  document.getElementById('hijri').textContent=`Fajr ${PD.Fajr} · Maghrib ${PD.Maghrib}`;
+  // Prayer times → top bar
+  document.getElementById('prayerTimes').textContent=`Fajr ${PD.Fajr} · Dhuhr ${PD.Dhuhr} · Asr ${PD.Asr} · Maghrib ${PD.Maghrib} · Isha ${PD.Isha}`;
+  document.getElementById('prayerTimes').style.color=DIALS[currentDial].text;
+  // Bottom info — date
+  document.getElementById('hijri').textContent=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
   document.getElementById('hijri').style.color=DIALS[currentDial].text;
-  document.getElementById('greg').textContent=new Date().toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  document.getElementById('greg').textContent='';
   document.getElementById('greg').style.color=DIALS[currentDial].text;
   }}catch(e){}
 }
@@ -1650,6 +1742,24 @@ fetchPrayer();
 // ══════════════════════════════════════════
 // INTERACTIONS
 // ══════════════════════════════════════════
+// ── Surah audio (Alafasy via QuranCDN) ──
+const SURAH_MAP = {
+  'Ar-Raḥmān': 55, 'An-Nūr': 24, 'Ash-Shams': 91, 'Al-Layl': 92,
+  'Al-Burūj': 85, 'Al-Kawthar': 108, 'Aḍ-Ḍuḥā': 93, 'An-Najm': 53,
+  'Al-Qamar': 54, 'Al-Wāqiʿah': 56, 'Al-Mulk': 67, 'Al-Insān': 76,
+};
+let surahAudio = null;
+document.getElementById('listenBtn').addEventListener('click', (e) => {
+  e.stopPropagation();
+  const surahName = DIALS[currentDial].surah;
+  const num = SURAH_MAP[surahName];
+  if (!num) return;
+  if (surahAudio && !surahAudio.paused) { surahAudio.pause(); surahAudio = null; return; }
+  const pad = String(num).padStart(3, '0');
+  surahAudio = new Audio(`https://cdn.islamic.network/quran/audio-surah/128/ar.alafasy/${pad}.mp3`);
+  surahAudio.play().catch(() => {});
+});
+
 let infoTimer;
 const SUN_SVG='<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
 const MOON_SVG='<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
@@ -1665,9 +1775,11 @@ document.getElementById('modeToggle').addEventListener('click',(e)=>{
 function showInfo(){
   document.getElementById('info').classList.add('visible');
   document.getElementById('dialBar').classList.add('visible');
+  document.getElementById('dialInfo').classList.add('visible');
+  document.getElementById('prayerBar').classList.add('visible');
   document.getElementById('modeToggle').classList.add('visible');
   clearTimeout(infoTimer);
-  infoTimer=setTimeout(()=>{document.getElementById('info').classList.remove('visible');document.getElementById('dialBar').classList.remove('visible');document.getElementById('modeToggle').classList.remove('visible');},4000);
+  infoTimer=setTimeout(()=>{document.getElementById('info').classList.remove('visible');document.getElementById('dialBar').classList.remove('visible');document.getElementById('dialInfo').classList.remove('visible');document.getElementById('prayerBar').classList.remove('visible');document.getElementById('modeToggle').classList.remove('visible');},4000);
 }
 renderer.domElement.addEventListener('click',showInfo);
 renderer.domElement.addEventListener('dblclick',()=>{modeTarget=modeTarget>0.5?0:1;});
