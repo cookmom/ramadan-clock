@@ -841,19 +841,8 @@ function buildNumerals() {
     const geo = new THREE.ExtrudeGeometry(shapes, extrudeSettings);
     geo.computeVertexNormals();
     
-    // Same rhodium-plated finish as the minute hands
-    const precious = ['kawthar','dhuha','qamar','rainbow'].includes(currentDial);
-    const faceMat = new THREE.MeshPhysicalMaterial({
-      color: new THREE.Color(c.hand),
-      roughness: precious ? 0.05 : 0.08,
-      metalness: precious ? 0.8 : 0.6,
-      clearcoat: 1.0,
-      clearcoatRoughness: 0.05,
-      reflectivity: precious ? 1.0 : 0.9,
-      emissive: new THREE.Color(c.lume),
-      emissiveIntensity: 0,
-    });
-    faceMat.envMapIntensity = precious ? 6.0 : 5.0;
+    // Same lume paint finish as minute markers (SuperLuminova)
+    const faceMat = lumeMat(c.lume);
     
     const mesh = new THREE.Mesh(geo, faceMat);
     mesh.position.x = Math.cos(ang) * r;
