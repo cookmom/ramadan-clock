@@ -505,11 +505,10 @@ function initGyro(){
   }
   window.addEventListener('mousemove',e=>{tgx=((e.clientX/W)-0.5)*2;tgy=((e.clientY/H)-0.5)*2;});
 }
-let _gyroDebugCount = 0;
+// gyro debug removed
 function onG(e){
   if(e.gamma===null)return;
-  _gyroDebugCount++;
-  if(_gyroDebugCount <= 3) console.log('[gyro] event:', e.gamma?.toFixed(1), e.beta?.toFixed(1));
+  // gyro logging removed
   // Auto-calibrate: first few readings establish the user's natural hold angle
   if(!window._gyroCal) { window._gyroCal = { samples:[], done:false }; }
   if(!window._gyroCal.done) {
