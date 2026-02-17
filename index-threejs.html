@@ -800,9 +800,9 @@ function buildQibla() {
   
   // Base disc — brushed metallic, subtle contrast from dial
   const baseMat = new THREE.MeshPhysicalMaterial({
-    color: new THREE.Color(d.bg).multiplyScalar(0.85),
-    roughness: 0.4, metalness: 0.6,
-    clearcoat: 0.3, envMapIntensity: 5.0,
+    color: new THREE.Color(d.bg).multiplyScalar(0.82),
+    roughness: 0.35, metalness: 0.5,
+    clearcoat: 0.4, envMapIntensity: 3.5,
     roughnessMap: metalGrainTex,
   });
   const baseDisc = new THREE.Mesh(new THREE.CircleGeometry(gaugeR, 64), baseMat);
@@ -851,23 +851,28 @@ function buildQibla() {
   mCtx.fillStyle = `rgb(${bgCol.r*255|0},${bgCol.g*255|0},${bgCol.b*255|0})`;
   mCtx.fillRect(0, 0, 256, 256);
   
-  // Lit portion — draw as ellipse
+  // Lit portion — draw as crescent/gibbous
+  // p=0: new moon (dark), p=0.5: full moon, p=1: new moon again
+  // Hijri month: day 1 ≈ thin crescent, day 15 ≈ full, day 29 ≈ thin crescent
   mCtx.fillStyle = '#f8f4e8';
   mCtx.beginPath();
   if(p <= 0.5) {
-    // Waxing: right side lit, growing
-    const illumination = p * 2; // 0→1
-    // Right half always lit
+    // Waxing: right side grows from nothing to full
+    const illum = p * 2; // 0→1
+    // Right semicircle always lit
     mCtx.arc(cx, cy, mr, -Math.PI/2, Math.PI/2);
-    // Left edge: ellipse that grows from right to left
-    mCtx.ellipse(cx, cy, mr * Math.abs(1 - illumination*2), mr, 0, Math.PI/2, -Math.PI/2, illumination > 0.5);
+    // Terminator edge: controls how much of left side is lit/dark
+    // illum 0→0.5: concave (crescent), 0.5→1: convex (gibbous)
+    const termX = mr * (1 - illum * 2); // mr→-mr as illum 0→1
+    mCtx.ellipse(cx, cy, Math.abs(termX), mr, 0, Math.PI/2, -Math.PI/2, illum < 0.5);
   } else {
-    // Waning: left side lit, shrinking from right
-    const illumination = (1 - p) * 2; // 1→0
-    // Left half always lit
+    // Waning: left side shrinks from full to nothing
+    const illum = (1 - p) * 2; // 1→0
+    // Left semicircle always lit
     mCtx.arc(cx, cy, mr, Math.PI/2, -Math.PI/2);
-    // Right edge: ellipse that shrinks
-    mCtx.ellipse(cx, cy, mr * Math.abs(1 - illumination*2), mr, 0, -Math.PI/2, Math.PI/2, illumination > 0.5);
+    // Terminator
+    const termX = mr * (1 - illum * 2);
+    mCtx.ellipse(cx, cy, Math.abs(termX), mr, 0, -Math.PI/2, Math.PI/2, illum < 0.5);
   }
   mCtx.fill();
   mCtx.restore();
@@ -905,9 +910,9 @@ function buildQibla() {
   // Rotor disc — slightly smaller, different tone
   const rotorR = gaugeR - 2;
   const rotorMat = new THREE.MeshPhysicalMaterial({
-    color: new THREE.Color(d.bg).multiplyScalar(0.9),
-    roughness: 0.3, metalness: 0.5,
-    clearcoat: 0.4, envMapIntensity: 4.0,
+    color: new THREE.Color(d.bg).multiplyScalar(0.75),
+    roughness: 0.2, metalness: 0.6,
+    clearcoat: 0.6, envMapIntensity: 3.0,
   });
   const rotorDisc = new THREE.Mesh(new THREE.CircleGeometry(rotorR, 64), rotorMat);
   qiblaRotor.add(rotorDisc);
@@ -988,9 +993,9 @@ function buildQibla() {
       const dimColor = fullColor.clone(); // full color — the Ressence rings should pop
       const segMat = new THREE.MeshPhysicalMaterial({
         color: fullColor,
-        roughness: 0.5, metalness: 0.0,
-        clearcoat: 0.8, envMapIntensity: 1.0,
-        emissive: fullColor, emissiveIntensity: 0.2,
+        roughness: 0.3, metalness: 0.1,
+        clearcoat: 1.0, envMapIntensity: 2.0,
+        emissive: fullColor, emissiveIntensity: 0.45,
       });
       segMat.userData = { fullColor, dimColor };
       const segMesh = new THREE.Mesh(new THREE.ShapeGeometry(segShape), segMat);
@@ -999,7 +1004,7 @@ function buildQibla() {
     }
     
     ringGroup.position.z = 0.3;
-    qiblaGroup.add(ringGroup);
+    qiblaRotor.add(ringGroup);
     window._subdialRings.push({ group: ringGroup, speed: rd.speed, dir: rd.dir });
   });
   
@@ -1009,9 +1014,9 @@ function buildQibla() {
   
   const innerR = gaugeR * 0.28;
   const innerMat = new THREE.MeshPhysicalMaterial({
-    color: new THREE.Color(d.bg).multiplyScalar(0.8),
-    roughness: 0.1, metalness: 0.7,
-    clearcoat: 0.6, envMapIntensity: 5.0,
+    color: new THREE.Color(d.bg).multiplyScalar(0.65),
+    roughness: 0.08, metalness: 0.8,
+    clearcoat: 0.8, envMapIntensity: 4.0,
   });
   const innerDisc = new THREE.Mesh(new THREE.CircleGeometry(innerR, 48), innerMat);
   qiblaInnerRotor.add(innerDisc);
