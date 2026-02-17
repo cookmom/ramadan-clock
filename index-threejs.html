@@ -90,6 +90,81 @@ const NIGHT_LUME = {
 const DIAL_NAMES = Object.keys(DIALS);
 const ARABIC = ['١٢','١','٢','٣','٤','٥','٦','٧','٨','٩','١٠','١١'];
 
+// ── Lateef Arabic numeral glyph paths (extracted via opentype.js, centered at origin) ──
+// Keys: twelve(12), two(2), four(4), eight(8), ten(10) — NOMOS Campus layout
+const NUMERAL_PATHS = {"twelve":{"a":"١٢","w":63.14,"h":48.53,"c":[["M",-31.57,24.26],["L",-31.57,-24.26],["L",-20.84,-24.26],["L",-20.84,24.26],["L",-31.57,24.26],["Z"],["M",13.43,24.26],["L",-1.69,-17.42],["L",-1.69,-24.26],["L",31.57,-24.26],["L",31.57,-15.12],["L",10.12,-15.12],["L",24.8,24.26],["L",13.43,24.26],["Z"]]},"two":{"a":"٢","w":33.26,"h":48.53,"c":[["M",-1.51,24.26],["L",-16.63,-17.42],["L",-16.63,-24.26],["L",16.63,-24.26],["L",16.63,-15.12],["L",-4.82,-15.12],["L",9.86,24.26],["L",-1.51,24.26],["Z"]]},"four":{"a":"٤","w":30.82,"h":51.12,"c":[["M",2.3,25.56],["L",2.3,25.56],["Q",-0.07,25.56,-2.27,25.2],["Q",-4.46,24.84,-6.48,24.12],["L",-6.48,24.12],["Q",-10.58,22.68,-13,20.34],["Q",-15.41,18,-15.41,15.7],["L",-15.41,15.7],["Q",-15.41,13.03,-13.43,10.62],["Q",-11.45,8.21,-8.24,5.83],["Q",-5.04,3.46,-1.44,1.08],["L",-1.44,1.08],["L",-5.11,-1.94],["Q",-6.91,-3.46,-8.24,-4.68],["Q",-9.58,-5.9,-10.51,-6.91],["Q",-11.45,-7.92,-11.92,-8.68],["Q",-12.38,-9.43,-12.38,-10.01],["L",-12.38,-10.01],["Q",-12.38,-10.94,-11.59,-12.17],["Q",-10.8,-13.39,-9.22,-14.9],["L",-9.22,-14.9],["Q",-7.06,-16.92,-4.03,-18.94],["Q",-1.01,-20.95,2.59,-22.68],["Q",6.19,-24.41,9.94,-25.56],["L",9.94,-25.56],["L",12.6,-16.56],["Q",11.02,-16.06,9.4,-15.44],["Q",7.78,-14.83,6.19,-14.11],["L",6.19,-14.11],["Q",4.54,-13.39,2.7,-12.38],["Q",0.86,-11.38,-0.4,-10.55],["Q",-1.66,-9.72,-1.66,-9.29],["L",-1.66,-9.29],["Q",-1.66,-9.07,-0.61,-8.14],["Q",0.43,-7.2,2.16,-5.83],["Q",3.89,-4.46,6.05,-2.81],["Q",8.21,-1.15,10.44,0.58],["L",10.44,0.58],["Q",6.26,3.46,3.64,5.36],["Q",1.01,7.27,-0.22,8.28],["L",-0.22,8.28],["Q",-2.23,9.86,-3.67,11.41],["Q",-5.11,12.96,-5.11,13.9],["L",-5.11,13.9],["Q",-5.11,14.83,-3.56,15.48],["Q",-2.02,16.13,0.07,16.42],["Q",2.16,16.7,3.89,16.7],["L",3.89,16.7],["Q",6.98,16.7,9.86,16.27],["Q",12.74,15.84,15.41,15.05],["L",15.41,15.05],["L",15.41,23.83],["Q",12.89,24.7,9.61,25.13],["Q",6.34,25.56,2.3,25.56],["Z"]]},"eight":{"a":"٨","w":38.81,"h":48.53,"c":[["M",-19.4,24.26],["L",-5.51,-24.26],["L",5.51,-24.26],["L",19.4,24.26],["L",8.17,24.26],["L",1.69,-3.02],["Q",1.48,-4.03,1.12,-6.05],["Q",0.76,-8.06,0.47,-10.12],["Q",0.18,-12.17,0.11,-13.25],["L",0.11,-13.25],["L",-0.11,-13.25],["Q",-0.18,-11.88,-0.4,-10.26],["Q",-0.61,-8.64,-0.9,-6.84],["Q",-1.19,-5.04,-1.69,-3.02],["L",-1.69,-3.02],["L",-8.17,24.26],["L",-19.4,24.26],["Z"]]},"ten":{"a":"١٠","w":56.81,"h":48.53,"c":[["M",-28.4,24.26],["L",-28.4,-24.26],["L",-17.68,-24.26],["L",-17.68,24.26],["L",-28.4,24.26],["Z"],["M",19.26,8.86],["L",7.74,-2.74],["L",16.81,-11.81],["L",28.4,-0.29],["L",19.26,8.86],["Z"]]}};
+
+// Convert opentype path commands → Three.js Shapes
+// Arabic glyphs have multiple separate strokes — each is its own shape, NOT holes.
+// Holes only exist when one contour is CW inside a CCW contour (or vice versa).
+function pathToShapes(pathData, scale) {
+  const contours = [];
+  let pts = [];
+  for (const cmd of pathData.c) {
+    switch(cmd[0]) {
+      case 'M':
+        if (pts.length > 2) contours.push(pts);
+        pts = [{x: cmd[1]*scale, y: -cmd[2]*scale}];
+        break;
+      case 'L':
+        pts.push({x: cmd[1]*scale, y: -cmd[2]*scale});
+        break;
+      case 'Q': {
+        // Approximate quadratic bezier with line segments
+        const prev = pts[pts.length-1];
+        for (let t = 0.25; t <= 1; t += 0.25) {
+          const mt = 1-t;
+          pts.push({
+            x: mt*mt*prev.x + 2*mt*t*(cmd[1]*scale) + t*t*(cmd[3]*scale),
+            y: mt*mt*prev.y + 2*mt*t*(-cmd[2]*scale) + t*t*(-cmd[4]*scale)
+          });
+        }
+        break;
+      }
+      case 'C': {
+        const prev = pts[pts.length-1];
+        for (let t = 0.2; t <= 1; t += 0.2) {
+          const mt = 1-t;
+          pts.push({
+            x: mt*mt*mt*prev.x + 3*mt*mt*t*(cmd[1]*scale) + 3*mt*t*t*(cmd[3]*scale) + t*t*t*(cmd[5]*scale),
+            y: mt*mt*mt*prev.y + 3*mt*mt*t*(-cmd[2]*scale) + 3*mt*t*t*(-cmd[4]*scale) + t*t*t*(-cmd[6]*scale)
+          });
+        }
+        break;
+      }
+      case 'Z':
+        if (pts.length > 2) contours.push(pts);
+        pts = [];
+        break;
+    }
+  }
+  if (pts.length > 2) contours.push(pts);
+  
+  // Compute signed area for each contour (positive = CCW, negative = CW)
+  const measured = contours.map(pts => {
+    let area = 0;
+    for (let j = 0; j < pts.length; j++) {
+      const k = (j+1) % pts.length;
+      area += pts[j].x * pts[k].y - pts[k].x * pts[j].y;
+    }
+    return { pts, area: area/2 };
+  }).filter(m => Math.abs(m.area) > 0.5); // skip degenerate
+  
+  if (!measured.length) return [];
+  
+  // Simple approach: all contours become independent shapes
+  // (Arabic numerals don't have traditional holes like Latin 'O' or '4')
+  return measured.map(m => {
+    const shape = new THREE.Shape();
+    shape.moveTo(m.pts[0].x, m.pts[0].y);
+    for (let i = 1; i < m.pts.length; i++) {
+      shape.lineTo(m.pts[i].x, m.pts[i].y);
+    }
+    shape.closePath();
+    return shape;
+  });
+}
+
 // URL params
 const _P = new URLSearchParams(location.search);
 const EMBED = _P.has('embed');
@@ -638,42 +713,59 @@ function buildMarkers() {
   }
 }
 
-// Arabic numerals
+// Arabic numerals — extruded 3D geometry (real depth, NOMOS-quality applied)
 let numeralSprites = [];
 let numeralMats = [];
+const NUMERAL_KEY_MAP = {0:'twelve', 2:'two', 4:'four', 8:'eight', 10:'ten'};
+const EXTRUDE_DEPTH = 3; // depth of extruded numerals — matches hand height
+
 function buildNumerals() {
   numeralSprites.forEach(s=>clockGroup.remove(s));
   numeralSprites=[]; numeralMats=[];
   if(currentDial === 'kawthar' || currentDial === 'rainbow') return; // special marker dials — no numerals
   const c = DIALS[currentDial];
   const NUMERAL_POS = [0,2,4,8,10]; // 12, 2, 4, 8, 10 (no 6 — qibla)
+  const targetH = R * 0.19; // target numeral height on dial — NOMOS proportion
+  
   for(const i of NUMERAL_POS){
+    const key = NUMERAL_KEY_MAP[i];
+    const pd = NUMERAL_PATHS[key];
+    if (!pd) continue;
+    
     const ang = Math.PI/2 - (i/12)*Math.PI*2; // CW from 12
-    const r = R - R*0.18; // centered in marker gap
-    const fontSize = R*0.286;
-    const dpr = 6;
-    // Measure actual text width
-    const measCv = document.createElement('canvas');
-    const measCtx = measCv.getContext('2d');
-    measCtx.font = `400 ${fontSize*dpr}px "Lateef",sans-serif`;
-    const measured = measCtx.measureText(ARABIC[i]);
-    const tw = (measured.width / dpr) + fontSize*0.4; // padding
-    const th = fontSize*1.6;
-    const cv = document.createElement('canvas');
-    cv.width = Math.ceil(tw*dpr); cv.height = Math.ceil(th*dpr);
-    const ctx = cv.getContext('2d');
-    ctx.font = `400 ${fontSize*dpr}px "Lateef",sans-serif`;
-    ctx.fillStyle = c.text||'#ffffff';
-    ctx.textAlign='center'; ctx.textBaseline='middle';
-    ctx.fillText(ARABIC[i], cv.width/2, cv.height/2);
-    const tex = new THREE.CanvasTexture(cv);
-    tex.minFilter = THREE.LinearFilter;
-    const geo = new THREE.PlaneGeometry(tw, th);
-    const faceMat = new THREE.MeshPhysicalMaterial({map:tex, transparent:true, metalness:0.6, roughness:0.1, color:0xffffff, depthWrite:false, clearcoat:0.4, clearcoatRoughness:0.15, emissive: new THREE.Color(c.lume), emissiveIntensity: 0}); faceMat.envMapIntensity = 4.0; // applied numerals — polished stamped metal
+    const r = R - R*0.18; // numeral ring radius
+    const scale = targetH / pd.h; // scale glyph to target height
+    
+    const shapes = pathToShapes(pd, scale);
+    if (!shapes.length) continue;
+    
+    const extrudeSettings = {
+      depth: EXTRUDE_DEPTH,
+      bevelEnabled: true,
+      bevelThickness: 0.15,
+      bevelSize: 0.1,
+      bevelOffset: 0,
+      bevelSegments: 3,
+    };
+    
+    const geo = new THREE.ExtrudeGeometry(shapes, extrudeSettings);
+    geo.computeVertexNormals();
+    
+    const faceMat = new THREE.MeshPhysicalMaterial({
+      color: new THREE.Color(c.lume),
+      metalness: 0.6,
+      roughness: 0.08,
+      clearcoat: 0.5,
+      clearcoatRoughness: 0.1,
+      envMapIntensity: 4.0,
+      emissive: new THREE.Color(c.lume),
+      emissiveIntensity: 0, // lume activates in night mode
+    });
+    
     const mesh = new THREE.Mesh(geo, faceMat);
-    mesh.position.x = Math.cos(ang)*r;
-    mesh.position.y = Math.sin(ang)*r;
-    mesh.position.z = 3.5; // raised slightly — applied numerals sit proud of dial
+    mesh.position.x = Math.cos(ang) * r;
+    mesh.position.y = Math.sin(ang) * r;
+    mesh.position.z = 3.5; // proud of dial — same height as hand base
     clockGroup.add(mesh);
     numeralSprites.push(mesh);
     numeralMats.push(faceMat);
