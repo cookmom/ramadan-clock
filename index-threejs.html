@@ -729,7 +729,7 @@ function buildNumerals() {
   if(currentDial === 'kawthar' || currentDial === 'rainbow') return; // special marker dials — no numerals
   const c = DIALS[currentDial];
   const NUMERAL_POS = [0,2,4,8,10]; // 12, 2, 4, 8, 10 (no 6 — qibla)
-  const targetH = R * 0.24; // target numeral height — Lateef needs slightly larger for legibility
+  const targetH = R * 0.16; // NOMOS proportion — compact, not dominant
   
   for(const i of NUMERAL_POS){
     const key = NUMERAL_KEY_MAP[i];
@@ -746,8 +746,8 @@ function buildNumerals() {
     const extrudeSettings = {
       depth: EXTRUDE_DEPTH,
       bevelEnabled: true,
-      bevelThickness: 0.4,
-      bevelSize: 0.3,
+      bevelThickness: 0.2,
+      bevelSize: 0.15,
       bevelOffset: 0,
       bevelSegments: 3,
     };
