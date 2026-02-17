@@ -199,7 +199,7 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 3));
 renderer.setSize(W, H);
 renderer.shadowMap.enabled = false;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 0.75;
+renderer.toneMappingExposure = 0.825;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 document.body.appendChild(renderer.domElement);
 
@@ -365,35 +365,50 @@ function makeNumeralBumpMap(numerals, font, size = 512) {
 }
 const numeralBumpTex = makeNumeralBumpMap();
 
-// ── Procedural galvanized dial texture (NOMOS-style fine grain) ──
+// ── Procedural NOMOS-style radial sunray dial texture ──
+// Real NOMOS dials have a radial brushed finish — fine concentric lines
+// radiating from center that catch light directionally. Not random grain.
 function makeDialTextures() {
-  const sz = 512;
-  // Normal map — fine grain bumps
+  const sz = 1024; // higher res for finer radial lines
+  const cx = sz / 2, cy = sz / 2;
+  
+  // Normal map — radial brushed finish (concentric micro-grooves)
   const nCvs = document.createElement('canvas'); nCvs.width = nCvs.height = sz;
   const nCtx = nCvs.getContext('2d');
   const nData = nCtx.createImageData(sz, sz);
-  // Roughness map — subtle variation
+  
+  // Roughness map — tighter variation for silky matte finish
   const rCvs = document.createElement('canvas'); rCvs.width = rCvs.height = sz;
   const rCtx = rCvs.getContext('2d');
   const rData = rCtx.createImageData(sz, sz);
   
-  // Seed-based pseudo-random for consistency
   let seed = 42;
   function rand() { seed = (seed * 16807 + 0) % 2147483647; return (seed - 1) / 2147483646; }
   
   for (let i = 0; i < sz * sz; i++) {
     const idx = i * 4;
-    // Fine grain normal perturbation (galvanized texture)
-    const nx = (rand() - 0.5) * 0.15; // subtle X perturbation
-    const ny = (rand() - 0.5) * 0.15; // subtle Y perturbation
-    nData.data[idx]     = Math.floor((nx + 0.5) * 255); // R = X
-    nData.data[idx + 1] = Math.floor((ny + 0.5) * 255); // G = Y
-    nData.data[idx + 2] = 255; // B = Z (mostly up)
+    const px = (i % sz) - cx;
+    const py = Math.floor(i / sz) - cy;
+    const dist = Math.sqrt(px * px + py * py);
+    const angle = Math.atan2(py, px);
+    
+    // Radial brushing: normals perpendicular to radius direction
+    // with angular frequency modulation for fine concentric lines
+    const radialNoise = Math.sin(dist * 2.8 + rand() * 0.6) * 0.08;
+    const tangentX = -Math.sin(angle); // tangent direction
+    const tangentY = Math.cos(angle);
+    const nx = tangentX * radialNoise + (rand() - 0.5) * 0.03; // radial brush + micro noise
+    const ny = tangentY * radialNoise + (rand() - 0.5) * 0.03;
+    
+    nData.data[idx]     = Math.floor((nx + 0.5) * 255);
+    nData.data[idx + 1] = Math.floor((ny + 0.5) * 255);
+    nData.data[idx + 2] = 255;
     nData.data[idx + 3] = 255;
     
-    // Roughness variation (0.85-1.0 range for matte galvanized look)
-    const rv = 0.85 + rand() * 0.15;
-    const rvByte = Math.floor(rv * 255);
+    // Roughness: tighter range (0.88-0.96) — silky, not coarse
+    const angularVar = Math.sin(angle * 120) * 0.015; // subtle angular striations
+    const rv = 0.90 + rand() * 0.06 + angularVar;
+    const rvByte = Math.floor(Math.max(0, Math.min(1, rv)) * 255);
     rData.data[idx] = rvByte;
     rData.data[idx + 1] = rvByte;
     rData.data[idx + 2] = rvByte;
@@ -404,12 +419,10 @@ function makeDialTextures() {
   rCtx.putImageData(rData, 0, 0);
   
   const normalMap = new THREE.CanvasTexture(nCvs);
-  normalMap.wrapS = normalMap.wrapT = THREE.RepeatWrapping;
-  normalMap.repeat.set(3, 3); // tile for finer grain
+  normalMap.wrapS = normalMap.wrapT = THREE.ClampToEdgeWrapping; // no tiling — radial is centered
   
   const roughnessMap = new THREE.CanvasTexture(rCvs);
-  roughnessMap.wrapS = roughnessMap.wrapT = THREE.RepeatWrapping;
-  roughnessMap.repeat.set(3, 3);
+  roughnessMap.wrapS = roughnessMap.wrapT = THREE.ClampToEdgeWrapping;
   
   return { normalMap, roughnessMap };
 }
@@ -421,8 +434,8 @@ function dialMat(color) {
     kawthar: { roughness:0.6, metalness:0.15, sheen:0.8, sheenColor:0xd4909a, sheenRoughness:0.3, clearcoat:0.6, clearcoatRoughness:0.3 },
     qamar:   { roughness:0.35, metalness:0.4, sheen:0, sheenColor:0x000000, sheenRoughness:0.8, clearcoat:0.2, clearcoatRoughness:0.2 },
   };
-  const s = special[cd] || { roughness:0.95, metalness:0.0, sheen:0, sheenColor:0x000000, sheenRoughness:0.8, clearcoat:0, clearcoatRoughness:0 };
-  // Dial = PBR with galvanized grain texture
+  const s = special[cd] || { roughness:0.88, metalness:0.02, sheen:0, sheenColor:0x000000, sheenRoughness:0.8, clearcoat:0.1, clearcoatRoughness:0.15 };
+  // Dial = PBR with NOMOS radial sunray texture
   const m = new THREE.MeshPhysicalMaterial({
     color,
     roughness: s.roughness,
@@ -430,11 +443,11 @@ function dialMat(color) {
     clearcoat: s.clearcoat,
     clearcoatRoughness: s.clearcoatRoughness,
     normalMap: dialTextures.normalMap,
-    normalScale: new THREE.Vector2(0.3, 0.3), // subtle grain — not aggressive
+    normalScale: new THREE.Vector2(0.5, 0.5), // radial sunray — visible but refined
     roughnessMap: dialTextures.roughnessMap,
   });
   if (s.sheen > 0) { m.sheen = s.sheen; m.sheenColor = new THREE.Color(s.sheenColor); m.sheenRoughness = s.sheenRoughness; }
-  m.envMapIntensity = 0.4; // slightly bumped — grain catches more light
+  m.envMapIntensity = 0.6; // radial sunray catches directional HDRI light
   return m;
 }
 function metalMat(color) {
@@ -648,9 +661,11 @@ let dialLowerMesh;
 const DIAL_THICKNESS = 0.5; // thin disc — no more cutout walls clipping hands
 const DIAL_GAP = 0.5; // minimal gap — thin disc means no visible cutout walls
 let cutoutR = R*0.38;
+let mainCrystalMesh = null;
 function buildDial() {
   if(dialMesh) clockGroup.remove(dialMesh);
   if(dialLowerMesh) clockGroup.remove(dialLowerMesh);
+  if(mainCrystalMesh) clockGroup.remove(mainCrystalMesh);
   
   const subY = -R*0.5;
   cutoutR = R*0.38;
@@ -676,6 +691,41 @@ function buildDial() {
   dialMesh = new THREE.Mesh(geo, dialMat(DIALS[currentDial].bg));
   dialMesh.position.z = 0; // flat at origin
   clockGroup.add(dialMesh);
+  
+  // ── Main sapphire crystal — full dial dome for glass interaction ──
+  // Real watches: sapphire crystal sits over the entire dial face,
+  // catching light, reflections, and subtle distortion. This is what
+  // makes a watch feel "alive" — the glass interacting with the environment.
+  const crystalR = caseR + 0.5; // slightly wider than dial edge for visible rim catch
+  const crystalDome = new THREE.SphereGeometry(
+    crystalR, 96, 48,
+    0, Math.PI * 2,
+    0, Math.PI * 0.12  // ~22° dome — enough curvature to catch reflections across surface
+  );
+  const crystalMat = new THREE.MeshPhysicalMaterial({
+    color: 0xffffff,
+    roughness: 0.0,        // perfect polish
+    metalness: 0.0,
+    transmission: 0.92,    // slightly less than perfect — visible glass presence
+    thickness: 1.2,        // enough for refraction
+    ior: 1.77,             // real sapphire crystal IOR
+    dispersion: 2.5,       // chromatic edge shimmer on tilt
+    clearcoat: 1.0,
+    clearcoatRoughness: 0.01,
+    transparent: true,
+    opacity: 0.1,          // fallback
+    iridescence: 0.25,     // subtle thin-film — hints of color sweeping on tilt
+    iridescenceIOR: 1.3,
+    iridescenceThicknessRange: [100, 400],
+    envMapIntensity: 4.0,  // strong environment reflections — the key to glass interaction
+    specularIntensity: 2.5,
+    specularColor: new THREE.Color(0xffffff),
+  });
+  mainCrystalMesh = new THREE.Mesh(crystalDome, crystalMat);
+  mainCrystalMesh.position.z = 2.0; // sits just above hands — closer to dial for visible interaction
+  mainCrystalMesh.renderOrder = 20;  // render last for correct transparency
+  mainCrystalMesh.material.depthWrite = false;
+  clockGroup.add(mainCrystalMesh);
 }
 
 // Case ring removed — using dial circle edge only
@@ -1128,60 +1178,8 @@ function buildQibla() {
   
   qiblaGroup.add(qiblaRotor);
   
-  // ── Concentric rotating rings ──
-  const ringDefs = [
-    { r: rotorR * 0.85, width: 1.8, speed: 0.3,  dir: 1  },  // outer ring — slow CW
-    { r: rotorR * 0.65, width: 1.2, speed: 0.5,  dir: -1 },  // mid ring — medium CCW
-    { r: rotorR * 0.48, width: 1.0, speed: 0.8,  dir: 1  },  // inner ring — faster CW
-  ];
-  
-  // Dial palette — our own watch face colors as segments
-  const sorbet = [
-    0x68b890, // tennis
-    0xd8988c, // salmon
-    0x82b8d8, // sky
-    0xf2dce0, // kawthar
-    0xf08040, // dhuha
-    0x384870, // najm
-    0xd89098, // ward
-    0x8878a8, // lilas
-  ];
-  const segCount = 8;
-  
+  // Subdial rings removed — clean subdial face
   window._subdialRings = [];
-  ringDefs.forEach((rd, ri) => {
-    const ringGroup = new THREE.Group();
-    const gap = 0.03; // radians gap between segments
-    
-    for(let s = 0; s < segCount; s++) {
-      const startAng = (s / segCount) * Math.PI * 2 + gap;
-      const endAng = ((s + 1) / segCount) * Math.PI * 2 - gap;
-      
-      const segShape = new THREE.Shape();
-      segShape.absarc(0, 0, rd.r, startAng, endAng, false);
-      segShape.absarc(0, 0, rd.r - rd.width, endAng, startAng, true);
-      segShape.closePath();
-      
-      // Offset color index per ring so alignment creates columns
-      const colIdx = (s + ri * 0) % segCount; // same order — alignment = color match
-      const fullColor = new THREE.Color(sorbet[colIdx]);
-      const dimColor = fullColor.clone(); // full color — the Ressence rings should pop
-      const segMat = new THREE.MeshPhysicalMaterial({
-        color: fullColor,
-        roughness: 0.3, metalness: 0.1,
-        clearcoat: 1.0, envMapIntensity: 2.0,
-        emissive: fullColor, emissiveIntensity: 0.45,
-      });
-      segMat.userData = { fullColor, dimColor };
-      const segMesh = new THREE.Mesh(new THREE.ShapeGeometry(segShape), segMat);
-      segMesh.position.z = 0.15;
-      ringGroup.add(segMesh);
-    }
-    
-    ringGroup.position.z = 0.3;
-    qiblaRotor.add(ringGroup);
-    window._subdialRings.push({ group: ringGroup, speed: rd.speed, dir: rd.dir });
-  });
   
   // Inner rotor — smaller orbiting disc (Ressence double-orbit)
   qiblaInnerRotor = new THREE.Group();
@@ -1889,17 +1887,7 @@ function animate(){
     });
   }
   
-  // Ring segments glow with lume at night
-  if(window._subdialRings) {
-    window._subdialRings.forEach(r => {
-      r.group.children.forEach(child => {
-        if(child.material && child.material.userData && child.material.userData.fullColor) {
-          const nightBoost = modeBlend * 0.5;
-          child.material.emissiveIntensity = Math.max(child.material.emissiveIntensity, nightBoost);
-        }
-      });
-    });
-  }
+  // (subdial rings removed)
   
   // Bloom ramps up in night mode — soft, dreamy glow
   bloomPass.strength = modeBlend * 0.8;
@@ -2006,43 +1994,13 @@ function animate(){
   updateHands();
   updateFlap();
   updateQibla();
-  // Spin subdial rings — wild when off Qibla, decelerate and lock when aligned
-  if(window._subdialRings && qiblaRotor) {
+  // Qibla triangle pulses when aligned
+  if(window._qiblaTriMat && qiblaRotor) {
     const qiblaOffset = ((qiblaBearing - compassHeading) % 360 + 360) % 360;
-    const offNorm = Math.min(qiblaOffset, 360 - qiblaOffset) / 180; // 0=aligned, 1=opposite
+    const offNorm = Math.min(qiblaOffset, 360 - qiblaOffset) / 180;
     const aligned = qiblaAligned;
-    const nearZone = offNorm < 0.15; // within ~27° — rings start slowing
-    
-    // Qibla triangle pulses when aligned
-    if(window._qiblaTriMat) {
-      const targetTri = aligned ? 0.6 + Math.sin(Date.now() * 0.005) * 0.2 : 0.15;
-      window._qiblaTriMat.emissiveIntensity += (targetTri - window._qiblaTriMat.emissiveIntensity) * 0.1;
-    }
-    
-    window._subdialRings.forEach(r => {
-      if(aligned) {
-        // Snap to nearest aligned position (nearest multiple of segment angle)
-        const segAngle = Math.PI * 2 / 8;
-        const nearest = Math.round(r.group.rotation.z / segAngle) * segAngle;
-        r.group.rotation.z += (nearest - r.group.rotation.z) * 0.12; // firm snap
-      } else {
-        // Continuous spin — speed proportional to offset, slows as you approach
-        const spinSpeed = offNorm * offNorm * r.speed * r.dir * 0.04; // quadratic falloff
-        r.group.rotation.z += spinSpeed;
-      }
-      
-      // Color shift: desaturated while spinning → vivid + glow on alignment
-      r.group.children.forEach(child => {
-        if(child.material && child.material.userData) {
-          const { fullColor, dimColor } = child.material.userData;
-          const targetEmissive = aligned ? 0.4 : (nearZone ? 0.1 : 0);
-          child.material.emissiveIntensity += (targetEmissive - child.material.emissiveIntensity) * 0.08;
-          // Lerp base color: dim → full
-          const colorTarget = aligned ? fullColor : (nearZone ? fullColor.clone().lerp(dimColor, 0.5) : dimColor);
-          child.material.color.lerp(colorTarget, 0.06);
-        }
-      });
-    });
+    const targetTri = aligned ? 0.6 + Math.sin(Date.now() * 0.005) * 0.2 : 0.15;
+    window._qiblaTriMat.emissiveIntensity += (targetTri - window._qiblaTriMat.emissiveIntensity) * 0.1;
   }
   
   // Sample actual rendered pixel from canvas corner — matches PBR-lit appearance
