@@ -680,7 +680,7 @@ function buildMarkers() {
       {
         const tH=R*0.036, tW=0.675, depth=1.5;
         const geo = new THREE.BoxGeometry(tW, tH, depth);
-        const mat = new THREE.MeshStandardMaterial({color:c.lume, roughness:0.15, metalness:0.4}); mat.envMapIntensity = 2.5; // tick marks — polished, catch light
+        const mat = lumeMat(c.lume); // minute ticks = lume paint (SuperLuminova)
         const mesh = new THREE.Mesh(geo, mat);
         const midR = (R - R*0.04 - tH/2) * 1.03;
         mesh.position.x = Math.cos(ang)*midR;
@@ -689,6 +689,7 @@ function buildMarkers() {
         mesh.rotation.z = ang + Math.PI/2;
         clockGroup.add(mesh);
         markerMeshes.push(mesh);
+        lumeMeshes.push(mesh); // glow at night
       }
       // Also draw hour marker at non-numeral hour positions
       if(isHour && !isNumeralPos){
