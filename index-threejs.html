@@ -1755,8 +1755,7 @@ document.getElementById('listenBtn').addEventListener('click', (e) => {
   const num = SURAH_MAP[surahName];
   if (!num) return;
   if (surahAudio && !surahAudio.paused) { surahAudio.pause(); surahAudio = null; return; }
-  const pad = String(num).padStart(3, '0');
-  surahAudio = new Audio(`https://cdn.islamic.network/quran/audio-surah/128/ar.alafasy/${pad}.mp3`);
+  surahAudio = new Audio(`https://download.quranicaudio.com/qdc/mishari_al_afasy/murattal/${num}.mp3`);
   surahAudio.play().catch(() => {});
 });
 
